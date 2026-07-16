@@ -23,4 +23,5 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("", views.home_page, name="home"),
     path("dat-kham/search", views.doctor_search, name="doctor_search"),
+    path("accounts/register", views.register_account, name="register_account"),
 ]

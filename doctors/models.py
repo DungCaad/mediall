@@ -17,7 +17,7 @@ class Doctor(models.Model):
     avatar = models.URLField(blank=True)
     specialties = models.CharField(max_length=255, help_text="Separate specialties with |")
     address = models.CharField(max_length=255, blank=True)
-    cta = models.CharField(max_length=40, default="Dat kham")
+    cta = models.CharField(max_length=40, default="Book appointment")
     cta_style = models.CharField(max_length=20, choices=CTA_STYLES, default="primary")
     search_terms = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)

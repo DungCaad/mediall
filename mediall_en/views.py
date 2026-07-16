@@ -158,19 +158,19 @@ def register_account(request):
     errors = []
 
     if not username:
-        errors.append("Vui long nhap ten tai khoan.")
+        errors.append("Please enter a username.")
     if not phone:
-        errors.append("Vui long nhap so dien thoai.")
+        errors.append("Please enter a phone number.")
     if len(password) < 6:
-        errors.append("Mat khau can toi thieu 6 ky tu.")
+        errors.append("Password must be at least 6 characters.")
     if role not in {AccountProfile.ROLE_PATIENT, AccountProfile.ROLE_DOCTOR}:
-        errors.append("Vui long chon ban la benh nhan hay bac si.")
+        errors.append("Please choose whether you are a patient or a doctor.")
     if not captcha.isdigit() or int(captcha) != expected_captcha:
-        errors.append("Captcha khong dung.")
+        errors.append("Captcha is incorrect.")
     if User.objects.filter(username=username).exists():
-        errors.append("Ten tai khoan da ton tai.")
+        errors.append("Username already exists.")
     if AccountProfile.objects.filter(phone=phone).exists():
-        errors.append("So dien thoai da duoc su dung.")
+        errors.append("Phone number is already in use.")
 
     if errors:
         context = build_home_context(request)
@@ -190,7 +190,7 @@ def register_account(request):
     request.session.pop("registration_captcha_answer", None)
 
     context = build_home_context(request)
-    context["registration_success"] = "Dang ky tai khoan thanh cong."
+    context["registration_success"] = "Your account has been created."
     return render(request, "home.html", context)
 
 
@@ -205,7 +205,7 @@ def login_account(request):
     if user is None:
         context = build_home_context(request)
         context.update({
-            "login_errors": ["Ten tai khoan hoac mat khau khong dung."],
+            "login_errors": ["Username or password is incorrect."],
             "login_form": {"username": username},
             "open_login_modal": True,
         })
@@ -217,12 +217,12 @@ def login_account(request):
 
 def appointment_page(request):
     featured_specialties = [
-        "Lao - benh phoi",
-        "Ho hap",
-        "Da lieu",
-        "San phu khoa",
-        "Noi tiet",
-        "Tim mach",
+        "Pulmonology",
+        "Respiratory care",
+        "Dermatology",
+        "Obstetrics and gynecology",
+        "Endocrinology",
+        "Cardiology",
     ]
     featured_doctors = Doctor.objects.filter(is_active=True)[:4]
     context = {

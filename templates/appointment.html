@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dat kham | Mediall</title>
+    <title>Book an appointment | Mediall</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body class="appointment-page">
@@ -43,20 +43,20 @@
         <section class="appointment-hero">
             <div class="appointment-hero-inner">
                 <div>
-                    <h1>Dat kham voi bac si phu hop</h1>
-                    <p>Tim bac si, phong kham hoac chuyen khoa ban can va chuyen sang trang ket qua de dat lich.</p>
+                    <h1>Book care with the right provider</h1>
+                    <p>Search for doctors, clinics, or specialties and continue to the results page to book a visit.</p>
                 </div>
 
                 <form class="appointment-search" action="{% url 'doctor_search' %}" method="get">
-                    <input type="search" name="specialty" placeholder="Nhap chuyen khoa, trieu chung, ten bac si..." required>
-                    <button type="submit">Tim bac si</button>
+                    <input type="search" name="specialty" placeholder="Enter a specialty, symptom, or doctor name..." required>
+                    <button type="submit">Find doctors</button>
                 </form>
             </div>
         </section>
 
         <section class="appointment-content">
             <div class="appointment-section">
-                <h2>Chuyen khoa pho bien</h2>
+                <h2>Popular specialties</h2>
                 <div class="specialty-chip-grid">
                     {% for specialty in featured_specialties %}
                     <a href="{% url 'doctor_search' %}?specialty={{ specialty|urlencode }}">{{ specialty }}</a>
@@ -65,7 +65,7 @@
             </div>
 
             <div class="appointment-section">
-                <h2>Bac si va co so goi y</h2>
+                <h2>Recommended doctors and clinics</h2>
                 <div class="appointment-doctor-grid">
                     {% for doctor in featured_doctors %}
                     <article class="appointment-doctor-card">
@@ -75,7 +75,7 @@
                             <p>{{ doctor.specialties }}</p>
                             <span>{{ doctor.address }}</span>
                         </div>
-                        <a href="{% url 'doctor_search' %}?specialty={{ doctor.specialty_list.0|urlencode }}">Xem lich</a>
+                        <a href="{% url 'doctor_search' %}?specialty={{ doctor.specialty_list.0|urlencode }}">View availability</a>
                     </article>
                     {% endfor %}
                 </div>

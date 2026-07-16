@@ -6,8 +6,8 @@ class AccountProfile(models.Model):
     ROLE_PATIENT = "patient"
     ROLE_DOCTOR = "doctor"
     ROLE_CHOICES = [
-        (ROLE_PATIENT, "Benh nhan"),
-        (ROLE_DOCTOR, "Bac si"),
+        (ROLE_PATIENT, "Patient"),
+        (ROLE_DOCTOR, "Doctor"),
     ]
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")

@@ -44,17 +44,17 @@
         <section class="doctor-search-top">
             <div class="doctor-search-inner">
                 <form class="doctor-search-form" action="{% url 'doctor_search' %}" method="get">
-                    <input type="search" name="specialty" value="{{ specialty }}" placeholder="Tim theo trieu chung, bac si, benh vien...">
+                    <input type="search" name="specialty" value="{{ specialty }}" placeholder="Search by symptom, doctor, or hospital...">
                     <button type="submit" aria-label="Search">Search</button>
                 </form>
 
                 <div class="search-filters">
-                    <span>Noi kham: Tat ca</span>
+                    <span>Visit type: All</span>
                     {% if specialty %}
                     <span class="active-filter">{{ specialty }}</span>
                     {% endif %}
-                    <span>Khu vuc</span>
-                    <span>Gan nhat</span>
+                    <span>Area</span>
+                    <span>Nearest</span>
                 </div>
             </div>
         </section>
@@ -62,12 +62,12 @@
         <section class="doctor-results-wrap">
             <div class="doctor-results-card">
                 <div class="doctor-results-heading">
-                    <h1>Ket qua tim kiem</h1>
+                    <h1>Search results</h1>
                     <p>
-                        Tim thay {{ result_count }} ket qua{% if specialty %} cho "{{ specialty }}"{% endif %}.
+                        Found {{ result_count }} result{{ result_count|pluralize }}{% if specialty %} for "{{ specialty }}"{% endif %}.
                     </p>
                     {% if specialty and not has_direct_match %}
-                    <p class="fallback-note">Chua co ket qua trung khop tuyet doi, dang hien thi cac bac si co the ho tro.</p>
+                    <p class="fallback-note">No exact match yet, showing providers who may be able to help.</p>
                     {% endif %}
                 </div>
 

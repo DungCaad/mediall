@@ -20,7 +20,6 @@
                 <span>Browse all health ▾</span>
             </div>
             <div class="account-actions">
-                <span>Update location</span>
                 {% if request.user.is_authenticated %}
                 <div class="account-summary" aria-label="Signed in account">
                     <span class="account-avatar">{{ request.user.username|first|upper }}</span>

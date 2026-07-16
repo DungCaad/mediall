@@ -31,6 +31,7 @@ ALLOWED_HOSTS = ['mediall.net', 'www.mediall.net', 'localhost', '127.0.0.1']
 # Application definition
 
 INSTALLED_APPS = [
+    "doctors",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",

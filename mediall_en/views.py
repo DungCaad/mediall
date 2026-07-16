@@ -1,4 +1,7 @@
+from django.db.models import Q
 from django.shortcuts import render
+
+from doctors.models import Doctor
 
 def home_page(request):
     # Dữ liệu cho Carousel (Băng chuyền các loại bệnh)
@@ -125,108 +128,28 @@ def home_page(request):
     return render(request, 'home.html', context)
 
 
-DOCTORS = [
-    {
-        "name": "ThS. BS. CK2 Nguyen Thi Hong Hanh",
-        "type": "doctor",
-        "avatar": "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=240&q=80",
-        "specialties": ["Ho hap", "Lao - benh phoi"],
-        "address": "210 Phan Van Tri, Phuong 12, Quan Binh Thanh, Ho Chi Minh",
-        "cta": "Dat kham",
-        "cta_style": "primary",
-        "search_terms": "respiratory asthma cold flu covid cough lao benh phoi ho hap",
-    },
-    {
-        "name": "TS. BS Nguyen Duc Bang",
-        "type": "doctor",
-        "avatar": "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=240&q=80",
-        "specialties": ["Ho hap", "Lao - benh phoi"],
-        "address": "So 005 Chung cu Ngo Quyen, Phuong 9, Quan 5, Ho Chi Minh",
-        "cta": "Dat kham",
-        "cta_style": "primary",
-        "search_terms": "respiratory asthma cold flu covid cough lao benh phoi ho hap",
-    },
-    {
-        "name": "Bac si Nguyen Thanh Thai",
-        "type": "doctor",
-        "avatar": "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=240&q=80",
-        "specialties": ["Ho hap", "Lao - benh phoi"],
-        "address": "Can Tho",
-        "cta": "Dat lich tu van",
-        "cta_style": "success",
-        "search_terms": "respiratory asthma cold flu covid cough lao benh phoi ho hap",
-    },
-    {
-        "name": "Benh vien Phoi Soc Trang",
-        "type": "clinic",
-        "avatar": "https://images.unsplash.com/photo-1586773860418-d37222d8fce3?auto=format&fit=crop&w=240&q=80",
-        "specialties": ["Lao - benh phoi"],
-        "address": "So 468 Duong 30/4, Phuong Phu Loi, Can Tho",
-        "cta": "Dat kham",
-        "cta_style": "primary",
-        "search_terms": "respiratory asthma cold flu covid cough lao benh phoi ho hap hospital clinic",
-    },
-    {
-        "name": "Phong kham Phoi Quoc te An Duc",
-        "type": "clinic",
-        "avatar": "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=240&q=80",
-        "specialties": ["Lao - benh phoi"],
-        "address": "35 Nguyen Van Cu, Quan 5, Ho Chi Minh",
-        "cta": "Dat kham",
-        "cta_style": "primary",
-        "search_terms": "respiratory asthma cold flu covid cough lao benh phoi ho hap hospital clinic",
-    },
-    {
-        "name": "BS. Tran Minh Quan",
-        "type": "doctor",
-        "avatar": "https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=240&q=80",
-        "specialties": ["Da lieu", "Cham soc da"],
-        "address": "12 Nguyen Trai, Quan 1, Ho Chi Minh",
-        "cta": "Dat kham",
-        "cta_style": "primary",
-        "search_terms": "acne anti aging skin care eczema dark spots melasma dandruff hair skin",
-    },
-    {
-        "name": "BS. Le Thu Ha",
-        "type": "doctor",
-        "avatar": "https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&w=240&q=80",
-        "specialties": ["San phu khoa", "Suc khoe phu nu"],
-        "address": "80 Ly Thuong Kiet, Quan 10, Ho Chi Minh",
-        "cta": "Dat lich tu van",
-        "cta_style": "success",
-        "search_terms": "birth control menopause vaginal yeast infection bacterial vaginosis women emergency contraception",
-    },
-    {
-        "name": "ThS. BS Pham Anh Tuan",
-        "type": "doctor",
-        "avatar": "https://images.unsplash.com/photo-1605684954998-685c79d6a018?auto=format&fit=crop&w=240&q=80",
-        "specialties": ["Noi tiet", "Tim mach"],
-        "address": "56 Pasteur, Quan 3, Ho Chi Minh",
-        "cta": "Dat kham",
-        "cta_style": "primary",
-        "search_terms": "diabetes type 2 cholesterol blood pressure acid reflux anxiety depression general health",
-    },
-]
-
-
 def doctor_search(request):
     specialty = request.GET.get("specialty", "").strip()
     keyword = specialty.lower().replace("-", " ")
+    doctors = Doctor.objects.filter(is_active=True)
 
     if keyword:
-        matched_doctors = [
-            doctor for doctor in DOCTORS
-            if keyword in doctor["search_terms"].lower()
-            or any(keyword in item.lower().replace("-", " ") for item in doctor["specialties"])
-        ]
+        matched_doctors = doctors.filter(
+            Q(name__icontains=keyword)
+            | Q(specialties__icontains=keyword)
+            | Q(address__icontains=keyword)
+            | Q(search_terms__icontains=keyword)
+        )
     else:
-        matched_doctors = DOCTORS
+        matched_doctors = doctors
 
+    has_direct_match = matched_doctors.exists() or not specialty
+    visible_doctors = matched_doctors if has_direct_match else doctors
     context = {
         "specialty": specialty,
-        "doctors": matched_doctors or DOCTORS,
-        "result_count": len(matched_doctors or DOCTORS),
-        "has_direct_match": bool(matched_doctors) or not specialty,
+        "doctors": visible_doctors,
+        "result_count": visible_doctors.count(),
+        "has_direct_match": has_direct_match,
     }
 
     return render(request, "doctor_search.html", context)

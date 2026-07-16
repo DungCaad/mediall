@@ -14,7 +14,7 @@ class Doctor(models.Model):
 
     name = models.CharField(max_length=160)
     provider_type = models.CharField(max_length=20, choices=PROVIDER_TYPES, default="doctor")
-    avatar = models.URLField(blank=True)
+    avatar = models.CharField(max_length=255, blank=True)
     specialties = models.CharField(max_length=255, help_text="Separate specialties with |")
     address = models.CharField(max_length=255, blank=True)
     cta = models.CharField(max_length=40, default="Dat kham")

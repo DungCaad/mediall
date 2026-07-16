@@ -284,7 +284,7 @@ header {
 
 /* === HERO SECTION === */
 .hero {
-    background-image: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRHG8q44feVlNj8qJMIwLL-dudcRHvwrq-8GoDvAGpkLsUftG5th4_zcCGx&s=10');
+    background-image: url('../images/hero-care.svg');
     background-size: cover;
     background-position: center;
     padding: 60px 0 40px 0;
@@ -881,7 +881,8 @@ header {
     margin-top: 80px;
 }
 
-.testimonial video {
+.testimonial video,
+.testimonial-image {
     width: 100%;
     max-width: 600px;
     border-radius: 8px;

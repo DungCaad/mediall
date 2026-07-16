@@ -55,7 +55,7 @@
                 <div class="doctor-list">
                     {% for doctor in doctors %}
                     <article class="doctor-row">
-                        <img class="doctor-avatar" src="{{ doctor.avatar }}" alt="{{ doctor.name }}">
+                        <img class="doctor-avatar" src="{{ doctor.avatar|default:'/static/images/doctor-male.svg' }}" alt="{{ doctor.name }}" onerror="this.src='{% static 'images/doctor-male.svg' %}'">
                         <div class="doctor-info">
                             <h2>{{ doctor.name }}</h2>
                             <div class="doctor-tags">

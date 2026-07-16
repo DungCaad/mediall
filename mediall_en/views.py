@@ -15,6 +15,12 @@ def set_registration_captcha(request):
     request.session["registration_captcha_answer"] = first_number + second_number
     return f"{first_number} + {second_number}"
 
+
+def is_vietnamese_host(request):
+    host = request.get_host().split(":", 1)[0].lower()
+    return host.startswith("vi.")
+
+
 def build_home_context(request):
     # Dữ liệu cho Carousel (Băng chuyền các loại bệnh)
     carousel_conditions = [
@@ -142,6 +148,8 @@ def build_home_context(request):
 
 
 def home_page(request):
+    if is_vietnamese_host(request):
+        return render(request, 'home_vi.html', build_home_context(request))
     return render(request, 'home.html', build_home_context(request))
 
 

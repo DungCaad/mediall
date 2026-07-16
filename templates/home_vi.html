@@ -1,0 +1,148 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mediall | Chăm sóc sức khỏe trực tuyến</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <header>
+        <div class="top-nav">
+            <div class="top-nav-logo">Mediall</div>
+        </div>
+        <div class="sub-nav">
+            <div class="sub-nav-left">
+                <span class="sub-nav-logo">Mediall one medical</span>
+                <span>Health AI✨</span>
+                <span>Chăm sóc theo yêu cầu</span>
+                <span>Trợ giúp/FAQ</span>
+                <span>Danh mục sức khỏe ▾</span>
+            </div>
+            <div class="account-actions">
+                {% if request.user.is_authenticated %}
+                <div class="account-menu" data-account-menu>
+                    <button class="account-summary" type="button" aria-label="Mở menu tài khoản" data-account-toggle>
+                        <span class="account-avatar">{{ request.user.username|first|upper }}</span>
+                        <span class="account-name">{{ request.user.username }}</span>
+                    </button>
+                    <div class="account-dropdown" data-account-dropdown>
+                        <a href="#" class="disabled-link">Hồ sơ <span>Phát triển sau</span></a>
+                        <a href="{% url 'logout_account' %}">Đăng xuất</a>
+                    </div>
+                </div>
+                {% else %}
+                <a class="text-button" href="{% url 'home' %}">Đăng nhập</a>
+                <span>|</span>
+                <a class="text-button" href="{% url 'home' %}">Đăng ký</a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="promo-banner">
+            Nhận hướng dẫn cá nhân hóa với Health AI ✨
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Chăm sóc sức khỏe<br>dễ dàng hơn</h1>
+            <p>Đặt lịch khám gần bạn, hoặc nhận hỗ trợ trực tuyến 24/7 cho các vấn đề phổ biến.</p>
+
+            <div class="conditions-carousel">
+                {% for item in carousel_conditions %}
+                <a class="condition-item" href="{% url 'doctor_search' %}?specialty={{ item.specialty|urlencode }}">
+                    <img src="{{ item.img }}" alt="Condition">
+                    <span>{{ item.title|safe }}</span>
+                </a>
+                {% endfor %}
+            </div>
+
+            <a class="btn" href="{% url 'appointment' %}" style="width: fit-content;">Tìm bác sĩ</a>
+        </div>
+    </section>
+
+    <section class="conditions-section">
+        <div class="container">
+            <h2 class="section-title">Bạn cần hỗ trợ vấn đề gì?</h2>
+
+            <div class="tabs" role="tablist" aria-label="Condition categories">
+                {% for tab in condition_tabs %}
+                <button
+                    class="tab{% if tab.active %} active{% endif %}"
+                    type="button"
+                    role="tab"
+                    aria-selected="{% if tab.active %}true{% else %}false{% endif %}"
+                    aria-controls="condition-panel-vi-{{ forloop.counter }}"
+                    data-tab-target="condition-panel-vi-{{ forloop.counter }}">
+                    {{ tab.name }}
+                </button>
+                {% endfor %}
+            </div>
+
+            <div class="condition-panels">
+                {% for tab in condition_tabs %}
+                <div
+                    class="conditions-grid condition-panel{% if tab.active %} active{% endif %}"
+                    id="condition-panel-vi-{{ forloop.counter }}"
+                    role="tabpanel">
+                    {% for condition in tab.conditions %}
+                    <a class="condition-card" href="{% url 'doctor_search' %}?specialty={{ condition|urlencode }}">{{ condition }}</a>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <section class="how-it-works">
+        <div class="container">
+            <h2 class="section-title" style="text-align: left;">Cách hoạt động</h2>
+            <div class="how-grid">
+                {% for step in how_it_works %}
+                <div class="step-card">
+                    <img src="{{ step.img }}" alt="Step {{ step.step }}">
+                    <h4><span class="step-number">{{ step.step }}</span> {{ step.title }}</h4>
+                    <p>{{ step.desc }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <script>
+        document.querySelectorAll("[data-tab-target]").forEach(function (tabButton) {
+            tabButton.addEventListener("click", function () {
+                var targetId = tabButton.dataset.tabTarget;
+
+                document.querySelectorAll("[data-tab-target]").forEach(function (button) {
+                    var isActive = button === tabButton;
+                    button.classList.toggle("active", isActive);
+                    button.setAttribute("aria-selected", isActive ? "true" : "false");
+                });
+
+                document.querySelectorAll(".condition-panel").forEach(function (panel) {
+                    panel.classList.toggle("active", panel.id === targetId);
+                });
+            });
+        });
+
+        document.querySelectorAll("[data-account-menu]").forEach(function (menu) {
+            var toggle = menu.querySelector("[data-account-toggle]");
+            if (!toggle) {
+                return;
+            }
+            toggle.addEventListener("click", function (event) {
+                event.stopPropagation();
+                menu.classList.toggle("active");
+            });
+        });
+
+        document.addEventListener("click", function () {
+            document.querySelectorAll("[data-account-menu].active").forEach(function (menu) {
+                menu.classList.remove("active");
+            });
+        });
+    </script>
+</body>
+</html>

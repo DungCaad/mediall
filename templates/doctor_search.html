@@ -1,0 +1,76 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find doctors | Mediall</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body class="search-page">
+    <header class="search-header">
+        <div class="search-nav">
+            <a href="{% url 'home' %}" class="search-logo">Mediall</a>
+            <nav>
+                <a href="#">Dat kham</a>
+                <a href="#">Tu van truc tuyen</a>
+                <a href="#">Tin Y te</a>
+                <a href="#">Tro ly y khoa</a>
+                <a href="#" class="login-link">Dang nhap</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="doctor-search-top">
+            <div class="doctor-search-inner">
+                <form class="doctor-search-form" action="{% url 'doctor_search' %}" method="get">
+                    <input type="search" name="specialty" value="{{ specialty }}" placeholder="Tim theo trieu chung, bac si, benh vien...">
+                    <button type="submit" aria-label="Search">Search</button>
+                </form>
+
+                <div class="search-filters">
+                    <span>Noi kham: Tat ca</span>
+                    {% if specialty %}
+                    <span class="active-filter">{{ specialty }}</span>
+                    {% endif %}
+                    <span>Khu vuc</span>
+                    <span>Gan nhat</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="doctor-results-wrap">
+            <div class="doctor-results-card">
+                <div class="doctor-results-heading">
+                    <h1>Ket qua tim kiem</h1>
+                    <p>
+                        Tim thay {{ result_count }} ket qua{% if specialty %} cho "{{ specialty }}"{% endif %}.
+                    </p>
+                    {% if specialty and not has_direct_match %}
+                    <p class="fallback-note">Chua co ket qua trung khop tuyet doi, dang hien thi cac bac si co the ho tro.</p>
+                    {% endif %}
+                </div>
+
+                <div class="doctor-list">
+                    {% for doctor in doctors %}
+                    <article class="doctor-row">
+                        <img class="doctor-avatar" src="{{ doctor.avatar }}" alt="{{ doctor.name }}">
+                        <div class="doctor-info">
+                            <h2>{{ doctor.name }}</h2>
+                            <div class="doctor-tags">
+                                {% for item in doctor.specialties %}
+                                <span>{{ item }}</span>
+                                {% endfor %}
+                            </div>
+                            <p>{{ doctor.address }}</p>
+                        </div>
+                        <a href="#" class="doctor-cta {{ doctor.cta_style }}">{{ doctor.cta }}</a>
+                    </article>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

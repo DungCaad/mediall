@@ -110,7 +110,7 @@
 
             <div class="conditions-grid">
                 {% for condition in all_conditions %}
-                <div class="condition-card">{{ condition }}</div>
+                <a class="condition-card" href="{% url 'doctor_search' %}?specialty={{ condition|urlencode }}">{{ condition }}</a>
                 {% endfor %}
             </div>
             

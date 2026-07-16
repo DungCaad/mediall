@@ -26,4 +26,5 @@ urlpatterns = [
     path("dat-kham/search", views.doctor_search, name="doctor_search"),
     path("accounts/register", views.register_account, name="register_account"),
     path("accounts/login", views.login_account, name="login_account"),
+    path("accounts/logout", views.logout_account, name="logout_account"),
 ]

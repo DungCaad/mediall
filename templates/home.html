@@ -23,9 +23,15 @@
             </div>
             <div class="account-actions">
                 {% if request.user.is_authenticated %}
-                <div class="account-summary" aria-label="Signed in account">
-                    <span class="account-avatar">{{ request.user.username|first|upper }}</span>
-                    <span class="account-name">{{ request.user.username }}</span>
+                <div class="account-menu" data-account-menu>
+                    <button class="account-summary" type="button" aria-label="Open account menu" data-account-toggle>
+                        <span class="account-avatar">{{ request.user.username|first|upper }}</span>
+                        <span class="account-name">{{ request.user.username }}</span>
+                    </button>
+                    <div class="account-dropdown" data-account-dropdown>
+                        <a href="#" class="disabled-link">Profile <span>Coming soon</span></a>
+                        <a href="{% url 'logout_account' %}">Sign out</a>
+                    </div>
                 </div>
                 {% else %}
                 <span>|</span>
@@ -476,6 +482,23 @@
             option.addEventListener("change", syncDoctorFields);
         });
         syncDoctorFields();
+
+        document.querySelectorAll("[data-account-menu]").forEach(function (menu) {
+            var toggle = menu.querySelector("[data-account-toggle]");
+            if (!toggle) {
+                return;
+            }
+            toggle.addEventListener("click", function (event) {
+                event.stopPropagation();
+                menu.classList.toggle("active");
+            });
+        });
+
+        document.addEventListener("click", function () {
+            document.querySelectorAll("[data-account-menu].active").forEach(function (menu) {
+                menu.classList.remove("active");
+            });
+        });
     </script>
 </body>
 </html>

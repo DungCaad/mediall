@@ -1,6 +1,6 @@
 import random
 
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.shortcuts import redirect, render
@@ -226,6 +226,11 @@ def login_account(request):
         return render(request, "home.html", context, status=400)
 
     login(request, user)
+    return redirect("home")
+
+
+def logout_account(request):
+    logout(request)
     return redirect("home")
 
 

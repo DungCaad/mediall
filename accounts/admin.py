@@ -5,6 +5,6 @@ from .models import AccountProfile
 
 @admin.register(AccountProfile)
 class AccountProfileAdmin(admin.ModelAdmin):
-    list_display = ("user", "phone", "role", "created_at")
+    list_display = ("user", "phone", "role", "clinic_address", "created_at")
     list_filter = ("role",)
-    search_fields = ("user__username", "phone")
+    search_fields = ("user__username", "phone", "clinic_address")

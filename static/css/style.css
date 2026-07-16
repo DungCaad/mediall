@@ -287,6 +287,15 @@ header {
     padding: 10px;
 }
 
+.doctor-extra-fields {
+    display: none;
+    gap: 14px;
+}
+
+.doctor-extra-fields.active {
+    display: grid;
+}
+
 .register-submit {
     margin-top: 4px;
     width: 100%;

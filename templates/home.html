@@ -109,14 +109,26 @@
                 <fieldset class="role-choice">
                     <legend>Who are you?</legend>
                     <label>
-                        <input type="radio" name="role" value="patient" {% if registration_form.role != "doctor" %}checked{% endif %}>
+                        <input type="radio" name="role" value="patient" {% if registration_form.role != "doctor" %}checked{% endif %} data-role-option>
                         Patient
                     </label>
                     <label>
-                        <input type="radio" name="role" value="doctor" {% if registration_form.role == "doctor" %}checked{% endif %}>
+                        <input type="radio" name="role" value="doctor" {% if registration_form.role == "doctor" %}checked{% endif %} data-role-option>
                         Doctor
                     </label>
                 </fieldset>
+
+                <div class="doctor-extra-fields{% if registration_form.role == 'doctor' %} active{% endif %}" data-doctor-fields>
+                    <label>
+                        Profile photo URL
+                        <input type="url" name="photo" value="{{ registration_form.photo }}" data-doctor-required>
+                    </label>
+
+                    <label>
+                        Clinic address
+                        <input type="text" name="clinic_address" value="{{ registration_form.clinic_address }}" data-doctor-required>
+                    </label>
+                </div>
 
                 <label>
                     Captcha: {{ captcha_question }} = ?
@@ -441,6 +453,29 @@
 
         setupModal("[data-login-modal]", "[data-open-login]", "[data-close-login]");
         setupModal("[data-register-modal]", "[data-open-register]", "[data-close-register]");
+
+        var roleOptions = document.querySelectorAll("[data-role-option]");
+        var doctorFields = document.querySelector("[data-doctor-fields]");
+        var doctorRequiredFields = document.querySelectorAll("[data-doctor-required]");
+
+        function syncDoctorFields() {
+            var selectedRole = document.querySelector("[data-role-option]:checked");
+            var isDoctor = selectedRole && selectedRole.value === "doctor";
+
+            if (!doctorFields) {
+                return;
+            }
+
+            doctorFields.classList.toggle("active", isDoctor);
+            doctorRequiredFields.forEach(function (field) {
+                field.required = isDoctor;
+            });
+        }
+
+        roleOptions.forEach(function (option) {
+            option.addEventListener("change", syncDoctorFields);
+        });
+        syncDoctorFields();
     </script>
 </body>
 </html>

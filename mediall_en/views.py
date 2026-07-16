@@ -153,6 +153,8 @@ def register_account(request):
     phone = request.POST.get("phone", "").strip()
     password = request.POST.get("password", "")
     role = request.POST.get("role", "")
+    photo = request.POST.get("photo", "").strip()
+    clinic_address = request.POST.get("clinic_address", "").strip()
     captcha = request.POST.get("captcha", "").strip()
     expected_captcha = request.session.get("registration_captcha_answer")
     errors = []
@@ -165,6 +167,10 @@ def register_account(request):
         errors.append("Password must be at least 6 characters.")
     if role not in {AccountProfile.ROLE_PATIENT, AccountProfile.ROLE_DOCTOR}:
         errors.append("Please choose whether you are a patient or a doctor.")
+    if role == AccountProfile.ROLE_DOCTOR and not photo:
+        errors.append("Doctors must provide a profile photo URL.")
+    if role == AccountProfile.ROLE_DOCTOR and not clinic_address:
+        errors.append("Doctors must provide a clinic address.")
     if not captcha.isdigit() or int(captcha) != expected_captcha:
         errors.append("Captcha is incorrect.")
     if User.objects.filter(username=username).exists():
@@ -180,13 +186,21 @@ def register_account(request):
                 "username": username,
                 "phone": phone,
                 "role": role,
+                "photo": photo,
+                "clinic_address": clinic_address,
             },
             "open_register_modal": True,
         })
         return render(request, "home.html", context, status=400)
 
     user = User.objects.create_user(username=username, password=password)
-    AccountProfile.objects.create(user=user, phone=phone, role=role)
+    AccountProfile.objects.create(
+        user=user,
+        phone=phone,
+        role=role,
+        photo=photo,
+        clinic_address=clinic_address,
+    )
     request.session.pop("registration_captcha_answer", None)
 
     context = build_home_context(request)

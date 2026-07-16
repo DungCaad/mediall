@@ -153,10 +153,10 @@
             
             <div class="conditions-carousel">
                 {% for item in carousel_conditions %}
-                <div class="condition-item">
+                <a class="condition-item" href="{% url 'doctor_search' %}?specialty={{ item.specialty|urlencode }}">
                     <img src="{{ item.img }}" alt="Condition">
                     <span>{{ item.title|safe }}</span>
-                </div>
+                </a>
                 {% endfor %}
             </div>
 

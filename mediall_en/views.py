@@ -18,17 +18,17 @@ def set_registration_captcha(request):
 def build_home_context(request):
     # Dữ liệu cho Carousel (Băng chuyền các loại bệnh)
     carousel_conditions = [
-        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Urinary-Tract-Infection_Carousel_1x_220x220.png", "title": "Urinary tract<br>infection (UTI)"},
-        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Erectile-Dysfunction_Carousel_1x_220x220.png", "title": "Erectile<br>dysfunction"},
-        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/menopause/K_Conditions_Menopause_Carousel_1x_220x220.png", "title": "Menopause"},
-        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Vaginal-Yeast-Infection_Carousel_1x_220x220.png", "title": "Vaginal yeast<br>infection"},
-        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Cough-Cold-Flu-Strep_Carousel_1x_220x220.png", "title": "Cold and flu"},
-        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_DiabetesType2_Carousel_1x_220x220.png", "title": "Type 2 diabetes"},
-        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Anti-Aging_Carousel_1x_220x220.png", "title": "Anti-aging skin<br>care"},
-        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Pink-Eye_Carousel_1x_220x220.png", "title": "Pink eye"},
-        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Male-Hair-Loss_Carousel_1x_220x220.png", "title": "Male-pattern<br>hair loss"},
-        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Bacterial-Vaginosis_Carousel_1x_220x220.png", "title": "Bacterial<br>vaginosis (BV)"},
-        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Birth-Control_Carousel_1x_220x220.png", "title": "Birth control"},
+        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Urinary-Tract-Infection_Carousel_1x_220x220.png", "title": "Urinary tract<br>infection (UTI)", "specialty": "Urinary tract infection"},
+        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Erectile-Dysfunction_Carousel_1x_220x220.png", "title": "Erectile<br>dysfunction", "specialty": "Erectile dysfunction"},
+        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/menopause/K_Conditions_Menopause_Carousel_1x_220x220.png", "title": "Menopause", "specialty": "Menopause"},
+        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Vaginal-Yeast-Infection_Carousel_1x_220x220.png", "title": "Vaginal yeast<br>infection", "specialty": "Vaginal yeast infection"},
+        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Cough-Cold-Flu-Strep_Carousel_1x_220x220.png", "title": "Cold and flu", "specialty": "Cold and flu"},
+        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_DiabetesType2_Carousel_1x_220x220.png", "title": "Type 2 diabetes", "specialty": "Type 2 diabetes"},
+        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Anti-Aging_Carousel_1x_220x220.png", "title": "Anti-aging skin<br>care", "specialty": "Anti-aging skin care"},
+        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Pink-Eye_Carousel_1x_220x220.png", "title": "Pink eye", "specialty": "Pink eye"},
+        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Male-Hair-Loss_Carousel_1x_220x220.png", "title": "Male-pattern<br>hair loss", "specialty": "Male-pattern hair loss"},
+        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Bacterial-Vaginosis_Carousel_1x_220x220.png", "title": "Bacterial<br>vaginosis (BV)", "specialty": "Bacterial vaginosis"},
+        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Birth-Control_Carousel_1x_220x220.png", "title": "Birth control", "specialty": "Birth control"},
     ]
 
     # Dữ liệu cho danh sách bệnh lưới (Grid)

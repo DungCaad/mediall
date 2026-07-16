@@ -428,6 +428,13 @@ header {
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
+    color: var(--primary-text);
+}
+
+.condition-item:hover {
+    border-color: var(--accent-teal);
+    text-decoration: none;
+    transform: translateY(-1px);
 }
 
 .condition-item img {

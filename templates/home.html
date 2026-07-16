@@ -1,0 +1,276 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mediall One Medical</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+
+    <header>
+        <div class="top-nav">
+            <div class="top-nav-logo">Mediall</div>
+        </div>
+        <div class="sub-nav">
+            <div class="sub-nav-left">
+                <span class="sub-nav-logo">Mediall one medical</span>
+                <span>Health AI✨</span>
+                <span>On-Demand Care</span>
+                <span>Help/FAQ</span>
+                <span>Browse all health ▾</span>
+            </div>
+            <div>📍 Update location &nbsp;|&nbsp; Sign in | Sign up</div>
+        </div>
+        <div class="promo-banner">
+            Get personalized guidance with early access to Health AI ✨
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Healthcare<br>just got<br>less<br>painful</h1>
+            <p>Book same/next-day appointments at offices near you, plus get 24/7 On-Demand Care for help with:</p>
+            
+            <div class="conditions-carousel">
+                {% for item in carousel_conditions %}
+                <div class="condition-item">
+                    <img src="{{ item.img }}" alt="Condition">
+                    <span>{{ item.title|safe }}</span>
+                </div>
+                {% endfor %}
+            </div>
+
+            <button class="btn" style="width: fit-content;">Find your treatment</button>
+        </div>
+    </section>
+
+    <section class="two-options">
+        <div class="container">
+            <div class="two-options-grid">
+                <div>
+                    <img src="https://m.media-Mediall.com/images/G/01/katara/kyanite/storefront/storefront_twister_msa-desktop.png" alt="Doctor smiling">
+                </div>
+                <div>
+                    <h2 class="section-title">Two options to get care</h2>
+                    <a href="#" style="display:block; margin-bottom: 20px; font-size:14px;">Compare options</a>
+                    
+                    <div class="toggle-cards">
+                        <div class="toggle-card">
+                            <h4>Membership</h4>
+                            <p>24/7 On-Demand Care, ongoing support for healthcare needs</p>
+                            <div class="price">$99</div>
+                            <p style="margin:0;">1/yr with Prime<br>Cancel at any time</p>
+                        </div>
+                        <div style="font-size:12px; font-weight:bold;">or</div>
+                        <div class="toggle-card active">
+                            <h4>On-Demand Care</h4>
+                            <p>One-time virtual care to treat common conditions</p>
+                            <div class="price">from $29</div>
+                            <p style="margin:0;">/treatment<br>Prices vary by care type and condition</p>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-bottom: 15px;">On-Demand Care is best for</h3>
+                    <ul class="features-list">
+                        <li>Self-pay treatment – insurance not accepted or needed</li>
+                        <li>Quick treatment of common conditions</li>
+                        <li>Fast care by direct message or video</li>
+                        <li>FSA/HSA eligible</li>
+                    </ul>
+
+                    <div class="price-breakdown">
+                        $29 <span style="font-size:14px; font-weight:normal;">/Direct Message Care</span> &nbsp; 
+                        $49 <span style="font-size:14px; font-weight:normal;">/Video Care</span>
+                    </div>
+                    <p class="price-disclaimer">Prices vary by condition. Prices subject to change. Direct Message Care availability varies by state.</p>
+                    
+                    <button class="btn" style="margin-right: 15px;">Request a treatment</button>
+                    <a href="#" style="font-size: 14px; font-weight: bold;">Learn more about On-Demand Care</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="conditions-section">
+        <div class="container">
+            <h2 class="section-title">What would you like help with?</h2>
+            
+            <div class="tabs">
+                <div class="tab">Most popular</div>
+                <div class="tab">Men's health</div>
+                <div class="tab">Women's health</div>
+                <div class="tab">General health</div>
+                <div class="tab">Sexual health</div>
+                <div class="tab">Skin and hair</div>
+                <div class="tab">Prescription renewal</div>
+                <div class="tab active">All conditions</div>
+            </div>
+
+            <div class="conditions-grid">
+                {% for condition in all_conditions %}
+                <div class="condition-card">{{ condition }}</div>
+                {% endfor %}
+            </div>
+            
+            <div style="margin-top: 30px;">
+                <h4 style="margin-bottom: 10px;">More ways we can help you</h4>
+                <p style="font-size: 14px;">Looking for primary care, pediatrics, chronic condition care, or mental health support? <a href="#">See additional One Medical services</a></p>
+            </div>
+        </div>
+    </section>
+
+    <section class="split-section bg-mint">
+        <div class="container">
+            <div class="split-grid">
+                <div>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Mediall_logo.svg/1000px-Mediall_logo.svg.png" width="80" alt="Mediall logo" style="margin-bottom: 10px;"> <span style="color:var(--accent-teal); font-weight:bold;">one medical</span>
+                    <h2 class="section-title" style="font-size:36px; margin: 15px 0;">Get trusted care for<br><span style="color: var(--accent-teal);">your child</span></h2>
+                    <p>Connect with family care providers for secure telehealth treatment for children ages 2-17.* No waiting rooms, no hassle.</p>
+                    
+                    <div class="pill-container">
+                        <div class="pill">Pink eye</div>
+                        <div class="pill">Eczema</div>
+                        <div class="pill">Skin issue</div>
+                        <div class="pill">Head lice</div>
+                        <div class="pill">Asthma Rx renewals</div>
+                        <div class="pill">EpiPen Rx renewals</div>
+                    </div>
+                    <p style="font-size: 11px; color: var(--secondary-text);">*Care is managed by parents and legal guardians</p>
+                </div>
+                <div class="split-image">
+                    <img src="https://m.media-Mediall.com/images/G/01/katara/care-4-kids/Care4Kids_LP.png" alt="Mother and child">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="split-section bg-white">
+        <div class="container">
+            <div class="split-grid" style="grid-template-columns: 1fr 1.2fr;">
+                <div>
+                    <span class="badge">WHY CHOOSE MEMBERSHIP?</span>
+                    <h2 class="section-title">Get ongoing support for your healthcare needs</h2>
+                    <ul class="features-list">
+                        <li>Complement Scheduled In-Person Visits with 24/7 On-Demand Care*</li>
+                        <li>Start new chats with your care team, anytime, anywhere</li>
+                        <li>Easily request new prescriptions and renewals</li>
+                    </ul>
+                    <a href="#" style="font-size: 14px; font-weight: bold; display: block; margin-bottom: 30px;">See locations and appointment availability</a>
+                    
+                    <h4 style="margin-bottom: 5px; display: flex; align-items:center; gap: 10px;">
+                        <span style="font-size:24px;">💳</span> One Medical accepts insurance like a typical doctor's office
+                    </h4>
+                    <p style="font-size: 11px; color: var(--secondary-text); margin-bottom: 10px;">*You can still book Scheduled In-Person and Video Visits, but they are not included in membership and are billed to you or your insurance.</p>
+                    <a href="#" style="font-size: 14px; font-weight: bold;">See accepted insurance plans</a>
+                </div>
+                <div class="split-image" style="text-align: center;">
+                    <img src="https://m.media-Mediall.com/images/G/01/katara/kyanite/storefront/storefront_msa_info-desktop.png" alt="Nurse and patient">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="split-section bg-white" style="padding-top: 0;">
+        <div class="container">
+            <div class="split-grid">
+                <div class="split-image">
+                    <img src="https://m.media-Mediall.com/images/G/01/katara/kyanite/storefront/storefront_xmsa_info-desktop.png" alt="Man on bench">
+                </div>
+                <div>
+                    <span class="badge" style="background:#EAEAEA;">ON-DEMAND CARE</span>
+                    <h2 class="section-title">Just want one-time virtual care?</h2>
+                    <p style="font-size: 14px; margin-bottom: 20px;">Day or night, you can request one-time virtual care from Mediall One Medical to find treatment for 30+ common conditions.</p>
+                    
+                    <div class="price-breakdown">
+                        $29 <span style="font-size:14px; font-weight:normal;">/Direct Message Care &nbsp;|&nbsp; </span> 
+                        $49 <span style="font-size:14px; font-weight:normal;">/Video Care</span>
+                    </div>
+                    <p class="price-disclaimer">Prices vary by condition. Prices subject to change. Direct Message Care availability varies by state.</p>
+                    
+                    <ul class="features-list">
+                        <li>Quick treatment of common conditions</li>
+                        <li>Fast care by direct message or video</li>
+                        <li>Self-pay treatment - insurance not accepted or needed</li>
+                        <li>FSA/HSA eligible</li>
+                    </ul>
+                    <button class="btn">Request a treatment</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="how-it-works">
+        <div class="container">
+            <h2 class="section-title" style="text-align: left;">How On-Demand Care works</h2>
+            <div class="how-grid">
+                {% for step in how_it_works %}
+                <div class="step-card">
+                    <img src="{{ step.img }}" alt="Step {{ step.step }}">
+                    <h4><span class="step-number">{{ step.step }}</span> {{ step.title }}</h4>
+                    <p>{{ step.desc }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <section class="faq-testimonial">
+        <div class="container">
+            <h2 class="section-title">Frequently asked questions</h2>
+            <div style="max-width: 1000px;">
+                <div class="faq-item">What is Mediall One Medical? <span>∨</span></div>
+                <div class="faq-item">How is One Medical Membership different from Mediall One Medical On-Demand Care? <span>∨</span></div>
+                <div class="faq-item">Does Mediall One Medical take insurance? <span>∨</span></div>
+                <div class="faq-item">How does Mediall One Medical protect my health information? <span>∨</span></div>
+            </div>
+            <a href="#" style="display:block; margin-top:20px; font-weight:bold;">See all Mediall One Medical FAQs</a>
+
+            <div class="testimonial">
+                <h2 class="section-title">Why people love One Medical</h2>
+                <video controls>
+                    <source src="https://m.media-Mediall.com/images/G/01/katara/kyanite/storefront/MediallOneMedical-HealthcareJustGotLessPainful.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <div class="quote-icon">“</div>
+                <p style="font-weight: bold; margin-bottom: 15px;">What members are saying</p>
+                <p class="quote-text">"I love One Medical so much. It's one of the services that has improved my life the most. They make getting care so so easy when it was always difficult and prevented me from being proactive in the past."</p>
+                <p class="quote-author">- Member at Austin, TX</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="bottom-banner">
+        <div class="container">
+            <h2>Get virtual care fast</h2>
+            <button class="btn">Find your treatment</button>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div style="margin-bottom: 20px; font-size: 18px; font-weight:bold;">Mediall one medical</div>
+            <div class="footer-links">
+                <a href="#">Home</a>
+                <a href="#">FAQ</a>
+                <a href="#">Privacy</a>
+            </div>
+            <div style="background-color: #37475A; padding: 15px; margin: 0 -40px;">
+                Back to top
+            </div>
+            <div style="padding: 30px 0;">
+                <span style="margin: 0 15px;">Your Account</span>
+                <span style="margin: 0 15px;">Your Orders</span>
+                <span style="margin: 0 15px;">Help</span>
+                <span style="margin: 0 15px;">Already a customer? Sign in</span>
+            </div>
+            <div style="color: #999;">
+                <p>Notice of Privacy Practices &nbsp;|&nbsp; Nondiscrimination Notice</p>
+                <p>© 1996-2026, Mediall.com, Inc. or its affiliates</p>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

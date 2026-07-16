@@ -1,5 +1,6 @@
 import random
 
+from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.shortcuts import redirect, render
@@ -191,6 +192,27 @@ def register_account(request):
     context = build_home_context(request)
     context["registration_success"] = "Dang ky tai khoan thanh cong."
     return render(request, "home.html", context)
+
+
+def login_account(request):
+    if request.method != "POST":
+        return redirect("home")
+
+    username = request.POST.get("username", "").strip()
+    password = request.POST.get("password", "")
+    user = authenticate(request, username=username, password=password)
+
+    if user is None:
+        context = build_home_context(request)
+        context.update({
+            "login_errors": ["Ten tai khoan hoac mat khau khong dung."],
+            "login_form": {"username": username},
+            "open_login_modal": True,
+        })
+        return render(request, "home.html", context, status=400)
+
+    login(request, user)
+    return redirect("home")
 
 
 def doctor_search(request):

@@ -130,6 +130,36 @@ header {
     gap: 8px;
 }
 
+.account-summary {
+    align-items: center;
+    display: inline-flex;
+    gap: 8px;
+    margin-left: 4px;
+}
+
+.account-avatar {
+    align-items: center;
+    background: var(--accent-teal);
+    border-radius: 50%;
+    color: white;
+    display: inline-flex;
+    font-size: 13px;
+    font-weight: 800;
+    height: 30px;
+    justify-content: center;
+    text-transform: uppercase;
+    width: 30px;
+}
+
+.account-name {
+    color: var(--primary-text);
+    font-weight: 700;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .text-button {
     background: transparent;
     border: 0;

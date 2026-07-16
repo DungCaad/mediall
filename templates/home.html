@@ -23,10 +23,17 @@
             </div>
             <div class="account-actions">
                 <span>Update location</span>
+                {% if request.user.is_authenticated %}
+                <div class="account-summary" aria-label="Signed in account">
+                    <span class="account-avatar">{{ request.user.username|first|upper }}</span>
+                    <span class="account-name">{{ request.user.username }}</span>
+                </div>
+                {% else %}
                 <span>|</span>
-                <button type="button" class="text-button">Sign in</button>
+                <button type="button" class="text-button" data-open-login>Sign in</button>
                 <span>|</span>
                 <button type="button" class="text-button" data-open-register>Sign up</button>
+                {% endif %}
             </div>
         </div>
         <div class="promo-banner">
@@ -37,6 +44,37 @@
     {% if registration_success %}
     <div class="form-alert success">{{ registration_success }}</div>
     {% endif %}
+
+    <div class="modal-backdrop{% if open_login_modal %} active{% endif %}" data-login-modal>
+        <div class="register-modal" role="dialog" aria-modal="true" aria-labelledby="login-title">
+            <button class="modal-close" type="button" aria-label="Close" data-close-login>&times;</button>
+            <h2 id="login-title">Dang nhap</h2>
+            <p>Dang nhap bang ten tai khoan va mat khau cua ban.</p>
+
+            {% if login_errors %}
+            <div class="form-alert error">
+                {% for error in login_errors %}
+                <div>{{ error }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <form class="register-form" action="{% url 'login_account' %}" method="post">
+                {% csrf_token %}
+                <label>
+                    Ten tai khoan
+                    <input type="text" name="username" value="{{ login_form.username }}" autocomplete="username" required>
+                </label>
+
+                <label>
+                    Mat khau
+                    <input type="password" name="password" autocomplete="current-password" required>
+                </label>
+
+                <button class="btn register-submit" type="submit">Dang nhap</button>
+            </form>
+        </div>
+    </div>
 
     <div class="modal-backdrop{% if open_register_modal %} active{% endif %}" data-register-modal>
         <div class="register-modal" role="dialog" aria-modal="true" aria-labelledby="register-title">
@@ -359,34 +397,48 @@
             });
         });
 
-        var registerModal = document.querySelector("[data-register-modal]");
-        var openRegisterButtons = document.querySelectorAll("[data-open-register]");
-        var closeRegisterButton = document.querySelector("[data-close-register]");
+        function setupModal(modalSelector, openSelector, closeSelector) {
+            var modal = document.querySelector(modalSelector);
+            var openButtons = document.querySelectorAll(openSelector);
+            var closeButton = document.querySelector(closeSelector);
 
-        function openRegisterModal() {
-            registerModal.classList.add("active");
-            document.body.classList.add("modal-open");
-        }
-
-        function closeRegisterModal() {
-            registerModal.classList.remove("active");
-            document.body.classList.remove("modal-open");
-        }
-
-        openRegisterButtons.forEach(function (button) {
-            button.addEventListener("click", openRegisterModal);
-        });
-
-        closeRegisterButton.addEventListener("click", closeRegisterModal);
-        registerModal.addEventListener("click", function (event) {
-            if (event.target === registerModal) {
-                closeRegisterModal();
+            if (!modal) {
+                return;
             }
-        });
 
-        if (registerModal.classList.contains("active")) {
-            document.body.classList.add("modal-open");
+            function openModal() {
+                modal.classList.add("active");
+                document.body.classList.add("modal-open");
+            }
+
+            function closeModal() {
+                modal.classList.remove("active");
+                if (!document.querySelector(".modal-backdrop.active")) {
+                    document.body.classList.remove("modal-open");
+                }
+            }
+
+            openButtons.forEach(function (button) {
+                button.addEventListener("click", openModal);
+            });
+
+            if (closeButton) {
+                closeButton.addEventListener("click", closeModal);
+            }
+
+            modal.addEventListener("click", function (event) {
+                if (event.target === modal) {
+                    closeModal();
+                }
+            });
+
+            if (modal.classList.contains("active")) {
+                document.body.classList.add("modal-open");
+            }
         }
+
+        setupModal("[data-login-modal]", "[data-open-login]", "[data-close-login]");
+        setupModal("[data-register-modal]", "[data-open-register]", "[data-close-register]");
     </script>
 </body>
 </html>

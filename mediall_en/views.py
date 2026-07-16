@@ -17,13 +17,82 @@ def home_page(request):
     ]
 
     # Dữ liệu cho danh sách bệnh lưới (Grid)
-    all_conditions = [
-        "Acid reflux", "Acne", "Anti-aging skin care", "Anxiety", "Asthma", "Athlete's foot",
-        "Bacterial vaginosis", "Birth control", "Blood pressure", "Cholesterol", "Cold sores", 
-        "Cold and flu", "COVID-19", "Dandruff", "Dark spots & melasma", "Depression", "Diaper rash", 
-        "Diabetes type 2", "Eczema", "Emergency contraception", "Epinephrine & EpiPens", 
-        "Erectile dysfunction", "Eyelash growth", "Genital herpes"
+    condition_tabs = [
+        {
+            "name": "Most popular",
+            "active": True,
+            "conditions": [
+                "Anti-aging skin care", "Bacterial vaginosis", "Birth control",
+                "Cold and flu", "COVID-19", "Erectile dysfunction",
+                "Male-pattern hair loss", "Pink eye", "Sinus infection",
+                "Urgent virtual care", "Urinary tract infection", "Weight loss",
+                "Vaginal yeast infection",
+            ],
+        },
+        {
+            "name": "Men's health",
+            "conditions": [
+                "Erectile dysfunction", "Male-pattern hair loss", "Premature ejaculation",
+            ],
+        },
+        {
+            "name": "Women's health",
+            "conditions": [
+                "Bacterial vaginosis", "Birth control", "Emergency contraception",
+                "Menopause", "Period cramps", "Positive pregnancy test",
+                "Urinary tract infection", "Vaginal dryness", "Vaginal yeast infection",
+            ],
+        },
+        {
+            "name": "General health",
+            "conditions": [
+                "Acid reflux", "Anxiety", "Asthma",
+                "Blood pressure", "Cholesterol", "Cold and flu",
+                "Cold sores", "COVID-19", "Depression",
+                "Diabetes type 2", "Gout attack", "Hypothyroidism",
+                "Mental health", "Motion sickness", "Pink eye",
+                "Quit smoking", "Seasonal allergies", "Sinus infection",
+                "Skin issue", "Urgent virtual care", "Weight loss",
+            ],
+        },
+        {
+            "name": "Sexual health",
+            "conditions": [
+                "Bacterial vaginosis", "Birth control", "Emergency contraception",
+                "Erectile dysfunction", "Genital herpes", "Genital warts",
+                "Premature ejaculation", "PrEP", "STI testing",
+                "Vaginal dryness",
+            ],
+        },
+        {
+            "name": "Skin and hair",
+            "conditions": [
+                "Acne", "Anti-aging skin care", "Athlete's foot",
+                "Dandruff", "Dark spots & melasma", "Diaper rash",
+                "Eczema", "Eyelash growth", "Head lice",
+                "Male-pattern hair loss", "Rosacea", "Skin issue",
+                "Toenail fungus",
+            ],
+        },
+        {
+            "name": "Prescription renewal",
+            "conditions": [
+                "Anxiety", "Asthma", "Blood pressure",
+                "Cholesterol", "Depression", "Epinephrine & EpiPens",
+                "Hypothyroidism", "Other medications",
+            ],
+        },
     ]
+
+    all_conditions = sorted({
+        condition
+        for tab in condition_tabs
+        for condition in tab["conditions"]
+    }, key=str.lower)
+    condition_tabs.append({
+        "name": "All conditions",
+        "conditions": all_conditions,
+    })
 
     # Dữ liệu cho mục "How it works"
     how_it_works = [
@@ -49,7 +118,7 @@ def home_page(request):
 
     context = {
         'carousel_conditions': carousel_conditions,
-        'all_conditions': all_conditions,
+        'condition_tabs': condition_tabs,
         'how_it_works': how_it_works,
     }
     

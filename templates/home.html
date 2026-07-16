@@ -97,20 +97,30 @@
         <div class="container">
             <h2 class="section-title">What would you like help with?</h2>
             
-            <div class="tabs">
-                <div class="tab">Most popular</div>
-                <div class="tab">Men's health</div>
-                <div class="tab">Women's health</div>
-                <div class="tab">General health</div>
-                <div class="tab">Sexual health</div>
-                <div class="tab">Skin and hair</div>
-                <div class="tab">Prescription renewal</div>
-                <div class="tab active">All conditions</div>
+            <div class="tabs" role="tablist" aria-label="Condition categories">
+                {% for tab in condition_tabs %}
+                <button
+                    class="tab{% if tab.active %} active{% endif %}"
+                    type="button"
+                    role="tab"
+                    aria-selected="{% if tab.active %}true{% else %}false{% endif %}"
+                    aria-controls="condition-panel-{{ forloop.counter }}"
+                    data-tab-target="condition-panel-{{ forloop.counter }}">
+                    {{ tab.name }}
+                </button>
+                {% endfor %}
             </div>
 
-            <div class="conditions-grid">
-                {% for condition in all_conditions %}
-                <a class="condition-card" href="{% url 'doctor_search' %}?specialty={{ condition|urlencode }}">{{ condition }}</a>
+            <div class="condition-panels">
+                {% for tab in condition_tabs %}
+                <div
+                    class="conditions-grid condition-panel{% if tab.active %} active{% endif %}"
+                    id="condition-panel-{{ forloop.counter }}"
+                    role="tabpanel">
+                    {% for condition in tab.conditions %}
+                    <a class="condition-card" href="{% url 'doctor_search' %}?specialty={{ condition|urlencode }}">{{ condition }}</a>
+                    {% endfor %}
+                </div>
                 {% endfor %}
             </div>
             
@@ -272,5 +282,22 @@
         </div>
     </footer>
 
+    <script>
+        document.querySelectorAll("[data-tab-target]").forEach(function (tabButton) {
+            tabButton.addEventListener("click", function () {
+                var targetId = tabButton.dataset.tabTarget;
+
+                document.querySelectorAll("[data-tab-target]").forEach(function (button) {
+                    var isActive = button === tabButton;
+                    button.classList.toggle("active", isActive);
+                    button.setAttribute("aria-selected", isActive ? "true" : "false");
+                });
+
+                document.querySelectorAll(".condition-panel").forEach(function (panel) {
+                    panel.classList.toggle("active", panel.id === targetId);
+                });
+            });
+        });
+    </script>
 </body>
 </html>

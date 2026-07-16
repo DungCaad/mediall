@@ -215,6 +215,23 @@ def login_account(request):
     return redirect("home")
 
 
+def appointment_page(request):
+    featured_specialties = [
+        "Lao - benh phoi",
+        "Ho hap",
+        "Da lieu",
+        "San phu khoa",
+        "Noi tiet",
+        "Tim mach",
+    ]
+    featured_doctors = Doctor.objects.filter(is_active=True)[:4]
+    context = {
+        "featured_specialties": featured_specialties,
+        "featured_doctors": featured_doctors,
+    }
+    return render(request, "appointment.html", context)
+
+
 def doctor_search(request):
     specialty = request.GET.get("specialty", "").strip()
     keyword = specialty.lower().replace("-", " ")

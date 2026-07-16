@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dat kham | Mediall</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="appointment-page">
+    <header class="search-header">
+        <div class="search-nav">
+            <a href="{% url 'home' %}" class="search-logo">Mediall</a>
+            <nav>
+                <a href="{% url 'appointment' %}" class="active-nav">Dat kham</a>
+                <a href="#">Tu van truc tuyen</a>
+                <a href="#">Tin Y te</a>
+                <a href="#">Tro ly y khoa</a>
+                {% if request.user.is_authenticated %}
+                <span class="account-summary">
+                    <span class="account-avatar">{{ request.user.username|first|upper }}</span>
+                    <span class="account-name">{{ request.user.username }}</span>
+                </span>
+                {% else %}
+                <a href="{% url 'home' %}" class="login-link">Dang nhap</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="appointment-hero">
+            <div class="appointment-hero-inner">
+                <div>
+                    <h1>Dat kham voi bac si phu hop</h1>
+                    <p>Tim bac si, phong kham hoac chuyen khoa ban can va chuyen sang trang ket qua de dat lich.</p>
+                </div>
+
+                <form class="appointment-search" action="{% url 'doctor_search' %}" method="get">
+                    <input type="search" name="specialty" placeholder="Nhap chuyen khoa, trieu chung, ten bac si..." required>
+                    <button type="submit">Tim bac si</button>
+                </form>
+            </div>
+        </section>
+
+        <section class="appointment-content">
+            <div class="appointment-section">
+                <h2>Chuyen khoa pho bien</h2>
+                <div class="specialty-chip-grid">
+                    {% for specialty in featured_specialties %}
+                    <a href="{% url 'doctor_search' %}?specialty={{ specialty|urlencode }}">{{ specialty }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="appointment-section">
+                <h2>Bac si va co so goi y</h2>
+                <div class="appointment-doctor-grid">
+                    {% for doctor in featured_doctors %}
+                    <article class="appointment-doctor-card">
+                        <img src="{{ doctor.avatar }}" alt="{{ doctor.name }}">
+                        <div>
+                            <h3>{{ doctor.name }}</h3>
+                            <p>{{ doctor.specialties }}</p>
+                            <span>{{ doctor.address }}</span>
+                        </div>
+                        <a href="{% url 'doctor_search' %}?specialty={{ doctor.specialty_list.0|urlencode }}">Xem lich</a>
+                    </article>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

@@ -82,7 +82,8 @@ header {
 }
 
 .top-nav {
-    background-color: var(--Mediall-dark);
+    background-color: white;
+    border-bottom: 1px solid var(--border-color);
     height: 50px;
     display: flex;
     align-items: center;
@@ -90,7 +91,7 @@ header {
 }
 
 .top-nav-logo {
-    color: white;
+    color: var(--accent-teal);
     font-size: 24px;
     font-weight: bold;
 }

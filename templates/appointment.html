@@ -7,23 +7,35 @@
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body class="appointment-page">
-    <header class="search-header">
-        <div class="search-nav">
-            <a href="{% url 'home' %}" class="search-logo">Mediall</a>
-            <nav>
-                <a href="{% url 'appointment' %}" class="active-nav">Dat kham</a>
-                <a href="#">Tu van truc tuyen</a>
-                <a href="#">Tin Y te</a>
-                <a href="#">Tro ly y khoa</a>
+    <header>
+        <div class="top-nav">
+            <div class="top-nav-logo">Mediall</div>
+        </div>
+        <div class="sub-nav">
+            <div class="sub-nav-left">
+                <span class="sub-nav-logo">Mediall one medical</span>
+                <span>Health AI✨</span>
+                <span>On-Demand Care</span>
+                <span>Help/FAQ</span>
+                <span>Browse all health ▾</span>
+            </div>
+            <div class="account-actions">
+                <span>Update location</span>
                 {% if request.user.is_authenticated %}
-                <span class="account-summary">
+                <div class="account-summary" aria-label="Signed in account">
                     <span class="account-avatar">{{ request.user.username|first|upper }}</span>
                     <span class="account-name">{{ request.user.username }}</span>
-                </span>
+                </div>
                 {% else %}
-                <a href="{% url 'home' %}" class="login-link">Dang nhap</a>
+                <span>|</span>
+                <a class="text-button" href="{% url 'home' %}">Sign in</a>
+                <span>|</span>
+                <a class="text-button" href="{% url 'home' %}">Sign up</a>
                 {% endif %}
-            </nav>
+            </div>
+        </div>
+        <div class="promo-banner">
+            Get personalized guidance with early access to Health AI ✨
         </div>
     </header>
 

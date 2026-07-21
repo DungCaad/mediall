@@ -143,10 +143,10 @@
         </div>
     </div>
 
-    <section class="hero">
+    <section class="hero" style="background-image: url('{% static 'images/hero_care.jpg' %}');">
         <div class="container">
-            <h1>Healthcare<br>just got<br>less<br>painful</h1>
-            <p>Book same/next-day appointments at offices near you, plus get 24/7 On-Demand Care for help with:</p>
+            <h1>Health Education<br> & Information<br>Sessions<br>from $9</h1>
+            <p>Schedule your Health Education Session NOW or at your preferred time</p>
             
             <div class="conditions-carousel">
                 {% for item in carousel_conditions %}
@@ -165,7 +165,7 @@
         <div class="container">
             <div class="two-options-grid">
                 <div>
-                    <img src="https://m.media-amazon.com/images/G/01/katara/kyanite/storefront/storefront_twister_msa-desktop.png" alt="Doctor smiling">
+                    <img src="{% static 'images/image_1.jpeg' %}" alt="Doctor smiling">
                 </div>
                 <div>
                     <h2 class="section-title">Two options to get care</h2>
@@ -174,16 +174,16 @@
                     <div class="toggle-cards">
                         <div class="toggle-card">
                             <h4>Membership</h4>
-                            <p>24/7 On-Demand Care, ongoing support for healthcare needs</p>
-                            <div class="price">$99</div>
+                            <p>24/7 Health Information & Educational Guidance</p>
+                            <div class="price">$39</div>
                             <p style="margin:0;">1/yr with Prime<br>Cancel at any time</p>
                         </div>
                         <div style="font-size:12px; font-weight:bold;">or</div>
                         <div class="toggle-card active">
-                            <h4>On-Demand Care</h4>
-                            <p>One-time virtual care to treat common conditions</p>
-                            <div class="price">from $29</div>
-                            <p style="margin:0;">/treatment<br>Prices vary by care type and condition</p>
+                            <h4>One-time guidance</h4>
+                            <p>Single-session information for common health queries.</p>
+                            <div class="price">from $11.6</div>
+                            <p style="margin:0;">/treatment<br>Fees vary by consultation type and health topic</p>
                         </div>
                     </div>
 
@@ -196,8 +196,8 @@
                     </ul>
 
                     <div class="price-breakdown">
-                        $29 <span style="font-size:14px; font-weight:normal;">/Direct Message Care</span> &nbsp; 
-                        $49 <span style="font-size:14px; font-weight:normal;">/Video Care</span>
+                        $8 <span style="font-size:14px; font-weight:normal;">/Direct Message Care</span> &nbsp; 
+                        $13 <span style="font-size:14px; font-weight:normal;">/Video Care</span>
                     </div>
                     <p class="price-disclaimer">Prices vary by condition. Prices subject to change. Direct Message Care availability varies by state.</p>
                     
@@ -265,7 +265,7 @@
                     <p style="font-size: 11px; color: var(--secondary-text);">*Care is managed by parents and legal guardians</p>
                 </div>
                 <div class="split-image">
-                    <img src="https://m.media-amazon.com/images/G/01/katara/care-4-kids/Care4Kids_LP.png" alt="Mother and child">
+                    <img src="{% static 'images/image_2.jpeg' %}" alt="Mother and child">
                 </div>
             </div>
         </div>
@@ -278,20 +278,23 @@
                     <span class="badge">WHY CHOOSE MEMBERSHIP?</span>
                     <h2 class="section-title">Get ongoing support for your healthcare needs</h2>
                     <ul class="features-list">
-                        <li>Complement Scheduled In-Person Visits with 24/7 On-Demand Care*</li>
-                        <li>Start new chats with your care team, anytime, anywhere</li>
-                        <li>Easily request new prescriptions and renewals</li>
+                        <li>Fees are for educational support services. This does not constitute clinical care or treatment for any medical condition</li>
+                        <li>Initiate educational consultations regarding health information, accessible anytime, anywhere.</li>
+                        <li>Member rate: Single-session health education from</li>
                     </ul>
                     <a href="#" style="font-size: 14px; font-weight: bold; display: block; margin-bottom: 30px;">See locations and appointment availability</a>
                     
                     <h4 style="margin-bottom: 5px; display: flex; align-items:center; gap: 10px;">
                         <span style="font-size:24px;">💳</span> One Medical accepts insurance like a typical doctor's office
                     </h4>
-                    <p style="font-size: 11px; color: var(--secondary-text); margin-bottom: 10px;">*You can still book Scheduled In-Person and Video Visits, but they are not included in membership and are billed to you or your insurance.</p>
+                    <div class="price-breakdown">
+                        $8 <span style="font-size:14px; font-weight:normal;">/Direct Message Care &nbsp;|&nbsp; </span> 
+                        $13 <span style="font-size:14px; font-weight:normal;">/Video Care</span>
+                    </div>
                     <a href="#" style="font-size: 14px; font-weight: bold;">See accepted insurance plans</a>
                 </div>
                 <div class="split-image" style="text-align: center;">
-                    <img src="https://m.media-amazon.com/images/G/01/katara/kyanite/storefront/storefront_msa_info-desktop.png" alt="Nurse and patient">
+                    <img src="{% static 'images/image_3.jpeg' %}" alt="Nurse and patient">
                 </div>
             </div>
         </div>
@@ -301,7 +304,7 @@
         <div class="container">
             <div class="split-grid">
                 <div class="split-image">
-                    <img src="https://m.media-amazon.com/images/G/01/katara/kyanite/storefront/storefront_xmsa_info-desktop.png" alt="Man on bench">
+                    <img src="{% static 'images/image_4.jpeg' %}" alt="Man on bench">
                 </div>
                 <div>
                     <span class="badge" style="background:#EAEAEA;">ON-DEMAND CARE</span>
@@ -309,8 +312,8 @@
                     <p style="font-size: 14px; margin-bottom: 20px;">Day or night, you can request one-time virtual care from Mediall One Medical to find treatment for 30+ common conditions.</p>
                     
                     <div class="price-breakdown">
-                        $29 <span style="font-size:14px; font-weight:normal;">/Direct Message Care &nbsp;|&nbsp; </span> 
-                        $49 <span style="font-size:14px; font-weight:normal;">/Video Care</span>
+                        $8 <span style="font-size:14px; font-weight:normal;">/Direct Message Care &nbsp;|&nbsp; </span> 
+                        $13 <span style="font-size:14px; font-weight:normal;">/Video Care</span>
                     </div>
                     <p class="price-disclaimer">Prices vary by condition. Prices subject to change. Direct Message Care availability varies by state.</p>
                     
@@ -354,10 +357,9 @@
 
             <div class="testimonial">
                 <h2 class="section-title">Why people love One Medical</h2>
-                <video controls>
-                    <source src="https://m.media-amazon.com/images/G/01/katara/kyanite/storefront/AmazonOneMedical-HealthcareJustGotLessPainful.mp4" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
+                <div class="split-image">
+                    <img src="{% static 'images/video_1.jpeg' %}" alt="Man on bench">
+                </div>
                 <div class="quote-icon">“</div>
                 <p style="font-weight: bold; margin-bottom: 15px;">What members are saying</p>
                 <p class="quote-text">"I love One Medical so much. It's one of the services that has improved my life the most. They make getting care so so easy when it was always difficult and prevented me from being proactive in the past."</p>

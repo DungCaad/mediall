@@ -361,7 +361,6 @@ header {
 
 /* === HERO SECTION === */
 .hero {
-    background-image: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRHG8q44feVlNj8qJMIwLL-dudcRHvwrq-8GoDvAGpkLsUftG5th4_zcCGx&s=10');
     background-size: cover;
     background-position: center;
     padding: 60px 0 40px 0;
@@ -967,6 +966,7 @@ header {
 }
 
 @media (max-width: 760px) {
+
     .appointment-hero-inner,
     .appointment-doctor-grid {
         grid-template-columns: 1fr;

@@ -8,7 +8,6 @@ from django.shortcuts import redirect, render
 from accounts.models import AccountProfile
 from doctors.models import Doctor
 
-
 def set_registration_captcha(request):
     first_number = random.randint(2, 9)
     second_number = random.randint(2, 9)
@@ -24,16 +23,16 @@ def is_vietnamese_host(request):
 def build_home_context(request):
     # Dữ liệu cho Carousel (Băng chuyền các loại bệnh)
     carousel_conditions = [
-        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Urinary-Tract-Infection_Carousel_1x_220x220.png", "title": "Urinary tract<br>infection (UTI)", "specialty": "Urinary tract infection"},
+        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Urinary-Tract-Infection_Carousel_1x_220x220.png", "title": "Pain & Fever Relief", "specialty": "Pain & Fever Relief"},
         {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Erectile-Dysfunction_Carousel_1x_220x220.png", "title": "Erectile<br>dysfunction", "specialty": "Erectile dysfunction"},
         {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/menopause/K_Conditions_Menopause_Carousel_1x_220x220.png", "title": "Menopause", "specialty": "Menopause"},
         {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Vaginal-Yeast-Infection_Carousel_1x_220x220.png", "title": "Vaginal yeast<br>infection", "specialty": "Vaginal yeast infection"},
         {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Cough-Cold-Flu-Strep_Carousel_1x_220x220.png", "title": "Cold and flu", "specialty": "Cold and flu"},
-        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_DiabetesType2_Carousel_1x_220x220.png", "title": "Type 2 diabetes", "specialty": "Type 2 diabetes"},
+        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_DiabetesType2_Carousel_1x_220x220.png", "title": "Hair & Scalp Care", "specialty": "Hair & Scalp Care"},
         {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Anti-Aging_Carousel_1x_220x220.png", "title": "Anti-aging skin<br>care", "specialty": "Anti-aging skin care"},
         {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Pink-Eye_Carousel_1x_220x220.png", "title": "Pink eye", "specialty": "Pink eye"},
         {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Male-Hair-Loss_Carousel_1x_220x220.png", "title": "Male-pattern<br>hair loss", "specialty": "Male-pattern hair loss"},
-        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Bacterial-Vaginosis_Carousel_1x_220x220.png", "title": "Bacterial<br>vaginosis (BV)", "specialty": "Bacterial vaginosis"},
+        {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Bacterial-Vaginosis_Carousel_1x_220x220.png", "title": "Anxiety, stress, and depression", "specialty": "Anxiety, stress, and depression"},
         {"img": "https://m.media-amazon.com/images/G/01/katara/kyanite/K_Conditions_Birth-Control_Carousel_1x_220x220.png", "title": "Birth control", "specialty": "Birth control"},
     ]
 
@@ -43,10 +42,10 @@ def build_home_context(request):
             "name": "Most popular",
             "active": True,
             "conditions": [
-                "Anti-aging skin care", "Bacterial vaginosis", "Birth control",
+                "Anti-aging skin care", "Anxiety, stress, and depression", "Birth control",
                 "Cold and flu", "COVID-19", "Erectile dysfunction",
                 "Male-pattern hair loss", "Pink eye", "Sinus infection",
-                "Urgent virtual care", "Urinary tract infection", "Weight loss",
+                "Urgent virtual care", "Pain & Fever Relief", "Weight loss",
                 "Vaginal yeast infection",
             ],
         },
@@ -59,9 +58,9 @@ def build_home_context(request):
         {
             "name": "Women's health",
             "conditions": [
-                "Bacterial vaginosis", "Birth control", "Emergency contraception",
+                "Anxiety, stress, and depression", "Birth control", "Emergency contraception",
                 "Menopause", "Period cramps", "Positive pregnancy test",
-                "Urinary tract infection", "Vaginal dryness", "Vaginal yeast infection",
+                "Pain & Fever Relief", "Vaginal dryness", "Vaginal yeast infection",
             ],
         },
         {
@@ -70,7 +69,7 @@ def build_home_context(request):
                 "Acid reflux", "Anxiety", "Asthma",
                 "Blood pressure", "Cholesterol", "Cold and flu",
                 "Cold sores", "COVID-19", "Depression",
-                "Diabetes type 2", "Gout attack", "Hypothyroidism",
+                "Hair & Scalp Care", "Gout attack", "Hypothyroidism",
                 "Mental health", "Motion sickness", "Pink eye",
                 "Quit smoking", "Seasonal allergies", "Sinus infection",
                 "Skin issue", "Urgent virtual care", "Weight loss",
@@ -79,7 +78,7 @@ def build_home_context(request):
         {
             "name": "Sexual health",
             "conditions": [
-                "Bacterial vaginosis", "Birth control", "Emergency contraception",
+                "Anxiety, stress, and depression", "Birth control", "Emergency contraception",
                 "Erectile dysfunction", "Genital herpes", "Genital warts",
                 "Premature ejaculation", "PrEP", "STI testing",
                 "Vaginal dryness",

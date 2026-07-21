@@ -401,6 +401,7 @@ header {
 .conditions-carousel {
     display: flex;
     gap: 15px;
+    align-items: stretch;
     overflow-x: auto;
     padding-bottom: 20px;
     margin-bottom: 20px;
@@ -414,8 +415,10 @@ header {
 .condition-item {
     background: white;
     border-radius: 8px;
-    min-width: 90px;
-    padding: 10px;
+    flex: 0 0 122px;
+    width: 122px;
+    min-height: 134px;
+    padding: 10px 12px;
     text-align: center;
     border: 1px solid var(--border-color);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
@@ -433,16 +436,18 @@ header {
 }
 
 .condition-item img {
-    width: 60px;
-    height: 60px;
+    width: 66px;
+    height: 66px;
     border-radius: 50%;
     margin-bottom: 10px;
+    object-fit: cover;
 }
 
 .condition-item span {
     font-size: 12px;
     font-weight: 600;
     line-height: 1.2;
+    overflow-wrap: anywhere;
 }
 
 /* === TWO OPTIONS SECTION === */

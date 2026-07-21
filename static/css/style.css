@@ -363,17 +363,26 @@ header {
 .hero {
     background-size: cover;
     background-position: center;
-    padding: 60px 0 40px 0;
+    padding: 0 0 40px 0;
     background-color: #D8EAF4;
-    min-height: 500px;
+    min-height: 620px;
 }
 
 .hero .container {
     display: flex;
     flex-direction: column;
-    width: 60%;
-    margin-left: 0;
-    padding-left: 60px;
+    align-items: center;
+    width: 100%;
+    min-height: 620px;
+    margin: 0 auto;
+    padding: 0 40px;
+}
+
+.hero-copy {
+    margin-top: 330px;
+    max-width: 680px;
+    text-align: center;
+    width: 100%;
 }
 
 .hero h1 {
@@ -395,6 +404,7 @@ header {
     overflow-x: auto;
     padding-bottom: 20px;
     margin-bottom: 20px;
+    width: 100%;
 }
 
 .conditions-carousel::-webkit-scrollbar {
@@ -589,6 +599,15 @@ header {
 @media (max-width: 560px) {
     .conditions-grid {
         grid-template-columns: 1fr;
+    }
+
+    .hero,
+    .hero .container {
+        min-height: 560px;
+    }
+
+    .hero-copy {
+        margin-top: 290px;
     }
 }
 

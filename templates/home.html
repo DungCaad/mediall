@@ -497,6 +497,48 @@
                 menu.classList.remove("active");
             });
         });
+
+        document.querySelectorAll(".conditions-carousel").forEach(function (carousel) {
+            var isDragging = false;
+            var dragStarted = false;
+            var startX = 0;
+            var startScrollLeft = 0;
+
+            carousel.addEventListener("mousedown", function (event) {
+                isDragging = true;
+                dragStarted = false;
+                startX = event.pageX;
+                startScrollLeft = carousel.scrollLeft;
+                carousel.classList.add("dragging");
+            });
+
+            carousel.addEventListener("mousemove", function (event) {
+                if (!isDragging) {
+                    return;
+                }
+
+                var deltaX = event.pageX - startX;
+                if (Math.abs(deltaX) > 4) {
+                    dragStarted = true;
+                }
+                carousel.scrollLeft = startScrollLeft - deltaX;
+            });
+
+            ["mouseup", "mouseleave"].forEach(function (eventName) {
+                carousel.addEventListener(eventName, function () {
+                    isDragging = false;
+                    carousel.classList.remove("dragging");
+                });
+            });
+
+            carousel.addEventListener("click", function (event) {
+                if (dragStarted) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    dragStarted = false;
+                }
+            }, true);
+        });
     </script>
 </body>
 </html>

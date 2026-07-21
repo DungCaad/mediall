@@ -491,7 +491,10 @@ header {
     border-radius: 8px;
     flex: 1;
     background: white;
+    color: var(--primary-text);
     cursor: pointer;
+    font: inherit;
+    text-align: left;
 }
 
 .toggle-card.active {
@@ -512,6 +515,15 @@ header {
 .toggle-card .price {
     font-size: 18px;
     font-weight: bold;
+}
+
+.care-option-panel {
+    display: none;
+    min-height: 230px;
+}
+
+.care-option-panel.active {
+    display: block;
 }
 
 .features-list {

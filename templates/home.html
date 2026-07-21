@@ -171,37 +171,41 @@
                     <a href="#" style="display:block; margin-bottom: 20px; font-size:14px;">Compare options</a>
                     
                     <div class="toggle-cards">
-                        <div class="toggle-card">
+                        <button class="toggle-card active" type="button" data-care-option="membership">
                             <h4>Membership</h4>
                             <p>24/7 Health Information & Educational Guidance</p>
                             <div class="price">$39</div>
                             <p style="margin:0;">1/yr with Prime<br>Cancel at any time</p>
-                        </div>
+                        </button>
                         <div style="font-size:12px; font-weight:bold;">or</div>
-                        <div class="toggle-card active">
+                        <button class="toggle-card" type="button" data-care-option="one-time">
                             <h4>One-time guidance</h4>
                             <p>Single-session information for common health queries.</p>
                             <div class="price">from $11.6</div>
                             <p style="margin:0;">/treatment<br>Fees vary by consultation type and health topic</p>
+                        </button>
+                    </div>
+
+                    <div class="care-option-panel active" data-care-panel="membership">
+                        <h3 style="margin-bottom: 15px;">Membership is best for</h3>
+                        <ul class="features-list">
+                            <li>Self-pay treatment – insurance not accepted or needed</li>
+                            <li>Quick treatment of common conditions</li>
+                            <li>Fast care by direct message or video</li>
+                            <li>FSA/HSA eligible</li>
+                        </ul>
+
+                        <div class="price-breakdown">
+                            $8 <span style="font-size:14px; font-weight:normal;">/Direct Message Care</span> &nbsp; 
+                            $13 <span style="font-size:14px; font-weight:normal;">/Video Care</span>
                         </div>
+                        <p class="price-disclaimer">Prices vary by condition. Prices subject to change. Direct Message Care availability varies by state.</p>
+                        
+                        <button class="btn" style="margin-right: 15px;">Request a treatment</button>
+                        <a href="#" style="font-size: 14px; font-weight: bold;">Learn more about Membership</a>
                     </div>
 
-                    <h3 style="margin-bottom: 15px;">On-Demand Care is best for</h3>
-                    <ul class="features-list">
-                        <li>Self-pay treatment – insurance not accepted or needed</li>
-                        <li>Quick treatment of common conditions</li>
-                        <li>Fast care by direct message or video</li>
-                        <li>FSA/HSA eligible</li>
-                    </ul>
-
-                    <div class="price-breakdown">
-                        $8 <span style="font-size:14px; font-weight:normal;">/Direct Message Care</span> &nbsp; 
-                        $13 <span style="font-size:14px; font-weight:normal;">/Video Care</span>
-                    </div>
-                    <p class="price-disclaimer">Prices vary by condition. Prices subject to change. Direct Message Care availability varies by state.</p>
-                    
-                    <button class="btn" style="margin-right: 15px;">Request a treatment</button>
-                    <a href="#" style="font-size: 14px; font-weight: bold;">Learn more about On-Demand Care</a>
+                    <div class="care-option-panel" data-care-panel="one-time"></div>
                 </div>
             </div>
         </div>
@@ -538,6 +542,20 @@
                     dragStarted = false;
                 }
             }, true);
+        });
+
+        document.querySelectorAll("[data-care-option]").forEach(function (optionButton) {
+            optionButton.addEventListener("click", function () {
+                var option = optionButton.dataset.careOption;
+
+                document.querySelectorAll("[data-care-option]").forEach(function (button) {
+                    button.classList.toggle("active", button === optionButton);
+                });
+
+                document.querySelectorAll("[data-care-panel]").forEach(function (panel) {
+                    panel.classList.toggle("active", panel.dataset.carePanel === option);
+                });
+            });
         });
     </script>
 </body>

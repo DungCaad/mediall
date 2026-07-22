@@ -1,42 +1,15 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Book an appointment | Mediall</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260722-6">
 </head>
 <body class="appointment-page">
-    <header>
-        <div class="sub-nav">
-            <div class="sub-nav-left">
-                <span class="sub-nav-logo">Mediall one medical</span>
-                <span>Health AI✨</span>
-                <span>On-Demand Care</span>
-                <span>Help/FAQ</span>
-                <span>Browse all health ▾</span>
-            </div>
-            <div class="account-actions">
-                {% if request.user.is_authenticated %}
-                <div class="account-menu" data-account-menu>
-                    <button class="account-summary" type="button" aria-label="Open account menu" data-account-toggle>
-                        <span class="account-avatar">{{ request.user.username|first|upper }}</span>
-                        <span class="account-name">{{ request.user.username }}</span>
-                    </button>
-                    <div class="account-dropdown" data-account-dropdown>
-                        <a href="#" class="disabled-link">Profile <span>Coming soon</span></a>
-                        <a href="{% url 'logout_account' %}">Sign out</a>
-                    </div>
-                </div>
-                {% else %}
-                <span>|</span>
-                <a class="text-button" href="{% url 'home' %}">Sign in</a>
-                <span>|</span>
-                <a class="text-button" href="{% url 'home' %}">Sign up</a>
-                {% endif %}
-            </div>
-        </div>
-    </header>
+    {% include 'includes/header.html' %}
 
     <main>
         <section class="appointment-hero">
@@ -68,36 +41,24 @@
                 <div class="appointment-doctor-grid">
                     {% for doctor in featured_doctors %}
                     <article class="appointment-doctor-card">
-                        <img src="{{ doctor.avatar }}" alt="{{ doctor.name }}">
+                        {% if doctor.avatar_url %}
+                        <img src="{{ doctor.avatar_url }}" alt="{{ doctor.display_name }}">
+                        {% else %}
+                        <span class="doctor-avatar doctor-avatar-fallback">{{ doctor.display_name|first|upper }}</span>
+                        {% endif %}
                         <div>
-                            <h3>{{ doctor.name }}</h3>
-                            <p>{{ doctor.specialties }}</p>
-                            <span>{{ doctor.address }}</span>
+                            <h3>{{ doctor.display_name }}</h3>
+                            <p>{{ doctor.specialties|default:"Specialty not updated" }}</p>
+                            <span>{{ doctor.workplace|default:"Workplace not updated" }}</span>
                         </div>
-                        <a href="{% url 'doctor_search' %}?specialty={{ doctor.specialty_list.0|urlencode }}">View availability</a>
+                        <a href="{% url 'doctor_profile_detail' doctor.pk %}">View profile</a>
                     </article>
+                    {% empty %}
+                    <div class="appointment-request-empty">No registered doctors yet.</div>
                     {% endfor %}
                 </div>
             </div>
         </section>
     </main>
-    <script>
-        document.querySelectorAll("[data-account-menu]").forEach(function (menu) {
-            var toggle = menu.querySelector("[data-account-toggle]");
-            if (!toggle) {
-                return;
-            }
-            toggle.addEventListener("click", function (event) {
-                event.stopPropagation();
-                menu.classList.toggle("active");
-            });
-        });
-
-        document.addEventListener("click", function () {
-            document.querySelectorAll("[data-account-menu].active").forEach(function (menu) {
-                menu.classList.remove("active");
-            });
-        });
-    </script>
 </body>
 </html>

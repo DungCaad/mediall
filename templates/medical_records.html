@@ -1,0 +1,58 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical records | Mediall</title>
+    <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260722-8">
+</head>
+<body class="medical-records-page">
+    {% include 'includes/header.html' %}
+    <main class="medical-records-main">
+        <header class="medical-records-heading">
+            <span>Personal health information</span>
+            <h1>Previous medical records</h1>
+            <p>Review diagnoses, treatments, prescriptions, and follow-up information from your previous appointments.</p>
+        </header>
+
+        <div class="medical-record-list">
+            {% for appointment in appointments %}
+            <article class="medical-record-card">
+                <div class="medical-record-date">
+                    <strong>{{ appointment.appointment_date|date:"d" }}</strong>
+                    <span>{{ appointment.appointment_date|date:"M Y" }}</span>
+                </div>
+                <div class="medical-record-content">
+                    <div class="medical-record-title">
+                        <div>
+                            <h2>{{ appointment.doctor.display_name }}</h2>
+                            <p>{{ appointment.doctor.specialties|default:"General consultation" }} · {{ appointment.time_slot }}</p>
+                        </div>
+                        <span class="medical-record-status">Completed</span>
+                    </div>
+                    {% if appointment.medical_record %}
+                    <dl class="medical-record-details">
+                        <div><dt>Diagnosis</dt><dd>{{ appointment.medical_record.diagnosis|linebreaksbr }}</dd></div>
+                        {% if appointment.medical_record.treatment %}<div><dt>Treatment</dt><dd>{{ appointment.medical_record.treatment|linebreaksbr }}</dd></div>{% endif %}
+                        {% if appointment.medical_record.prescription %}<div><dt>Prescription</dt><dd>{{ appointment.medical_record.prescription|linebreaksbr }}</dd></div>{% endif %}
+                        {% if appointment.medical_record.notes %}<div><dt>Doctor's notes</dt><dd>{{ appointment.medical_record.notes|linebreaksbr }}</dd></div>{% endif %}
+                        {% if appointment.medical_record.follow_up_date %}<div><dt>Follow-up date</dt><dd>{{ appointment.medical_record.follow_up_date|date:"d M Y" }}</dd></div>{% endif %}
+                    </dl>
+                    {% else %}
+                    <p class="medical-record-pending">The medical record for this appointment has not been added yet.</p>
+                    {% endif %}
+                </div>
+            </article>
+            {% empty %}
+            <section class="medical-record-empty">
+                <h2>No previous medical records</h2>
+                <p>Your completed appointments and medical information will appear here.</p>
+                <a class="btn" href="{% url 'doctor_search' %}">Find a doctor</a>
+            </section>
+            {% endfor %}
+        </div>
+    </main>
+</body>
+</html>

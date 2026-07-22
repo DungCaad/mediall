@@ -1,0 +1,358 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit profile | Mediall</title>
+    <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260722-6">
+    <script src="{% static 'js/profile.js' %}" defer></script>
+</head>
+<body class="profile-page">
+    {% include 'includes/header.html' %}
+
+    <main class="profile-main">
+        <section class="profile-card">
+            <div class="profile-heading">
+                <label class="profile-avatar-upload" for="{{ profile_avatar_field.id_for_label }}" title="Choose an avatar">
+                    <img class="profile-avatar-preview{% if not profile_avatar_url %} hidden{% endif %}" src="{{ profile_avatar_url }}" alt="Profile avatar">
+                    <span class="profile-avatar-fallback{% if profile_avatar_url %} hidden{% endif %}">{{ request.user.username|first|upper }}</span>
+                    <span class="profile-avatar-overlay">Change</span>
+                </label>
+                <div>
+                    <h1 class="profile-display-name">
+                        {{ profile_display_name }}
+                        {% if profile_is_verified %}
+                        <span class="verified-badge" title="Verified doctor" aria-label="Verified doctor">✓</span>
+                        {% endif %}
+                    </h1>
+                    <p>{{ profile_type }} profile</p>
+                </div>
+            </div>
+
+            {% if messages %}
+            {% for message in messages %}
+            <div class="form-alert success">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+
+            <div class="profile-tabs" role="tablist" aria-label="Profile sections">
+                {% for tab in profile_tabs %}
+                <button
+                    class="profile-tab{% if tab.id == active_profile_tab %} active{% endif %}"
+                    type="button"
+                    role="tab"
+                    aria-selected="{% if tab.id == active_profile_tab %}true{% else %}false{% endif %}"
+                    aria-controls="profile-panel-{{ tab.id }}"
+                    data-profile-tab="{{ tab.id }}">
+                    {{ tab.label }}
+                </button>
+                {% endfor %}
+            </div>
+
+            <section class="profile-panel{% if active_profile_tab == 'personal' %} active{% endif %}" id="profile-panel-personal" role="tabpanel" data-profile-panel="personal">
+                <h2>Thông tin cá nhân</h2>
+                <form id="personal-profile-form" class="profile-form" action="{% url 'profile' %}" method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="profile_action" value="personal">
+                    <div class="profile-avatar-input">
+                        {{ profile_avatar_field }}
+                        {% for error in profile_avatar_field.errors %}<div class="profile-field-error">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    {% if profile_form.non_field_errors %}
+                    <div class="form-alert error">
+                        {% for error in profile_form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="profile-fields">
+                        {% for field in profile_fields %}
+                        <div class="profile-field" data-input-type="{{ field.input }}">
+                            <label for="{{ field.field.id_for_label }}">
+                                {{ field.label }}{% if field.field.field.required %} *{% endif %}
+                            </label>
+                            {{ field.field }}
+                            {% if field.field.help_text %}<small>{{ field.field.help_text }}</small>{% endif %}
+                            {% for error in field.field.errors %}<div class="profile-field-error">{{ error }}</div>{% endfor %}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="profile-actions">
+                        {% for action in profile_actions %}
+                        {% if action.type == "submit" %}
+                        <button class="{{ action.class_name }}" type="submit">{{ action.label }}</button>
+                        {% else %}
+                        <a class="{{ action.class_name }}" href="{% url action.url_name %}">{{ action.label }}</a>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </form>
+            </section>
+
+            <section class="profile-panel{% if active_profile_tab == 'security' %} active{% endif %}" id="profile-panel-security" role="tabpanel" data-profile-panel="security">
+                <h2>Bảo mật</h2>
+                <p class="profile-panel-description">Thay đổi mật khẩu đăng nhập của bạn.</p>
+
+                {% if security_errors %}
+                <div class="form-alert error">
+                    {% for error in security_errors %}<div>{{ error }}</div>{% endfor %}
+                </div>
+                {% endif %}
+
+                <form class="profile-form" action="{% url 'profile' %}" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="profile_action" value="security">
+                    <div class="profile-fields">
+                        {% for field in security_fields %}
+                        <label class="profile-field">
+                            <span>{{ field.label }} *</span>
+                            <input type="{{ field.input }}" name="{{ field.name }}" autocomplete="{{ field.autocomplete }}" required>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    <div class="profile-actions">
+                        <button class="btn" type="submit">Cập nhật mật khẩu</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="profile-panel{% if active_profile_tab == 'information' %} active{% endif %}" id="profile-panel-information" role="tabpanel" data-profile-panel="information">
+                <h2>Thông tin</h2>
+                <div class="account-information">
+                    {% for item in account_information %}
+                    <div class="account-information-item">
+                        <span>{{ item.label }}</span>
+                        <strong>{{ item.value }}</strong>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                {% if doctor_schedule %}
+                <section class="profile-recommended-doctors">
+                    <div class="profile-recommended-heading">
+                        <div>
+                            <h3>Bác sĩ được giới thiệu</h3>
+                            <p>Những bác sĩ bạn muốn giới thiệu cho bệnh nhân.</p>
+                        </div>
+                        <a class="btn" href="{% url 'doctor_search' %}">Thêm bác sĩ</a>
+                    </div>
+                    <div class="profile-recommended-list">
+                        {% for doctor in recommended_doctors %}
+                        <a class="profile-recommended-card" href="{% url 'doctor_profile_detail' doctor.pk %}">
+                            <span class="profile-recommended-avatar">
+                                {% if doctor.avatar_url %}<img src="{{ doctor.avatar_url }}" alt="">{% else %}{{ doctor.display_name|first|upper }}{% endif %}
+                            </span>
+                            <span>
+                                <strong>{{ doctor.display_name }}</strong>
+                                <small>{{ doctor.specialties|default:"Chưa cập nhật chuyên khoa" }}</small>
+                            </span>
+                        </a>
+                        {% empty %}
+                        <p class="appointment-request-empty">Bạn chưa thêm bác sĩ nào vào phần giới thiệu.</p>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% endif %}
+            </section>
+
+            {% if doctor_schedule %}
+            <section class="profile-panel{% if active_profile_tab == 'schedule' %} active{% endif %}" id="profile-panel-schedule" role="tabpanel" data-profile-panel="schedule">
+                <h2>Lịch đặt khám</h2>
+                <p class="profile-panel-description">Chọn một ngày, đánh dấu các khung giờ bận rồi nhấn lưu.</p>
+
+                <form class="work-schedule-setup" action="{% url 'profile' %}" method="post" data-work-schedule-form>
+                    {% csrf_token %}
+                    <input type="hidden" name="profile_action" value="work_schedule">
+                    <div class="work-schedule-heading">
+                        <div>
+                            <h3>Thiết lập lịch làm việc</h3>
+                            <p>Chọn khung giờ mặc định được hiển thị cho bệnh nhân đặt khám.</p>
+                        </div>
+                    </div>
+
+                    <div class="work-schedule-options">
+                        {% for option in doctor_schedule.work_schedule_options %}
+                        <label class="work-schedule-option{% if option.active %} active{% endif %}">
+                            <input type="radio" name="work_schedule_type" value="{{ option.id }}"{% if option.active %} checked{% endif %} required>
+                            <strong>{{ option.label }}</strong>
+                            <small>{{ option.description }}</small>
+                        </label>
+                        {% endfor %}
+                    </div>
+
+                    <div class="custom-work-hours" data-custom-work-hours{% if not doctor_schedule.custom_schedule_active %} hidden{% endif %}>
+                        <label>
+                            Từ giờ
+                            <input type="time" name="custom_work_start" value="{{ doctor_schedule.custom_work_start }}">
+                        </label>
+                        <label>
+                            Đến giờ
+                            <input type="time" name="custom_work_end" value="{{ doctor_schedule.custom_work_end }}">
+                        </label>
+                    </div>
+
+                    <label class="weekend-off-option">
+                        <input type="checkbox" name="weekend_off"{% if doctor_schedule.weekend_off %} checked{% endif %}>
+                        <span>
+                            <strong>Nghỉ Thứ 7 và Chủ nhật</strong>
+                            <small>Không cho bệnh nhân chọn lịch vào hai ngày cuối tuần.</small>
+                        </span>
+                    </label>
+
+                    <button class="btn work-schedule-save" type="submit">Lưu lịch làm việc</button>
+                </form>
+
+                <form class="busy-schedule-form" action="{% url 'profile' %}" method="post" data-busy-schedule-form>
+                    {% csrf_token %}
+                    <input type="hidden" name="profile_action" value="schedule">
+                    <input type="hidden" name="schedule_month" value="{{ doctor_schedule.month_value }}">
+                    <input type="hidden" name="selected_date" value="" data-selected-date>
+
+                    <div class="busy-time-editor" data-busy-time-editor hidden>
+                        <div class="busy-time-editor-heading">
+                            <div class="calendar-shift-heading">
+                                {% for action in doctor_schedule.busy_shift_actions %}
+                                {% if action.id == 'back' %}
+                                <button class="{{ action.class_name }}" type="{{ action.type }}" data-busy-calendar-back aria-label="{{ action.label }}" title="{{ action.label }}"><img src="{% static action.icon_path %}" alt="" aria-hidden="true"></button>
+                                {% endif %}
+                                {% endfor %}
+                                <div>
+                                <span>Đang thiết lập lịch bận</span>
+                                <strong data-selected-date-label></strong>
+                                </div>
+                            </div>
+                            <small>Chọn một hoặc nhiều khung giờ bên dưới</small>
+                        </div>
+
+                        <div class="busy-time-groups">
+                            {% for group in doctor_schedule.time_groups %}
+                            <section class="busy-time-group">
+                                <h3>{{ group.label }}</h3>
+                                <div class="busy-time-slot-list">
+                                    {% for slot in group.slots %}
+                                    <label class="busy-time-slot">
+                                        <input type="checkbox" name="busy_time_slots" value="{{ slot.id }}">
+                                        <span>{{ slot.label }}</span>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                            </section>
+                            {% endfor %}
+                        </div>
+
+                        <div class="profile-actions busy-time-actions">
+                            {% for action in doctor_schedule.busy_shift_actions %}
+                            {% if action.id != 'back' %}
+                            <button class="{{ action.class_name }}" type="{{ action.type }}">{{ action.label }}</button>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {% include "includes/month_calendar.html" with calendar=doctor_schedule calendar_mode="busy" %}
+
+                    <div class="calendar-legend"><span></span> Ngày có khung giờ bận</div>
+                </form>
+
+                <section class="doctor-appointment-requests">
+                    <div class="appointment-request-heading">
+                        <div>
+                            <h3>Yêu cầu đặt khám trong tháng</h3>
+                            <p>Chấp nhận lịch phù hợp hoặc giới thiệu bệnh nhân sang một bác sĩ khác khi từ chối.</p>
+                        </div>
+                        <strong>{{ doctor_schedule.appointments|length }} yêu cầu</strong>
+                    </div>
+
+                    <div class="appointment-request-list">
+                        {% for appointment in doctor_schedule.appointments %}
+                        <article class="appointment-request-card">
+                            <div class="appointment-patient-avatar">
+                                {% if appointment.patient.avatar %}
+                                <img src="{{ appointment.patient.avatar.url }}" alt="">
+                                {% else %}
+                                {{ appointment.patient.full_name|default:appointment.patient.account.user.email|first|upper }}
+                                {% endif %}
+                            </div>
+                            <div class="appointment-request-details">
+                                <div class="appointment-request-title">
+                                    <h4>{% if appointment.patient.full_name %}{{ appointment.patient.full_name }}{% else %}{{ appointment.patient.account.user.email }}{% endif %}</h4>
+                                    <span class="appointment-status {{ appointment.status }}">{{ appointment.get_status_display }}</span>
+                                </div>
+                                <p><strong>{{ appointment.appointment_date|date:"d/m/Y" }}</strong> · {{ appointment.time_slot }}</p>
+                                {% if appointment.reason %}<p class="appointment-reason">{{ appointment.reason }}</p>{% endif %}
+                                {% if appointment.referred_doctor %}
+                                <p class="appointment-referral">Đã giới thiệu: <strong>{% if appointment.referred_doctor.full_name %}{{ appointment.referred_doctor.full_name }}{% else %}{{ appointment.referred_doctor.account.user.email }}{% endif %}</strong></p>
+                                {% endif %}
+                            </div>
+
+                            {% if appointment.status == 'pending' %}
+                            <div class="appointment-request-actions">
+                                {% for action in doctor_schedule.appointment_actions %}
+                                    {% if action.opens_modal %}
+                                    <button class="{{ action.class_name }}" type="button" data-open-referral-modal data-appointment-id="{{ appointment.pk }}" data-patient-name="{% if appointment.patient.full_name %}{{ appointment.patient.full_name }}{% else %}{{ appointment.patient.account.user.email }}{% endif %}">{{ action.label }}</button>
+                                    {% else %}
+                                    <form action="{% url 'profile' %}" method="post">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="profile_action" value="appointment_decision">
+                                        <input type="hidden" name="appointment_id" value="{{ appointment.pk }}">
+                                        <input type="hidden" name="decision" value="{{ action.id }}">
+                                        <button class="{{ action.class_name }}" type="submit">{{ action.label }}</button>
+                                    </form>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </article>
+                        {% empty %}
+                        <div class="appointment-request-empty">Chưa có bệnh nhân đặt lịch trong tháng này.</div>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <div class="referral-modal-backdrop" data-referral-modal hidden>
+                    <div class="referral-modal" role="dialog" aria-modal="true" aria-labelledby="referral-modal-title">
+                        <button class="referral-modal-close" type="button" aria-label="Đóng" data-close-referral-modal>&times;</button>
+                        <h3 id="referral-modal-title">Giới thiệu bác sĩ khác</h3>
+                        <p>Bạn đang từ chối lịch của <strong data-referral-patient-name></strong>. Có thể chọn một bác sĩ phù hợp bên dưới hoặc bỏ qua.</p>
+
+                        <form action="{% url 'profile' %}" method="post" data-referral-form>
+                            {% csrf_token %}
+                            <input type="hidden" name="profile_action" value="appointment_decision">
+                            <input type="hidden" name="appointment_id" value="" data-referral-appointment-id>
+                            <input type="hidden" name="schedule_month" value="{{ doctor_schedule.month_value }}">
+
+                            <div class="referral-doctor-list">
+                                {% for doctor in doctor_schedule.referral_doctors %}
+                                <label class="referral-doctor-option">
+                                    <input type="radio" name="referral_doctor_id" value="{{ doctor.id }}">
+                                    <span class="referral-doctor-avatar">
+                                        {% if doctor.avatar_url %}<img src="{{ doctor.avatar_url }}" alt="">{% else %}{{ doctor.name|first|upper }}{% endif %}
+                                    </span>
+                                    <span>
+                                        <strong>{{ doctor.name }}</strong>
+                                        <small>{{ doctor.specialties }}</small>
+                                        <small>{{ doctor.workplace }}</small>
+                                    </span>
+                                </label>
+                                {% empty %}
+                                <p class="appointment-request-empty">Hiện chưa có bác sĩ khác để giới thiệu.</p>
+                                {% endfor %}
+                            </div>
+
+                            <div class="referral-modal-actions">
+                                {% for action in doctor_schedule.referral_actions %}
+                                <button class="{{ action.class_name }}" type="submit" name="decision" value="reject"{% if action.use_referral %} data-require-referral{% else %} data-skip-referral{% endif %}>{{ action.label }}</button>
+                                {% endfor %}
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>

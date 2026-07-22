@@ -1,0 +1,75 @@
+{% load static %}
+<header>
+    <div class="sub-nav">
+        <div class="sub-nav-left">
+            <a class="sub-nav-logo" href="{% url 'home' %}" aria-label="{{ header_home_aria_label }}">
+                <img src="{% static 'images/logo.ico' %}" alt="Mediall">
+            </a>
+            {% for item in header_nav_items %}
+            <span>{{ item.label }}</span>
+            {% endfor %}
+        </div>
+        <div class="account-actions">
+            {% if request.user.is_authenticated %}
+            <div class="notification-menu" data-notification-menu>
+                <button class="notification-toggle" type="button" aria-label="Mở thông báo" aria-expanded="false" data-notification-toggle>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+                    {% if header_notification_count %}<span class="notification-count">{{ header_notification_count }}</span>{% endif %}
+                </button>
+                <div class="notification-panel" data-notification-panel>
+                    <div class="notification-panel-heading">
+                        <strong>Thông báo</strong>
+                        {% if header_notification_count %}<span>{{ header_notification_count }} thông báo</span>{% endif %}
+                    </div>
+                    <div class="notification-list">
+                        {% for notification in header_notifications %}
+                        <article class="notification-item {{ notification.type }}">
+                            <span class="notification-status-dot" aria-hidden="true"></span>
+                            <div>
+                                <strong>{{ notification.title }}</strong>
+                                <p>{{ notification.message }}</p>
+                                <time datetime="{{ notification.created_at|date:'c' }}">{{ notification.created_at|timesince }} trước</time>
+                            </div>
+                        </article>
+                        {% empty %}
+                        <p class="notification-empty">Bạn chưa có thông báo nào.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="account-menu" data-account-menu>
+                <button class="account-summary" type="button" aria-label="{{ header_account_menu_aria_label }}" data-account-toggle>
+                    {% if header_avatar_url %}
+                    <img class="account-avatar account-avatar-image" src="{{ header_avatar_url }}" alt="">
+                    {% else %}
+                    <span class="account-avatar">{{ request.user.username|first|upper }}</span>
+                    {% endif %}
+                    <span class="account-name">{{ header_display_name }}</span>
+                    {% if header_is_verified %}
+                    <span class="verified-badge verified-badge-small" title="Verified doctor" aria-label="Verified doctor">✓</span>
+                    {% endif %}
+                </button>
+                <div class="account-dropdown" data-account-dropdown>
+                    {% for action in authenticated_account_actions %}
+                    {% if not action.patient_only or header_is_patient %}
+                    <a href="{% if action.url_name %}{% url action.url_name %}{% else %}{{ action.href }}{% endif %}"{% if action.class_name %} class="{{ action.class_name }}"{% endif %}>
+                        {{ action.label }}{% if action.note %} <span>{{ action.note }}</span>{% endif %}
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            {% for action in guest_account_actions %}
+            <span>|</span>
+            {% if action.modal_target %}
+            <button type="button" class="text-button" data-open-modal="{{ action.modal_target }}">{{ action.label }}</button>
+            {% else %}
+            <a class="text-button" href="{% url action.url_name %}">{{ action.label }}</a>
+            {% endif %}
+            {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+</header>
+<script src="{% static 'js/header.js' %}?v=20260722-3" defer></script>

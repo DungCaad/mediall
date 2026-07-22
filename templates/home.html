@@ -5,40 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mediall One Medical</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260722-6">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
 
-    <header>
-        <div class="sub-nav">
-            <div class="sub-nav-left">
-                <span class="sub-nav-logo">Mediall one medical</span>
-                <span>Health AI✨</span>
-                <span>On-Demand Care</span>
-                <span>Help/FAQ</span>
-                <span>Browse all health ▾</span>
-            </div>
-            <div class="account-actions">
-                {% if request.user.is_authenticated %}
-                <div class="account-menu" data-account-menu>
-                    <button class="account-summary" type="button" aria-label="Open account menu" data-account-toggle>
-                        <span class="account-avatar">{{ request.user.username|first|upper }}</span>
-                        <span class="account-name">{{ request.user.username }}</span>
-                    </button>
-                    <div class="account-dropdown" data-account-dropdown>
-                        <a href="#" class="disabled-link">Profile <span>Coming soon</span></a>
-                        <a href="{% url 'logout_account' %}">Sign out</a>
-                    </div>
-                </div>
-                {% else %}
-                <span>|</span>
-                <button type="button" class="text-button" data-open-login>Sign in</button>
-                <span>|</span>
-                <button type="button" class="text-button" data-open-register>Sign up</button>
-                {% endif %}
-            </div>
-        </div>
-    </header>
+    {% include 'includes/header.html' %}
 
     {% if registration_success %}
     <div class="form-alert success">{{ registration_success }}</div>
@@ -48,7 +21,7 @@
         <div class="register-modal" role="dialog" aria-modal="true" aria-labelledby="login-title">
             <button class="modal-close" type="button" aria-label="Close" data-close-login>&times;</button>
             <h2 id="login-title">Sign in</h2>
-            <p>Sign in with your username and password.</p>
+            <p>Sign in with your email and password.</p>
 
             {% if login_errors %}
             <div class="form-alert error">
@@ -61,14 +34,16 @@
             <form class="register-form" action="{% url 'login_account' %}" method="post">
                 {% csrf_token %}
                 <label>
-                    Username
-                    <input type="text" name="username" value="{{ login_form.username }}" autocomplete="username" required>
+                    Email
+                    <input type="email" name="email" value="{{ login_form.email }}" autocomplete="email" required>
                 </label>
 
                 <label>
                     Password
                     <input type="password" name="password" autocomplete="current-password" required>
                 </label>
+
+                <div class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}"></div>
 
                 <button class="btn register-submit" type="submit">Sign in</button>
             </form>
@@ -92,8 +67,13 @@
             <form class="register-form" action="{% url 'register_account' %}" method="post">
                 {% csrf_token %}
                 <label>
-                    Username
-                    <input type="text" name="username" value="{{ registration_form.username }}" autocomplete="username" required>
+                    Email
+                    <input type="email" name="email" value="{{ registration_form.email }}" autocomplete="email" required>
+                </label>
+
+                <label>
+                    Full name
+                    <input type="text" name="full_name" value="{{ registration_form.full_name }}" autocomplete="name" required>
                 </label>
 
                 <label>
@@ -109,31 +89,16 @@
                 <fieldset class="role-choice">
                     <legend>Who are you?</legend>
                     <label>
-                        <input type="radio" name="role" value="patient" {% if registration_form.role != "doctor" %}checked{% endif %} data-role-option>
+                        <input type="radio" name="role" value="patient" {% if registration_form.role != "doctor" %}checked{% endif %}>
                         Patient
                     </label>
                     <label>
-                        <input type="radio" name="role" value="doctor" {% if registration_form.role == "doctor" %}checked{% endif %} data-role-option>
+                        <input type="radio" name="role" value="doctor" {% if registration_form.role == "doctor" %}checked{% endif %}>
                         Doctor
                     </label>
                 </fieldset>
 
-                <div class="doctor-extra-fields{% if registration_form.role == 'doctor' %} active{% endif %}" data-doctor-fields>
-                    <label>
-                        Profile photo URL
-                        <input type="url" name="photo" value="{{ registration_form.photo }}" data-doctor-required>
-                    </label>
-
-                    <label>
-                        Clinic address
-                        <input type="text" name="clinic_address" value="{{ registration_form.clinic_address }}" data-doctor-required>
-                    </label>
-                </div>
-
-                <label>
-                    Captcha: {{ captcha_question }} = ?
-                    <input type="text" name="captcha" inputmode="numeric" autocomplete="off" required>
-                </label>
+                <div class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}"></div>
 
                 <button class="btn register-submit" type="submit">Create account</button>
             </form>
@@ -143,7 +108,12 @@
     <section class="hero" style="background-image: url('{% static 'images/hero_care.jpeg' %}');">
         <div class="container">
             <div class="hero-copy">
-                <h1>Health Education<br> & Information<br>Sessions<br>from $9</h1>
+                <h1>Health Education & Information Sessions from $8</h1>
+                <form class="hero-search" action="{% url 'doctor_search' %}" method="get" role="search">
+                    <span class="hero-search-icon" aria-hidden="true">⌕</span>
+                    <input type="search" name="specialty" placeholder="Search doctors, specialties, or locations" aria-label="Search doctors, specialties, or locations" required>
+                    <button type="submit">Search</button>
+                </form>
                 <p>Schedule your Health Education Session NOW or at your preferred time</p>
             </div>
             
@@ -151,12 +121,16 @@
                 {% for item in carousel_conditions %}
                 <a class="condition-item" href="{% url 'doctor_search' %}?specialty={{ item.specialty|urlencode }}">
                     <img src="{{ item.img }}" alt="Condition">
-                    <span>{{ item.title|safe }}</span>
+                    <span>{% for line in item.title_lines %}{{ line }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</span>
                 </a>
                 {% endfor %}
             </div>
 
-            <button class="btn" style="width: fit-content;">Find your treatment</button>
+            {% for action in answer_ctas %}
+            {% if action.location == "hero" %}
+            <a class="btn" href="#{{ action.target_id }}" style="width: fit-content;">{{ action.label }}</a>
+            {% endif %}
+            {% endfor %}
         </div>
     </section>
 
@@ -171,47 +145,61 @@
                     <a href="#" style="display:block; margin-bottom: 20px; font-size:14px;">Compare options</a>
                     
                     <div class="toggle-cards">
-                        <button class="toggle-card active" type="button" data-care-option="membership">
-                            <h4>Membership</h4>
-                            <p>24/7 Health Information & Educational Guidance</p>
-                            <div class="price">$39</div>
-                            <p style="margin:0;">1/yr with Prime<br>Cancel at any time</p>
+                        {% for option in care_options %}
+                        <button class="toggle-card{% if option.active %} active{% endif %}" type="button" data-care-option="{{ option.id }}">
+                            <h4>{{ option.title }}</h4>
+                            <p>{{ option.description }}</p>
+                            <div class="price">{{ option.price }}</div>
+                            <p style="margin:0;">
+                                {% for detail in option.price_details %}
+                                {{ detail }}{% if not forloop.last %}<br>{% endif %}
+                                {% endfor %}
+                            </p>
                         </button>
+                        {% if not forloop.last %}
                         <div style="font-size:12px; font-weight:bold;">or</div>
-                        <button class="toggle-card" type="button" data-care-option="one-time">
-                            <h4>One-time guidance</h4>
-                            <p>Single-session information for common health queries.</p>
-                            <div class="price">from $11.6</div>
-                            <p style="margin:0;">/treatment<br>Fees vary by consultation type and health topic</p>
-                        </button>
+                        {% endif %}
+                        {% endfor %}
                     </div>
 
-                    <div class="care-option-panel active" data-care-panel="membership">
-                        <h3 style="margin-bottom: 15px;">Membership is best for</h3>
+                    {% for option in care_options %}
+                    <div class="care-option-panel{% if option.active %} active{% endif %}" data-care-panel="{{ option.id }}">
+                        {% if option.panel_title %}
+                        <h3 style="margin-bottom: 15px;">{{ option.panel_title }}</h3>
+                        {% endif %}
+                        {% if option.features %}
                         <ul class="features-list">
-                            <li>Self-pay treatment – insurance not accepted or needed</li>
-                            <li>Quick treatment of common conditions</li>
-                            <li>Fast care by direct message or video</li>
-                            <li>FSA/HSA eligible</li>
+                            {% for feature in option.features %}
+                            <li>{{ feature }}</li>
+                            {% endfor %}
                         </ul>
+                        {% endif %}
 
+                        {% if option.care_prices %}
                         <div class="price-breakdown">
-                            $8 <span style="font-size:14px; font-weight:normal;">/Direct Message Care</span> &nbsp; 
-                            $13 <span style="font-size:14px; font-weight:normal;">/Video Care</span>
+                            {% for care_price in option.care_prices %}
+                            {{ care_price.price }} <span style="font-size:14px; font-weight:normal;">{{ care_price.label }}</span>{% if not forloop.last %} &nbsp; {% endif %}
+                            {% endfor %}
                         </div>
-                        <p class="price-disclaimer">Prices vary by condition. Prices subject to change. Direct Message Care availability varies by state.</p>
-                        
-                        <button class="btn" style="margin-right: 15px;">Request a treatment</button>
-                        <a href="#" style="font-size: 14px; font-weight: bold;">Learn more about Membership</a>
-                    </div>
+                        {% endif %}
+                        {% if option.disclaimer %}
+                        <p class="price-disclaimer">{{ option.disclaimer }}</p>
+                        {% endif %}
 
-                    <div class="care-option-panel" data-care-panel="one-time"></div>
+                        {% if option.button_text %}
+                        <a class="btn" href="{{ option.button_url }}" style="margin-right: 15px;">{{ option.button_text }}</a>
+                        {% endif %}
+                        {% if option.link_text %}
+                        <a href="{{ option.link_url }}" style="font-size: 14px; font-weight: bold;">{{ option.link_text }}</a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
     </section>
 
-    <section class="conditions-section">
+    <section class="conditions-section" id="health-topics">
         <div class="container">
             <h2 class="section-title">What would you like help with?</h2>
             
@@ -253,7 +241,7 @@
         <div class="container">
             <div class="split-grid">
                 <div>
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Mediall_logo.svg/1000px-Mediall_logo.svg.png" width="80" alt="Mediall logo" style="margin-bottom: 10px;"> <span style="color:var(--accent-teal); font-weight:bold;">one medical</span>
+                    <img src="{% static 'images/logo.ico' %}" width="131" height="23" alt="Mediall" style="margin-bottom: 10px;">
                     <h2 class="section-title" style="font-size:36px; margin: 15px 0;">Get trusted care for<br><span style="color: var(--accent-teal);">your child</span></h2>
                     <p>Connect with family care providers for secure telehealth treatment for children ages 2-17.* No waiting rooms, no hassle.</p>
                     
@@ -350,13 +338,28 @@
     <section class="faq-testimonial">
         <div class="container">
             <h2 class="section-title">Frequently asked questions</h2>
-            <div style="max-width: 1000px;">
-                <div class="faq-item">What is Mediall One Medical? <span>∨</span></div>
-                <div class="faq-item">How is One Medical Membership different from Mediall One Medical On-Demand Care? <span>∨</span></div>
-                <div class="faq-item">Does Mediall One Medical take insurance? <span>∨</span></div>
-                <div class="faq-item">How does Mediall One Medical protect my health information? <span>∨</span></div>
+            <div class="faq-list">
+                {% for faq in faq_items %}
+                <details class="faq-item"{% if faq.open %} open{% endif %}>
+                    <summary id="faq-question-{{ faq.id }}">
+                        <span>{{ faq.question }}</span>
+                        <span class="faq-icons" aria-hidden="true">
+                            <img class="faq-icon faq-icon-open" src="{% static faq.open_icon %}" alt="">
+                            <img class="faq-icon faq-icon-close" src="{% static faq.close_icon %}" alt="">
+                        </span>
+                    </summary>
+                    <div class="faq-answer" aria-labelledby="faq-question-{{ faq.id }}">
+                        {% for paragraph in faq.paragraphs %}
+                        <p>{{ paragraph }}</p>
+                        {% endfor %}
+                        {% if faq.note %}
+                        <p class="faq-note">*{{ faq.note }}</p>
+                        {% endif %}
+                    </div>
+                </details>
+                {% endfor %}
             </div>
-            <a href="#" style="display:block; margin-top:20px; font-weight:bold;">See all Mediall One Medical FAQs</a>
+            <a class="faq-all-link" href="#">See all Mediall One Medical FAQs</a>
 
             <div class="testimonial">
                 <h2 class="section-title">Why people love One Medical</h2>
@@ -374,7 +377,11 @@
     <section class="bottom-banner">
         <div class="container">
             <h2>Get virtual care fast</h2>
-            <button class="btn">Find your treatment</button>
+            {% for action in answer_ctas %}
+            {% if action.location == "bottom_banner" %}
+            <a class="btn" href="#{{ action.target_id }}">{{ action.label }}</a>
+            {% endif %}
+            {% endfor %}
         </div>
     </section>
 
@@ -448,59 +455,13 @@
                 closeButton.addEventListener("click", closeModal);
             }
 
-            modal.addEventListener("click", function (event) {
-                if (event.target === modal) {
-                    closeModal();
-                }
-            });
-
             if (modal.classList.contains("active")) {
                 document.body.classList.add("modal-open");
             }
         }
 
-        setupModal("[data-login-modal]", "[data-open-login]", "[data-close-login]");
-        setupModal("[data-register-modal]", "[data-open-register]", "[data-close-register]");
-
-        var roleOptions = document.querySelectorAll("[data-role-option]");
-        var doctorFields = document.querySelector("[data-doctor-fields]");
-        var doctorRequiredFields = document.querySelectorAll("[data-doctor-required]");
-
-        function syncDoctorFields() {
-            var selectedRole = document.querySelector("[data-role-option]:checked");
-            var isDoctor = selectedRole && selectedRole.value === "doctor";
-
-            if (!doctorFields) {
-                return;
-            }
-
-            doctorFields.classList.toggle("active", isDoctor);
-            doctorRequiredFields.forEach(function (field) {
-                field.required = isDoctor;
-            });
-        }
-
-        roleOptions.forEach(function (option) {
-            option.addEventListener("change", syncDoctorFields);
-        });
-        syncDoctorFields();
-
-        document.querySelectorAll("[data-account-menu]").forEach(function (menu) {
-            var toggle = menu.querySelector("[data-account-toggle]");
-            if (!toggle) {
-                return;
-            }
-            toggle.addEventListener("click", function (event) {
-                event.stopPropagation();
-                menu.classList.toggle("active");
-            });
-        });
-
-        document.addEventListener("click", function () {
-            document.querySelectorAll("[data-account-menu].active").forEach(function (menu) {
-                menu.classList.remove("active");
-            });
-        });
+        setupModal("[data-login-modal]", "[data-open-modal='login']", "[data-close-login]");
+        setupModal("[data-register-modal]", "[data-open-modal='register']", "[data-close-register]");
 
         document.querySelectorAll(".conditions-carousel").forEach(function (carousel) {
             var isDragging = false;

@@ -5,49 +5,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mediall | Chăm sóc sức khỏe trực tuyến</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260722-6">
 </head>
 <body>
-    <header>
-        <div class="sub-nav">
-            <div class="sub-nav-left">
-                <span class="sub-nav-logo">Mediall one medical</span>
-                <span>Health AI✨</span>
-                <span>Chăm sóc theo yêu cầu</span>
-                <span>Trợ giúp/FAQ</span>
-                <span>Danh mục sức khỏe ▾</span>
-            </div>
-            <div class="account-actions">
-                {% if request.user.is_authenticated %}
-                <div class="account-menu" data-account-menu>
-                    <button class="account-summary" type="button" aria-label="Mở menu tài khoản" data-account-toggle>
-                        <span class="account-avatar">{{ request.user.username|first|upper }}</span>
-                        <span class="account-name">{{ request.user.username }}</span>
-                    </button>
-                    <div class="account-dropdown" data-account-dropdown>
-                        <a href="#" class="disabled-link">Hồ sơ <span>Phát triển sau</span></a>
-                        <a href="{% url 'logout_account' %}">Đăng xuất</a>
-                    </div>
-                </div>
-                {% else %}
-                <a class="text-button" href="{% url 'home' %}">Đăng nhập</a>
-                <span>|</span>
-                <a class="text-button" href="{% url 'home' %}">Đăng ký</a>
-                {% endif %}
-            </div>
-        </div>
-    </header>
+    {% include 'includes/header.html' %}
 
     <section class="hero">
         <div class="container">
             <h1>Chăm sóc sức khỏe<br>dễ dàng hơn</h1>
+            <form class="hero-search" action="{% url 'doctor_search' %}" method="get" role="search">
+                <span class="hero-search-icon" aria-hidden="true">⌕</span>
+                <input type="search" name="specialty" placeholder="Tìm bác sĩ, chuyên khoa hoặc địa điểm" aria-label="Tìm bác sĩ, chuyên khoa hoặc địa điểm" required>
+                <button type="submit">Tìm kiếm</button>
+            </form>
             <p>Đặt lịch khám gần bạn, hoặc nhận hỗ trợ trực tuyến 24/7 cho các vấn đề phổ biến.</p>
 
             <div class="conditions-carousel">
                 {% for item in carousel_conditions %}
                 <a class="condition-item" href="{% url 'doctor_search' %}?specialty={{ item.specialty|urlencode }}">
                     <img src="{{ item.img }}" alt="Condition">
-                    <span>{{ item.title|safe }}</span>
+                    <span>{% for line in item.title_lines %}{{ line }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</span>
                 </a>
                 {% endfor %}
             </div>
@@ -121,22 +99,6 @@
             });
         });
 
-        document.querySelectorAll("[data-account-menu]").forEach(function (menu) {
-            var toggle = menu.querySelector("[data-account-toggle]");
-            if (!toggle) {
-                return;
-            }
-            toggle.addEventListener("click", function (event) {
-                event.stopPropagation();
-                menu.classList.toggle("active");
-            });
-        });
-
-        document.addEventListener("click", function () {
-            document.querySelectorAll("[data-account-menu].active").forEach(function (menu) {
-                menu.classList.remove("active");
-            });
-        });
     </script>
 </body>
 </html>

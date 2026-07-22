@@ -1,0 +1,258 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ doctor.display_name }} | Mediall</title>
+    <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260722-11">
+</head>
+<body class="doctor-public-page">
+    {% include 'includes/header.html' %}
+
+    <main class="doctor-public-main">
+        {% if messages %}
+        <div class="doctor-public-messages">
+            {% for message in messages %}<div class="form-alert success">{{ message }}</div>{% endfor %}
+        </div>
+        {% endif %}
+
+        <section class="doctor-public-hero">
+            <div class="doctor-public-avatar">
+                {% if doctor.avatar_url %}
+                <img src="{{ doctor.avatar_url }}" alt="{{ doctor.display_name }}">
+                {% else %}
+                <span>{{ doctor.display_name|first|upper }}</span>
+                {% endif %}
+            </div>
+
+            <div class="doctor-public-identity">
+                <div class="doctor-public-name">
+                    <h1>{{ doctor.display_name }}</h1>
+                    {% if doctor.is_verified %}<span class="verified-badge" title="Verified doctor" aria-label="Verified doctor">✓</span>{% endif %}
+                </div>
+                {% if doctor.position %}<p class="doctor-public-position">{{ doctor.position }}</p>{% endif %}
+                <div class="doctor-public-tags">
+                    {% for specialty in doctor.specialty_list %}<span>{{ specialty }}</span>{% empty %}<span>Specialties not provided</span>{% endfor %}
+                </div>
+                {% if doctor.workplace %}<p class="doctor-public-workplace">Workplace: <strong>{{ doctor.workplace }}</strong></p>{% endif %}
+            </div>
+
+            <div class="doctor-public-stats">
+                <div>
+                    <strong>{{ visit_count }}</strong>
+                    <span>Visits</span>
+                </div>
+                <div>
+                    <strong>{{ doctor.years_experience|default:0 }}</strong>
+                    <span>Years of experience</span>
+                </div>
+                <div>
+                    <strong>{{ average_rating }} <span aria-hidden="true">★</span></strong>
+                    <span>{{ review_count }} reviews</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="doctor-booking-card" id="doctor-booking">
+            <div class="doctor-booking-heading">
+                <div>
+                    <h2>Quick appointment</h2>
+                    <p>Choose an available date and time. The doctor will confirm your request.</p>
+                </div>
+            </div>
+
+            {% if booking_errors %}
+            <div class="form-alert error">{% for error in booking_errors %}<div>{{ error }}</div>{% endfor %}</div>
+            {% endif %}
+
+            {% if not can_book %}
+                {% if request.user.is_authenticated %}
+                <p class="doctor-booking-notice">You can view available times, but only patient accounts can send appointment requests.</p>
+                {% else %}
+                <p class="doctor-booking-notice">You can view available times. Sign in with a patient account to send a request.</p>
+                {% endif %}
+            {% endif %}
+
+            <form action="{% url 'doctor_profile_detail' doctor.pk %}" method="post" data-doctor-booking-form>
+                {% csrf_token %}
+                <input type="hidden" name="profile_action" value="book_appointment">
+                <input type="hidden" name="booking_month" value="{{ booking_options.month_value }}">
+                <input type="hidden" name="appointment_date" value="" data-booking-selected-date>
+
+                {% include "includes/month_calendar.html" with calendar=booking_options calendar_mode="booking" doctor=doctor %}
+
+                <div class="public-booking-shifts" data-booking-shifts hidden>
+                    <div class="public-booking-selected-heading">
+                        <div>
+                            <span>Appointment times for</span>
+                            <strong data-booking-selected-label></strong>
+                        </div>
+                    </div>
+                    <div class="booking-slot-unavailable-message" data-booking-slot-message hidden>
+                        This time is fully booked. Please choose another time.
+                    </div>
+
+                    <div class="doctor-booking-time-groups">
+                        {% for group in booking_options.time_groups %}
+                        <fieldset class="doctor-booking-time-group">
+                            <legend>{{ group.label }}</legend>
+                            <div>
+                                {% for slot in group.slots %}
+                                <label data-booking-slot>
+                                    <input type="radio" name="time_slot" value="{{ slot.id }}" required>
+                                    <span>{{ slot.label }}</span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </fieldset>
+                        {% endfor %}
+                    </div>
+
+                    {% if not can_book and request.user.is_authenticated %}
+                    <p class="doctor-booking-notice">Sign in with a patient account to book the selected time.</p>
+                    {% elif not can_book %}
+                    <p class="doctor-booking-notice">Please sign in to book the selected time.</p>
+                    {% endif %}
+                </div>
+
+                {% if can_book %}
+                <div class="booking-request-modal-backdrop" data-booking-request-modal hidden>
+                    <div class="booking-request-modal" role="dialog" aria-modal="true" aria-labelledby="booking-request-modal-title">
+                        {% for action in booking_options.shift_actions %}
+                        {% if action.id == 'close-modal' %}
+                        <button class="{{ action.class_name }}" type="{{ action.type }}" aria-label="{{ action.label }}" data-close-booking-request-modal>{{ action.icon }}</button>
+                        {% endif %}
+                        {% endfor %}
+                        <h3 id="booking-request-modal-title">Confirm appointment request</h3>
+                        <p class="booking-request-summary">
+                            <strong data-booking-modal-date></strong>
+                            <span data-booking-modal-time></span>
+                        </p>
+                        <label class="doctor-booking-reason">
+                            Reason for visit <small>(optional)</small>
+                            <textarea name="reason" maxlength="2000" rows="4" placeholder="Briefly describe what you would like help with..."></textarea>
+                        </label>
+                        <div class="booking-request-modal-actions">
+                            {% for action in booking_options.shift_actions %}
+                            {% if action.id == 'submit' %}
+                            <button class="{{ action.class_name }}" type="{{ action.type }}">{{ action.label }}</button>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </form>
+        </section>
+
+        <div class="doctor-public-layout">
+            <div class="doctor-public-content">
+                <section class="doctor-public-section">
+                    <h2>Introduction</h2>
+                    {% if doctor.introduction %}
+                    <p class="doctor-introduction">{{ doctor.introduction|linebreaksbr }}</p>
+                    <button class="introduction-translation-button" type="button" data-translate-introduction data-translation-url="{% url 'translate_to_english' %}">View English translation</button>
+                    <div class="introduction-translation" data-introduction-translation hidden>
+                        <strong>English translation</strong>
+                        <p data-introduction-translation-text></p>
+                    </div>
+                    {{ doctor.introduction|json_script:"doctor-introduction-source" }}
+                    {% else %}
+                    <p class="doctor-public-empty">The doctor has not added an introduction yet.</p>
+                    {% endif %}
+
+                    <div class="doctor-training-history">
+                        <h2>Training history</h2>
+                        {% if doctor.training_history %}
+                        <p class="doctor-introduction">{{ doctor.training_history|linebreaksbr }}</p>
+                        {% else %}
+                        <p class="doctor-public-empty">The doctor has not added their training history yet.</p>
+                        {% endif %}
+                    </div>
+
+                    {% if recommended_doctors %}
+                    <div class="public-recommended-doctors">
+                        <h3>Recommended doctors</h3>
+                        <div>
+                            {% for recommended in recommended_doctors %}
+                            <a href="{% url 'doctor_profile_detail' recommended.pk %}">
+                                <span>
+                                    {% if recommended.avatar_url %}<img src="{{ recommended.avatar_url }}" alt="">{% else %}{{ recommended.display_name|first|upper }}{% endif %}
+                                </span>
+                                <strong>{{ recommended.display_name }}</strong>
+                                <small>{{ recommended.specialties|default:"Specialties not provided" }}</small>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </section>
+
+                <section class="doctor-public-section" id="doctor-reviews">
+                    <div class="doctor-review-heading">
+                        <div>
+                            <h2>Patient reviews</h2>
+                            <p>{{ average_rating }}/5 from {{ review_count }} reviews</p>
+                        </div>
+                        <span class="doctor-rating-large">★ {{ average_rating }}</span>
+                    </div>
+
+                    <div class="doctor-review-list">
+                        {% for review in reviews %}
+                        <article class="doctor-review-card">
+                            <div class="doctor-review-author">
+                                <span>{% if review.patient.full_name %}{{ review.patient.full_name|first|upper }}{% else %}{{ review.patient.account.user.email|first|upper }}{% endif %}</span>
+                                <div>
+                                    <strong>{% if review.patient.full_name %}{{ review.patient.full_name }}{% else %}{{ review.patient.account.user.email }}{% endif %}</strong>
+                                    <small>{{ review.updated_at|date:"d/m/Y" }}</small>
+                                </div>
+                                <b>★ {{ review.rating }}/5</b>
+                            </div>
+                            {% if review.comment %}<p>{{ review.comment }}</p>{% endif %}
+                        </article>
+                        {% empty %}
+                        <p class="doctor-public-empty">This doctor has no reviews yet.</p>
+                        {% endfor %}
+                    </div>
+                </section>
+            </div>
+
+            <aside class="doctor-review-form-card">
+                <h2>Review this doctor</h2>
+                {% if review_errors %}
+                <div class="form-alert error">{% for error in review_errors %}<div>{{ error }}</div>{% endfor %}</div>
+                {% endif %}
+
+                {% if can_review %}
+                <form action="{% url 'doctor_profile_detail' doctor.pk %}" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="profile_action" value="review">
+                    <fieldset class="doctor-rating-options">
+                        <legend>Select a rating</legend>
+                        {% for option in review_rating_options %}
+                        <label>
+                            <input type="radio" name="rating" value="{{ option.value }}"{% if current_review.rating == option.value %} checked{% endif %} required>
+                            <span>★</span>
+                            <small>{{ option.label }}</small>
+                        </label>
+                        {% endfor %}
+                    </fieldset>
+                    <label class="doctor-review-comment">
+                        Comment
+                        <textarea name="comment" maxlength="2000" rows="5" placeholder="Share your experience...">{% if current_review %}{{ current_review.comment }}{% endif %}</textarea>
+                    </label>
+                    <button class="btn" type="submit">{% if current_review %}Update review{% else %}Submit review{% endif %}</button>
+                </form>
+                {% elif request.user.is_authenticated %}
+                <p class="doctor-public-empty">Only patient accounts can submit reviews.</p>
+                {% else %}
+                <p class="doctor-public-empty">Sign in with a patient account to submit a review.</p>
+                {% endif %}
+            </aside>
+        </div>
+    </main>
+    <script src="{% static 'js/doctor_profile.js' %}?v=20260722-11"></script>
+</body>
+</html>

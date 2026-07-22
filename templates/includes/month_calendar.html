@@ -1,0 +1,56 @@
+<div class="reusable-month-calendar" data-calendar-component="{{ calendar_mode }}">
+    {% if calendar_mode == 'booking' %}
+    <div class="quick-booking-date-picker">
+        {% for action in calendar.month_actions %}
+        {% if forloop.first %}
+        <button class="quick-booking-scroll previous" type="button" data-booking-strip-scroll="{{ action.direction }}" aria-label="{{ action.aria_label }}">{{ action.label }}</button>
+        <div class="quick-booking-date-strip" data-booking-calendar data-booking-date-strip>
+            {% for day in calendar.quick_dates %}
+            <button class="quick-booking-date{% if day.today %} today{% endif %}" type="button" data-booking-date="{{ day.value }}" data-unavailable-slots="{{ day.unavailable_slots }}">
+                <strong>{{ day.weekday_label }}, {{ day.short_date }}</strong>
+            </button>
+            {% endfor %}
+        </div>
+        {% else %}
+        <button class="quick-booking-scroll next" type="button" data-booking-strip-scroll="{{ action.direction }}" aria-label="{{ action.aria_label }}">{{ action.label }}</button>
+        {% endif %}
+        {% endfor %}
+    </div>
+    <div data-booking-calendar-header hidden></div>
+    {% else %}
+    <div class="public-booking-calendar-header"{% if calendar_mode == 'busy' %} data-busy-calendar-header{% else %} data-booking-calendar-header{% endif %}>
+        {% for action in calendar.month_actions %}
+        {% if calendar_mode == 'busy' %}
+        <a href="{% url 'profile' %}?tab=schedule&amp;month={{ action.month }}" aria-label="{{ action.aria_label }}">{{ action.label }}</a>
+        {% else %}
+        <a href="{% url 'doctor_profile_detail' doctor.pk %}?month={{ action.month }}#doctor-booking" aria-label="{{ action.aria_label }}">{{ action.label }}</a>
+        {% endif %}
+        {% if forloop.first %}<h3>{{ calendar.month_label }}</h3>{% endif %}
+        {% endfor %}
+    </div>
+
+    <div class="public-booking-calendar{% if calendar_mode == 'busy' %} profile-booking-calendar{% endif %}"{% if calendar_mode == 'busy' %} data-busy-calendar{% else %} data-booking-calendar{% endif %}>
+        {% for weekday in calendar.weekdays %}
+        <div class="public-booking-weekday">{{ weekday.label }}</div>
+        {% endfor %}
+
+        {% for week in calendar.weeks %}
+        {% for day in week %}
+        {% if day.empty %}
+        <span class="public-booking-day empty" aria-hidden="true"></span>
+        {% elif calendar_mode == 'busy' %}
+        <button class="public-booking-day{% if day.busy %} busy{% endif %}{% if day.today %} today{% endif %}" type="button" data-calendar-date="{{ day.date }}" data-busy-slots="{{ day.busy_slots }}"{% if day.weekend_off %} disabled{% endif %}>
+            <strong>{{ day.day }}</strong>
+            <small>{% if day.weekend_off %}Nghỉ cuối tuần{% elif day.busy_count %}Bận {{ day.busy_count }} ca{% else %}Có thể thiết lập{% endif %}</small>
+            {% if day.appointment_count %}<em>{{ day.appointment_count }} lịch hẹn</em>{% endif %}
+        </button>
+        {% else %}
+        <button class="public-booking-day{% if day.today %} today{% endif %}" type="button" data-booking-date="{{ day.value }}" data-unavailable-slots="{{ day.unavailable_slots }}"{% if not day.selectable %} disabled{% endif %}>
+            <strong>{{ day.day }}</strong>
+        </button>
+        {% endif %}
+        {% endfor %}
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>

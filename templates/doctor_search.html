@@ -5,41 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Find doctors | Mediall</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260722-6">
 </head>
 <body class="search-page">
-    <header>
-        <div class="sub-nav">
-            <div class="sub-nav-left">
-                <span class="sub-nav-logo">Mediall one medical</span>
-                <span>Health AI✨</span>
-                <span>On-Demand Care</span>
-                <span>Help/FAQ</span>
-                <span>Browse all health ▾</span>
-            </div>
-            <div class="account-actions">
-                {% if request.user.is_authenticated %}
-                <div class="account-menu" data-account-menu>
-                    <button class="account-summary" type="button" aria-label="Open account menu" data-account-toggle>
-                        <span class="account-avatar">{{ request.user.username|first|upper }}</span>
-                        <span class="account-name">{{ request.user.username }}</span>
-                    </button>
-                    <div class="account-dropdown" data-account-dropdown>
-                        <a href="#" class="disabled-link">Profile <span>Coming soon</span></a>
-                        <a href="{% url 'logout_account' %}">Sign out</a>
-                    </div>
-                </div>
-                {% else %}
-                <span>|</span>
-                <a class="text-button" href="{% url 'home' %}">Sign in</a>
-                <span>|</span>
-                <a class="text-button" href="{% url 'home' %}">Sign up</a>
-                {% endif %}
-            </div>
-        </div>
-    </header>
+    {% include 'includes/header.html' %}
 
     <main>
+        {% if messages %}
+        <div class="search-page-messages">
+            {% for message in messages %}<div class="form-alert success">{{ message }}</div>{% endfor %}
+        </div>
+        {% endif %}
         <section class="doctor-search-top">
             <div class="doctor-search-inner">
                 <form class="doctor-search-form" action="{% url 'doctor_search' %}" method="get">
@@ -73,40 +50,53 @@
                 <div class="doctor-list">
                     {% for doctor in doctors %}
                     <article class="doctor-row">
-                        <img class="doctor-avatar" src="{{ doctor.avatar }}" alt="{{ doctor.name }}">
+                        {% if doctor.avatar_url %}
+                        <img class="doctor-avatar" src="{{ doctor.avatar_url }}" alt="{{ doctor.display_name }}">
+                        {% else %}
+                        <span class="doctor-avatar doctor-avatar-fallback">{{ doctor.display_name|first|upper }}</span>
+                        {% endif %}
                         <div class="doctor-info">
-                            <h2>{{ doctor.name }}</h2>
+                            <h2>
+                                {{ doctor.display_name }}
+                                {% if doctor.is_verified %}<span class="verified-badge verified-badge-small" title="Verified doctor" aria-label="Verified doctor">✓</span>{% endif %}
+                            </h2>
                             <div class="doctor-tags">
                                 {% for item in doctor.specialty_list %}
                                 <span>{{ item }}</span>
+                                {% empty %}
+                                <span>Specialty not updated</span>
                                 {% endfor %}
                             </div>
-                            <p>{{ doctor.address }}</p>
+                            <p>{{ doctor.position }}{% if doctor.position and doctor.workplace %} · {% endif %}{{ doctor.workplace }}</p>
                         </div>
-                        <a href="#" class="doctor-cta {{ doctor.cta_style }}">{{ doctor.cta }}</a>
+                        <div class="doctor-result-actions">
+                            {% for action in doctor_result_actions %}
+                                {% if action.doctor_only and viewer_doctor %}
+                                    {% if action.type == 'form' %}
+                                    <form action="{% url 'doctor_search' %}" method="post">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="search_action" value="recommend_doctor">
+                                        <input type="hidden" name="doctor_id" value="{{ doctor.pk }}">
+                                        <input type="hidden" name="specialty" value="{{ specialty }}">
+                                        <button class="{{ action.class_name }}" type="submit"{% if doctor.is_recommended_by_viewer or doctor.is_viewer %} disabled{% endif %}>
+                                            {% if doctor.is_viewer %}Hồ sơ của bạn{% elif doctor.is_recommended_by_viewer %}Đã thêm giới thiệu{% else %}{{ action.label }}{% endif %}
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <a href="{% url 'doctor_profile_detail' doctor.pk %}" class="{{ action.class_name }}">{{ action.label }}</a>
+                                    {% endif %}
+                                {% elif action.hide_for_doctor and not viewer_doctor %}
+                                <a href="{% url 'doctor_profile_detail' doctor.pk %}" class="{{ action.class_name }}">{{ action.label }}</a>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
                     </article>
+                    {% empty %}
+                    <div class="appointment-request-empty">No registered doctors found.</div>
                     {% endfor %}
                 </div>
             </div>
         </section>
     </main>
-    <script>
-        document.querySelectorAll("[data-account-menu]").forEach(function (menu) {
-            var toggle = menu.querySelector("[data-account-toggle]");
-            if (!toggle) {
-                return;
-            }
-            toggle.addEventListener("click", function (event) {
-                event.stopPropagation();
-                menu.classList.toggle("active");
-            });
-        });
-
-        document.addEventListener("click", function () {
-            document.querySelectorAll("[data-account-menu].active").forEach(function (menu) {
-                menu.classList.remove("active");
-            });
-        });
-    </script>
 </body>
 </html>

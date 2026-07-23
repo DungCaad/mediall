@@ -28,7 +28,7 @@ SECRET_KEY = "django-insecure-t@x=42(__0$_vz!1$8w#9_@l!42#0ta^3lft(&nr&@e-(i*^nb
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['.mediall.net', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['mediall.net', 'www.mediall.net', '103.188.82.158', 'localhost', '127.0.0.1', '*']
 
 RECAPTCHA_SITE_KEY = os.getenv("RECAPTCHA_SITE_KEY", "")
 RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY", "")

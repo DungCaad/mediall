@@ -1,0 +1,19 @@
+{% if featured_footer_groups %}
+<section class="footer-featured-posts" aria-labelledby="footer-featured-title">
+    <div class="container">
+        <h2 class="visually-hidden" id="footer-featured-title">Bài viết nổi bật</h2>
+        <div class="footer-featured-groups">
+            {% for group in featured_footer_groups %}
+            <section class="footer-featured-group">
+                <h3>{{ group.name }}</h3>
+                <div class="footer-featured-list">
+                    {% for featured_post in group.posts %}
+                    <a href="{% url 'post_detail' featured_post.pk %}">{{ featured_post.title }}</a>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}

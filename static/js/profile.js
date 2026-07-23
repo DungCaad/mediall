@@ -196,3 +196,58 @@ if (referralModal) {
         }
     });
 }
+
+var paymentModals = document.querySelectorAll("[data-payment-modal]");
+
+function closePaymentModal(modal) {
+    modal.hidden = true;
+    document.body.classList.remove("modal-open");
+}
+
+document.querySelectorAll("[data-open-payment-modal]").forEach(function (button) {
+    button.addEventListener("click", function () {
+        var modal = document.getElementById(button.dataset.openPaymentModal);
+        if (!modal) return;
+        modal.hidden = false;
+        document.body.classList.add("modal-open");
+        var firstInput = modal.querySelector("input:not([type='hidden'])");
+        if (firstInput) firstInput.focus();
+    });
+});
+
+paymentModals.forEach(function (modal) {
+    var closeButton = modal.querySelector("[data-close-payment-modal]");
+    var cardNumberInput = modal.querySelector("[data-payment-card-number]");
+    var cardPreview = modal.querySelector("[data-payment-card-preview]");
+    var expiryInput = modal.querySelector("[data-payment-expiry]");
+
+    if (closeButton) {
+        closeButton.addEventListener("click", function () {
+            closePaymentModal(modal);
+        });
+    }
+
+    if (cardNumberInput) {
+        cardNumberInput.addEventListener("input", function () {
+            var digits = cardNumberInput.value.replace(/\D/g, "").slice(0, 16);
+            cardNumberInput.value = digits.replace(/(\d{4})(?=\d)/g, "$1 ");
+            cardPreview.textContent = (digits.padEnd(16, "•").match(/.{1,4}/g) || []).join(" ");
+        });
+    }
+
+    if (expiryInput) {
+        expiryInput.addEventListener("input", function () {
+            var digits = expiryInput.value.replace(/\D/g, "").slice(0, 4);
+            expiryInput.value = digits.length > 2
+                ? digits.slice(0, 2) + "/" + digits.slice(2)
+                : digits;
+        });
+    }
+});
+
+document.addEventListener("keydown", function (event) {
+    if (event.key !== "Escape") return;
+    paymentModals.forEach(function (modal) {
+        if (!modal.hidden) closePaymentModal(modal);
+    });
+});

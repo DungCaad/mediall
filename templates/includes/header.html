@@ -11,10 +11,13 @@
         </div>
         <div class="account-actions">
             {% if request.user.is_authenticated %}
+            {% for action in header_quick_actions %}
+            {% if not action.patient_only or header_is_patient %}
+            {% if action.kind == 'notification-menu' %}
             <div class="notification-menu" data-notification-menu>
                 <button class="notification-toggle" type="button" aria-label="Mở thông báo" aria-expanded="false" data-notification-toggle>
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
-                    {% if header_notification_count %}<span class="notification-count">{{ header_notification_count }}</span>{% endif %}
+                    {% if action.count %}<span class="notification-count">{{ action.count }}</span>{% endif %}
                 </button>
                 <div class="notification-panel" data-notification-panel>
                     <div class="notification-panel-heading">
@@ -23,20 +26,28 @@
                     </div>
                     <div class="notification-list">
                         {% for notification in header_notifications %}
-                        <article class="notification-item {{ notification.type }}">
+                        <a class="notification-item {{ notification.type }}" href="{{ notification.href }}">
                             <span class="notification-status-dot" aria-hidden="true"></span>
                             <div>
                                 <strong>{{ notification.title }}</strong>
                                 <p>{{ notification.message }}</p>
                                 <time datetime="{{ notification.created_at|date:'c' }}">{{ notification.created_at|timesince }} trước</time>
                             </div>
-                        </article>
+                        </a>
                         {% empty %}
                         <p class="notification-empty">Bạn chưa có thông báo nào.</p>
                         {% endfor %}
                     </div>
                 </div>
             </div>
+            {% else %}
+            <a class="notification-toggle consultation-cart-toggle" href="{{ action.href }}" aria-label="{{ action.label }}" title="{{ action.label }}">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L21 7H7M10 20h.01M18 20h.01"/></svg>
+                {% if action.count %}<span class="notification-count consultation-cart-count">{{ action.count }}</span>{% endif %}
+            </a>
+            {% endif %}
+            {% endif %}
+            {% endfor %}
             <div class="account-menu" data-account-menu>
                 <button class="account-summary" type="button" aria-label="{{ header_account_menu_aria_label }}" data-account-toggle>
                     {% if header_avatar_url %}
@@ -47,6 +58,9 @@
                     <span class="account-name">{{ header_display_name }}</span>
                     {% if header_is_verified %}
                     <span class="verified-badge verified-badge-small" title="Verified doctor" aria-label="Verified doctor">✓</span>
+                    {% endif %}
+                    {% if header_is_member %}
+                    <span class="member-badge member-badge-small" title="Member" aria-label="Member">★</span>
                     {% endif %}
                 </button>
                 <div class="account-dropdown" data-account-dropdown>

@@ -1,0 +1,24 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | Mediall Admin{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
+<link rel="stylesheet" href="{% static 'css/admin.css' %}?v=20260723-03">
+{% endblock %}
+
+{% block branding %}
+<div class="mediall-admin-brand">
+    <a href="{% url 'admin:index' %}" aria-label="Mediall Admin home">
+        <img src="{% static 'images/logo.ico' %}" alt="Mediall">
+    </a>
+</div>
+{% endblock %}
+
+{% block nav-global %}
+<nav class="mediall-admin-nav" aria-label="Admin navigation">
+    <a href="{% url 'admin_orders' %}">Consultation orders</a>
+</nav>
+{% endblock %}

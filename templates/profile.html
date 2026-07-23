@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit profile | Mediall</title>
     <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260722-6">
-    <script src="{% static 'js/profile.js' %}" defer></script>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260723-01">
+    <script src="{% static 'js/profile.js' %}?v=20260723-01" defer></script>
 </head>
 <body class="profile-page">
     {% include 'includes/header.html' %}
@@ -25,6 +25,9 @@
                         {{ profile_display_name }}
                         {% if profile_is_verified %}
                         <span class="verified-badge" title="Verified doctor" aria-label="Verified doctor">✓</span>
+                        {% endif %}
+                        {% if profile_is_member %}
+                        <span class="member-badge" title="Member" aria-label="Member">★</span>
                         {% endif %}
                     </h1>
                     <p>{{ profile_type }} profile</p>
@@ -158,6 +161,233 @@
                 {% endif %}
             </section>
 
+            {% if profile_type == "Patient" %}
+            <section class="profile-panel{% if active_profile_tab == 'medical-history' %} active{% endif %}" id="profile-panel-medical-history" role="tabpanel" data-profile-panel="medical-history">
+                <h2>Lịch sử khám</h2>
+                <p class="profile-panel-description">Tất cả thông tin chẩn đoán, điều trị, đơn thuốc và lịch tái khám từ những lần khám trước.</p>
+
+                <div class="medical-record-list">
+                    {% for appointment in medical_history %}
+                    <article class="medical-record-card">
+                        <div class="medical-record-date">
+                            <strong>{{ appointment.appointment_date|date:"d" }}</strong>
+                            <span>{{ appointment.appointment_date|date:"M Y" }}</span>
+                        </div>
+                        <div class="medical-record-content">
+                            <div class="medical-record-title">
+                                <div>
+                                    <h2>{{ appointment.doctor.display_name }}</h2>
+                                    <p>{{ appointment.doctor.specialties|default:"General consultation" }} &middot; {{ appointment.time_slot }}</p>
+                                </div>
+                                <span class="medical-record-status">Completed</span>
+                            </div>
+                            {% if appointment.medical_record %}
+                            <dl class="medical-record-details">
+                                <div><dt>Diagnosis</dt><dd>{{ appointment.medical_record.diagnosis|linebreaksbr }}</dd></div>
+                                {% if appointment.medical_record.treatment %}<div><dt>Treatment</dt><dd>{{ appointment.medical_record.treatment|linebreaksbr }}</dd></div>{% endif %}
+                                {% if appointment.medical_record.prescription %}<div><dt>Prescription</dt><dd>{{ appointment.medical_record.prescription|linebreaksbr }}</dd></div>{% endif %}
+                                {% if appointment.medical_record.notes %}<div><dt>Doctor's notes</dt><dd>{{ appointment.medical_record.notes|linebreaksbr }}</dd></div>{% endif %}
+                                {% if appointment.medical_record.follow_up_date %}<div><dt>Follow-up date</dt><dd>{{ appointment.medical_record.follow_up_date|date:"d M Y" }}</dd></div>{% endif %}
+                            </dl>
+                            {% else %}
+                            <p class="medical-record-pending">The medical record for this appointment has not been added yet.</p>
+                            {% endif %}
+                        </div>
+                    </article>
+                    {% empty %}
+                    <section class="medical-record-empty">
+                        <h2>Chưa có lịch sử khám</h2>
+                        <p>Các cuộc hẹn đã hoàn thành và thông tin bệnh án sẽ xuất hiện tại đây.</p>
+                        <a class="btn" href="{% url 'doctor_search' %}">Tìm bác sĩ</a>
+                    </section>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
+            {% if profile_type == "Patient" %}
+            <section class="profile-panel{% if active_profile_tab == 'consultation-requests' %} active{% endif %}" id="profile-panel-consultation-requests" role="tabpanel" data-profile-panel="consultation-requests">
+                <div class="consultation-list-heading">
+                    <div>
+                        <h2>Consultation requests</h2>
+                        <p class="profile-panel-description">Theo dõi bước kiểm duyệt và phản hồi của bác sĩ cho từng yêu cầu tư vấn.</p>
+                    </div>
+                    <strong>{{ consultation_requests|length }} requests</strong>
+                </div>
+
+                <div class="consultation-cart-list">
+                    {% for consultation in consultation_requests %}
+                    <article class="consultation-cart-card" id="consultation-request-{{ consultation.pk }}">
+                        <a class="consultation-doctor-avatar" href="{% url 'doctor_profile_detail' consultation.doctor.pk %}">
+                            {% if consultation.doctor.avatar %}<img src="{{ consultation.doctor.avatar.url }}" alt="">{% else %}{{ consultation.doctor.display_name|first|upper }}{% endif %}
+                        </a>
+                        <div class="consultation-cart-content">
+                            <div class="consultation-cart-title">
+                                <div>
+                                    <small>Request #{{ consultation.pk }}</small>
+                                    <h3><a href="{% url 'doctor_profile_detail' consultation.doctor.pk %}">{{ consultation.doctor.display_name }}</a></h3>
+                                    <p>{{ consultation.appointment_date|date:"d/m/Y" }} &middot; {{ consultation.time_slot }}</p>
+                                    <p class="consultation-service-price">{% if consultation.service_type %}{{ consultation.get_service_type_display }} &middot; <strong>${{ consultation.consultation_fee|floatformat:-2 }} /visit</strong>{% else %}Service not selected{% endif %}</p>
+                                </div>
+                                <span class="consultation-created">{{ consultation.created_at|date:"d/m/Y H:i" }}</span>
+                            </div>
+
+                            <div class="consultation-progress">
+                                <div class="consultation-stage {% if consultation.moderation_status == 'approved' %}approved{% elif consultation.moderation_status == 'rejected' %}rejected{% else %}pending{% endif %}">
+                                    <span>1</span>
+                                    <div>
+                                        <small>Admin review</small>
+                                        <strong>{% if consultation.moderation_status == 'approved' %}Approved by admin{% elif consultation.moderation_status == 'rejected' %}Rejected by admin{% else %}Pending admin review{% endif %}</strong>
+                                    </div>
+                                </div>
+                                <div class="consultation-stage {% if consultation.moderation_status != 'approved' %}waiting{% elif consultation.status == 'accepted' %}approved{% elif consultation.status == 'rejected' %}rejected{% else %}pending{% endif %}">
+                                    <span>2</span>
+                                    <div>
+                                        <small>Doctor approval</small>
+                                        <strong>{% if consultation.moderation_status == 'rejected' %}Not sent to doctor{% elif consultation.moderation_status == 'pending' %}Waiting for admin review{% elif consultation.status == 'accepted' %}Accepted by doctor{% elif consultation.status == 'rejected' %}Rejected by doctor{% else %}Waiting for doctor{% endif %}</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {% if consultation.payment_status == 'expired' %}
+                            <div class="consultation-payment-deadline expired">
+                                <strong>Payment expired</strong>
+                                <span>The 24-hour deadline passed and this appointment is no longer held.</span>
+                            </div>
+                            {% elif consultation.payment_status == 'paid' %}
+                            <div class="consultation-payment-deadline paid">
+                                <strong>Đã thanh toán</strong>
+                            </div>
+                            {% elif consultation.moderation_status == 'approved' and consultation.payment_due_at %}
+                            <div class="consultation-payment-deadline awaiting">
+                                <div>
+                                    <strong>Pay before {{ consultation.payment_due_at|date:"d/m/Y H:i" }}</strong>
+                                    <span>The appointment is held for 24 hours after admin verification.</span>
+                                </div>
+                                <button
+                                    class="consultation-pay-button"
+                                    type="button"
+                                    data-open-payment-modal="payment-modal-{{ consultation.pk }}"
+                                    {% if consultation.payment_submitted_at %}disabled{% endif %}
+                                >{% if consultation.payment_submitted_at %}Đang chờ xác nhận{% else %}Thanh toán ngay{% endif %}</button>
+                            </div>
+
+                            {% if not consultation.payment_submitted_at %}
+                            <div class="payment-modal-backdrop" id="payment-modal-{{ consultation.pk }}" data-payment-modal hidden>
+                                <section class="payment-modal" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title-{{ consultation.pk }}">
+                                    <header class="payment-modal-header">
+                                        <div>
+                                            <span>Thanh toán tư vấn</span>
+                                            <h3 id="payment-modal-title-{{ consultation.pk }}">{{ consultation.doctor.display_name }}</h3>
+                                        </div>
+                                        <strong>${{ consultation.consultation_fee|floatformat:2 }}</strong>
+                                    </header>
+
+                                    <div class="payment-order-summary">
+                                        <div><span>Dịch vụ</span><strong>{{ consultation.get_service_type_display }}</strong></div>
+                                        <div><span>Lịch khám</span><strong>{{ consultation.appointment_date|date:"d/m/Y" }} · {{ consultation.time_slot }}</strong></div>
+                                        <div><span>Mã đơn</span><strong>#{{ consultation.pk }}</strong></div>
+                                    </div>
+
+                                    <form method="post" action="{% url 'submit_appointment_payment' consultation.pk %}" data-payment-form>
+                                        {% csrf_token %}
+                                        <div class="payment-card-preview" aria-hidden="true">
+                                            <span>MEDI ALL</span>
+                                            <strong data-payment-card-preview>•••• •••• •••• ••••</strong>
+                                            <small>SECURE PAYMENT</small>
+                                        </div>
+
+                                        <div class="payment-form-fields">
+                                            <label class="payment-field-wide">
+                                                Tên chủ thẻ
+                                                <input type="text" autocomplete="cc-name" placeholder="NGUYEN VAN A" required>
+                                            </label>
+                                            <label class="payment-field-wide">
+                                                Số thẻ
+                                                <input type="text" inputmode="numeric" autocomplete="cc-number" maxlength="19" placeholder="0000 0000 0000 0000" data-payment-card-number required>
+                                            </label>
+                                            <label>
+                                                Ngày hết hạn
+                                                <input type="text" inputmode="numeric" autocomplete="cc-exp" maxlength="5" placeholder="MM/YY" data-payment-expiry required>
+                                            </label>
+                                            <label>
+                                                CVV
+                                                <input type="password" inputmode="numeric" autocomplete="cc-csc" maxlength="4" placeholder="•••" required>
+                                            </label>
+                                        </div>
+
+                                        <p class="payment-security-note">Thông tin thẻ chỉ được dùng để mô phỏng giao diện và không được lưu trên hệ thống.</p>
+
+                                        <div class="payment-modal-actions">
+                                            {% for action in payment_modal_actions %}
+                                            <button
+                                                class="{{ action.class_name }}"
+                                                type="{{ action.type }}"
+                                                {% if action.id == 'cancel' %}data-close-payment-modal{% endif %}
+                                            >{{ action.label }}</button>
+                                            {% endfor %}
+                                        </div>
+                                    </form>
+                                </section>
+                            </div>
+                            {% endif %}
+                            {% endif %}
+
+                            {% if consultation.reason %}<p class="consultation-cart-reason">{{ consultation.reason }}</p>{% endif %}
+                            {% if consultation.attachments.all %}
+                            <div class="consultation-cart-attachments">
+                                {% for attachment in consultation.attachments.all %}
+                                <a href="{% url 'appointment_attachment' attachment.pk %}" target="_blank" rel="noopener">{{ attachment.original_name }}</a>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </article>
+                    {% empty %}
+                    <section class="medical-record-empty">
+                        <h2>No consultation requests</h2>
+                        <p>Your submitted consultation requests will appear here.</p>
+                        <a class="btn" href="{% url 'doctor_search' %}">Find a doctor</a>
+                    </section>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
+            {% if profile_type == "Patient" %}
+            <section class="profile-panel{% if active_profile_tab == 'access-requests' %} active{% endif %}" id="profile-panel-access-requests" role="tabpanel" data-profile-panel="access-requests">
+                <h2>Yêu cầu xem hồ sơ</h2>
+                <p class="profile-panel-description">Chỉ những người được bạn đồng ý mới có thể xem thông tin hồ sơ cá nhân.</p>
+
+                <div class="profile-access-request-list">
+                    {% for access_request in profile_access_requests %}
+                    <article class="profile-access-request-card">
+                        <div class="profile-access-request-avatar">{{ access_request.requester.email|default:access_request.requester.username|first|upper }}</div>
+                        <div class="profile-access-request-info">
+                            <strong>{% if access_request.requester.get_full_name %}{{ access_request.requester.get_full_name }}{% else %}{{ access_request.requester.email|default:access_request.requester.username }}{% endif %}</strong>
+                            <small>Gửi yêu cầu {{ access_request.updated_at|date:"d/m/Y H:i" }}</small>
+                            <span class="profile-access-status {{ access_request.status }}">{{ access_request.get_status_display }}</span>
+                        </div>
+                        {% if access_request.status == 'pending' or access_request.status == 'approved' %}
+                        <form class="profile-access-actions" action="{% url 'profile' %}" method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="profile_action" value="profile_access_decision">
+                            <input type="hidden" name="access_request_id" value="{{ access_request.pk }}">
+                            {% for action in profile_access_actions %}
+                            {% if access_request.status == 'pending' or action.id == 'reject' %}
+                            <button class="{{ action.class_name }}" type="submit" name="decision" value="{{ action.id }}">{% if access_request.status == 'approved' %}{{ action.approved_label }}{% else %}{{ action.label }}{% endif %}</button>
+                            {% endif %}
+                            {% endfor %}
+                        </form>
+                        {% endif %}
+                    </article>
+                    {% empty %}
+                    <div class="appointment-request-empty">Chưa có ai yêu cầu xem hồ sơ của bạn.</div>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
             {% if doctor_schedule %}
             <section class="profile-panel{% if active_profile_tab == 'schedule' %} active{% endif %}" id="profile-panel-schedule" role="tabpanel" data-profile-panel="schedule">
                 <h2>Lịch đặt khám</h2>
@@ -283,6 +513,16 @@
                                 </div>
                                 <p><strong>{{ appointment.appointment_date|date:"d/m/Y" }}</strong> · {{ appointment.time_slot }}</p>
                                 {% if appointment.reason %}<p class="appointment-reason">{{ appointment.reason }}</p>{% endif %}
+                                {% if appointment.attachments.all %}
+                                <div class="appointment-attachments">
+                                    {% for attachment in appointment.attachments.all %}
+                                    <a href="{% url 'appointment_attachment' attachment.pk %}" target="_blank" rel="noopener">
+                                        {% if attachment.media_type == 'image' %}<img src="{% url 'appointment_attachment' attachment.pk %}" alt="{{ attachment.original_name }}">{% else %}<span class="appointment-video-file">Video</span>{% endif %}
+                                        <small>{{ attachment.original_name }}</small>
+                                    </a>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
                                 {% if appointment.referred_doctor %}
                                 <p class="appointment-referral">Đã giới thiệu: <strong>{% if appointment.referred_doctor.full_name %}{{ appointment.referred_doctor.full_name }}{% else %}{{ appointment.referred_doctor.account.user.email }}{% endif %}</strong></p>
                                 {% endif %}

@@ -1,0 +1,94 @@
+{% extends "admin/base_site.html" %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a>
+    &rsaquo; Quản lý bài viết
+</div>
+{% endblock %}
+
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div class="admin-post-list-heading">
+    <div>
+        <h1>Quản lý bài viết</h1>
+        <p>Chọn bài viết nổi bật để hiển thị tại chân trang.</p>
+    </div>
+    <div class="admin-post-heading-actions">
+        <details class="admin-post-group-create">
+            <summary>Tạo nhóm</summary>
+            <form method="post">
+                {% csrf_token %}
+                <label>
+                    Tên nhóm
+                    <input type="text" name="group_name" maxlength="100" placeholder="Ví dụ: Sức khỏe" required>
+                </label>
+                <button type="submit" name="create_group" value="1">Lưu nhóm</button>
+            </form>
+        </details>
+        <a class="admin-post-create-link" href="{% url 'admin_create_post' %}">Tạo bài viết mới</a>
+    </div>
+</div>
+
+{% if messages %}
+<ul class="messagelist">{% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}</ul>
+{% endif %}
+
+<div class="admin-post-list-summary">
+    <strong>{{ featured_count }}</strong>
+    <span>bài viết đang nổi bật</span>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="admin-post-list">
+        {% for item in posts %}
+        <article class="admin-post-list-item{% if item.is_featured %} is-featured{% endif %}">
+            <div class="admin-post-list-main">
+                <div class="admin-post-list-state">
+                    {% if item.is_featured %}★ Nổi bật{% else %}Bài viết thường{% endif %}
+                </div>
+                <h2>{{ item.title }}</h2>
+                <p>
+                    {{ item.created_at|date:"d/m/Y H:i" }}
+                    · {{ item.view_count }} lượt xem
+                    · {% if item.is_published %}Đã xuất bản{% else %}Bản nháp{% endif %}
+                </p>
+            </div>
+            <div class="admin-post-list-actions">
+                <label class="admin-post-group-select">
+                    <span>Nhóm hiển thị</span>
+                    <select name="group_{{ item.pk }}">
+                        <option value="">Bài viết nổi bật</option>
+                        {% for group in featured_groups %}
+                        <option value="{{ group.pk }}"{% if item.featured_group_id == group.pk %} selected{% endif %}>{{ group.name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                {% for action in item.admin_actions %}
+                    {% if action.type == "submit" %}
+                    <button
+                        class="admin-post-list-action {{ action.class_name }}"
+                        type="submit"
+                        name="{{ action.name }}"
+                        value="{{ action.value }}">{{ action.label }}</button>
+                    {% else %}
+                    <a
+                        class="admin-post-list-action {{ action.class_name }}"
+                        href="{{ action.url }}"
+                        target="_blank"
+                        rel="noopener">{{ action.label }}</a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </article>
+        {% empty %}
+        <div class="admin-post-list-empty">
+            <p>Chưa có bài viết nào.</p>
+            <a href="{% url 'admin_create_post' %}">Tạo bài viết đầu tiên</a>
+        </div>
+        {% endfor %}
+    </div>
+</form>
+{% endblock %}

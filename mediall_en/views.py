@@ -1,5 +1,11 @@
 import calendar
 import json
+import mimetypes
+import struct
+from decimal import Decimal, ROUND_HALF_UP
+from html import escape
+from html.parser import HTMLParser
+from pathlib import Path
 from datetime import date, datetime, timedelta
 from urllib import error, parse, request as urllib_request
 
@@ -8,19 +14,188 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
-from django.db.models import Avg, Q
+from django.db.models import Avg, F, Min, Q
 from django.forms import modelform_factory
-from django.http import JsonResponse
+from django.http import FileResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.html import strip_tags
 from django.views.decorators.http import require_POST
 
-from accounts.models import AccountProfile, DoctorAppointment, DoctorBusyDate, DoctorProfile, DoctorReview, MedicalRecord, PatientProfile
+from accounts.models import AccountProfile, AppointmentAttachment, BlogPost, DoctorAppointment, DoctorBusyDate, DoctorProfile, DoctorReview, FeaturedPostGroup, MedicalRecord, PatientProfile, PatientProfileAccessRequest
+
+
+STANDARD_PATIENT_PRICE_MULTIPLIER = Decimal("2.05")
+MEMBER_PATIENT_PRICE_MULTIPLIER = Decimal("1.50")
+
+
+class SafePostHTMLParser(HTMLParser):
+    allowed_tags = {
+        "a", "blockquote", "br", "div", "em", "h2", "h3", "hr", "li",
+        "ol", "p", "strong", "u", "ul",
+    }
+    void_tags = {"br", "hr"}
+    blocked_tags = {"script", "style"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.parts = []
+        self.blocked_depth = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in self.blocked_tags:
+            self.blocked_depth += 1
+            return
+        if self.blocked_depth:
+            return
+        if tag not in self.allowed_tags:
+            return
+        safe_attrs = []
+        if tag == "a":
+            href = dict(attrs).get("href", "").strip()
+            if href.startswith(("https://", "http://", "mailto:", "/")):
+                safe_attrs = [
+                    ("href", href),
+                    ("target", "_blank"),
+                    ("rel", "noopener noreferrer"),
+                ]
+        attributes = "".join(
+            f' {name}="{escape(value, quote=True)}"'
+            for name, value in safe_attrs
+        )
+        self.parts.append(f"<{tag}{attributes}>")
+
+    def handle_endtag(self, tag):
+        if tag in self.blocked_tags and self.blocked_depth:
+            self.blocked_depth -= 1
+            return
+        if self.blocked_depth:
+            return
+        if tag in self.allowed_tags and tag not in self.void_tags:
+            self.parts.append(f"</{tag}>")
+
+    def handle_data(self, data):
+        if not self.blocked_depth:
+            self.parts.append(escape(data))
+
+    def get_html(self):
+        return "".join(self.parts).strip()
+
+
+def sanitize_post_html(value):
+    parser = SafePostHTMLParser()
+    parser.feed(value or "")
+    parser.close()
+    return parser.get_html()
+
+
+def calculate_patient_consultation_fee(base_fee, is_member=False):
+    if base_fee is None:
+        return None
+    multiplier = MEMBER_PATIENT_PRICE_MULTIPLIER if is_member else STANDARD_PATIENT_PRICE_MULTIPLIER
+    return (base_fee * multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def get_account_email(user):
+    if user.email:
+        return user.email
+    if "@" in user.username:
+        return user.username
+    return "Not provided"
+
+
+def get_account_display_name(user):
+    return user.email or user.username or "Not provided"
+
+
+def _read_ebml_vint(data, offset):
+    if offset >= len(data):
+        return None, 0
+    first_byte = data[offset]
+    mask = 0x80
+    length = 1
+    while length <= 8 and not first_byte & mask:
+        mask >>= 1
+        length += 1
+    if length > 8 or offset + length > len(data):
+        return None, 0
+    value = first_byte & (mask - 1)
+    for byte in data[offset + 1:offset + length]:
+        value = (value << 8) | byte
+    return value, length
+
+
+def get_uploaded_video_duration(uploaded_file):
+    original_position = uploaded_file.tell()
+    try:
+        uploaded_file.seek(0)
+        data = uploaded_file.read()
+    finally:
+        uploaded_file.seek(original_position)
+
+    extension = Path(uploaded_file.name).suffix.lower()
+    if extension in {".mp4", ".mov"}:
+        marker_position = data.find(b"mvhd")
+        if marker_position < 0 or marker_position + 32 > len(data):
+            return None
+        version = data[marker_position + 4]
+        if version == 0:
+            timescale = int.from_bytes(data[marker_position + 16:marker_position + 20], "big")
+            duration = int.from_bytes(data[marker_position + 20:marker_position + 24], "big")
+        elif version == 1:
+            timescale = int.from_bytes(data[marker_position + 24:marker_position + 28], "big")
+            duration = int.from_bytes(data[marker_position + 28:marker_position + 36], "big")
+        else:
+            return None
+        return duration / timescale if timescale else None
+
+    if extension == ".webm":
+        timecode_scale = 1_000_000
+        scale_position = data.find(b"\x2a\xd7\xb1")
+        if scale_position >= 0:
+            scale_size, scale_size_length = _read_ebml_vint(data, scale_position + 3)
+            scale_start = scale_position + 3 + scale_size_length
+            if scale_size and scale_start + scale_size <= len(data):
+                timecode_scale = int.from_bytes(data[scale_start:scale_start + scale_size], "big")
+
+        duration_position = data.find(b"\x44\x89")
+        if duration_position < 0:
+            return None
+        duration_size, duration_size_length = _read_ebml_vint(data, duration_position + 2)
+        duration_start = duration_position + 2 + duration_size_length
+        if duration_size == 4 and duration_start + 4 <= len(data):
+            duration_value = struct.unpack(">f", data[duration_start:duration_start + 4])[0]
+        elif duration_size == 8 and duration_start + 8 <= len(data):
+            duration_value = struct.unpack(">d", data[duration_start:duration_start + 8])[0]
+        else:
+            return None
+        return duration_value * timecode_scale / 1_000_000_000
+
+    return None
+
+
+def expire_overdue_appointment_payments():
+    now = timezone.now()
+    return DoctorAppointment.objects.filter(
+        moderation_status=DoctorAppointment.MODERATION_APPROVED,
+        payment_status=DoctorAppointment.PAYMENT_AWAITING,
+        payment_due_at__isnull=False,
+        payment_due_at__lte=now,
+    ).exclude(status=DoctorAppointment.STATUS_REJECTED).update(
+        payment_status=DoctorAppointment.PAYMENT_EXPIRED,
+        status=DoctorAppointment.STATUS_REJECTED,
+        updated_at=now,
+    )
+
+
 def verify_recaptcha(token, remote_ip=""):
     if not token or not settings.RECAPTCHA_SECRET_KEY:
         return False
@@ -82,12 +257,655 @@ def translate_to_english(request):
     return JsonResponse({"translation": translated_text})
 
 
+@login_required
+def appointment_attachment_file(request, attachment_id):
+    attachment = get_object_or_404(
+        AppointmentAttachment.objects.select_related(
+            "appointment__patient__account__user",
+            "appointment__doctor__account__user",
+        ),
+        pk=attachment_id,
+    )
+    appointment = attachment.appointment
+    patient_can_view = request.user == appointment.patient.account.user
+    doctor_can_view = (
+        request.user == appointment.doctor.account.user
+        and appointment.moderation_status == DoctorAppointment.MODERATION_APPROVED
+    )
+    if not request.user.is_staff and not patient_can_view and not doctor_can_view:
+        return HttpResponseForbidden("You do not have permission to view this attachment.")
+
+    content_type = mimetypes.guess_type(attachment.original_name)[0] or "application/octet-stream"
+    return FileResponse(
+        attachment.file.open("rb"),
+        as_attachment=False,
+        filename=attachment.original_name,
+        content_type=content_type,
+    )
+
+
+def build_admin_order_actions():
+    # Action buttons shown on every consultation request in /admin/orders
+    return [
+        # Button that approves the request and sends it to the doctor
+        {
+            "id": "verify",
+            "label": "Verify",
+            "type": "submit",
+            "class_name": "admin-order-action verify",
+        },
+        # Button that confirms the patient's consultation payment
+        {
+            "id": "confirm-payment",
+            "label": "Confirm payment",
+            "confirmed_label": "Payment confirmed",
+            "type": "submit",
+            "class_name": "admin-order-action confirm-payment",
+        },
+        # Button that opens all order information, images, and videos
+        {
+            "id": "details",
+            "label": "View order details",
+            "type": "link",
+            "class_name": "admin-order-action details",
+        },
+        # Button that permanently removes a rejected, expired, or failed request
+        {
+            "id": "cleanup",
+            "label": "Clean up",
+            "type": "submit",
+            "class_name": "admin-order-action cleanup",
+        },
+    ]
+
+
+def can_cleanup_admin_order(appointment):
+    return (
+        appointment.moderation_status == DoctorAppointment.MODERATION_REJECTED
+        or appointment.status == DoctorAppointment.STATUS_REJECTED
+        or appointment.payment_status == DoctorAppointment.PAYMENT_EXPIRED
+    )
+
+
+def can_confirm_admin_order_payment(appointment):
+    return (
+        appointment.moderation_status == DoctorAppointment.MODERATION_APPROVED
+        and appointment.payment_status == DoctorAppointment.PAYMENT_AWAITING
+        and appointment.payment_submitted_at is not None
+    )
+
+
+@staff_member_required
+def admin_orders(request):
+    expire_overdue_appointment_payments()
+    if request.method == "POST":
+        order_action = request.POST.get("order_action")
+        appointment = get_object_or_404(DoctorAppointment, pk=request.POST.get("appointment_id"))
+        if order_action == "verify":
+            if appointment.moderation_status == DoctorAppointment.MODERATION_PENDING:
+                appointment.moderation_status = DoctorAppointment.MODERATION_APPROVED
+                appointment.payment_due_at = timezone.now() + timedelta(hours=24)
+                appointment.save(update_fields=["moderation_status", "payment_due_at", "updated_at"])
+                messages.success(request, "The consultation request was verified and sent to the doctor.")
+            else:
+                messages.info(request, "This consultation request has already been reviewed.")
+        elif order_action == "cleanup":
+            if not can_cleanup_admin_order(appointment):
+                messages.error(request, "Only rejected, expired, or failed consultation requests can be cleaned up.")
+            else:
+                appointment_id = appointment.pk
+                with transaction.atomic():
+                    for attachment in appointment.attachments.all():
+                        attachment.file.delete(save=False)
+                    appointment.delete()
+                messages.success(request, f"Consultation request #{appointment_id} was permanently cleaned up.")
+        elif order_action == "confirm-payment":
+            if not can_confirm_admin_order_payment(appointment):
+                messages.error(request, "Only approved consultation requests awaiting payment can be confirmed.")
+            else:
+                appointment.payment_status = DoctorAppointment.PAYMENT_PAID
+                appointment.save(update_fields=["payment_status", "updated_at"])
+                messages.success(request, f"Payment for consultation request #{appointment.pk} was confirmed.")
+        else:
+            messages.error(request, "Invalid order action.")
+        return redirect("admin_orders")
+
+    orders = list(
+        DoctorAppointment.objects.select_related(
+            "patient__account__user",
+            "doctor__account__user",
+        ).prefetch_related("attachments").order_by("-created_at")
+    )
+    for order in orders:
+        order.can_cleanup = can_cleanup_admin_order(order)
+        order.can_confirm_payment = can_confirm_admin_order_payment(order)
+    orders.sort(key=lambda order: order.moderation_status != DoctorAppointment.MODERATION_PENDING)
+
+    unpaid_orders = [
+        order for order in orders
+        if order.payment_status != DoctorAppointment.PAYMENT_PAID
+    ]
+    paid_orders = [
+        order for order in orders
+        if order.payment_status == DoctorAppointment.PAYMENT_PAID
+    ]
+
+    # Dãy nút phân nhóm đơn hàng theo trạng thái thanh toán
+    order_payment_groups = [
+        # Nút hiển thị các đơn chưa thanh toán
+        {
+            "id": "unpaid",
+            "label": "Chưa thanh toán",
+            "active": True,
+            "orders": unpaid_orders,
+            "count": len(unpaid_orders),
+            "empty_title": "Không có đơn chưa thanh toán",
+            "empty_description": "Tất cả đơn hiện tại đã được thanh toán.",
+        },
+        # Nút hiển thị các đơn đã thanh toán
+        {
+            "id": "paid",
+            "label": "Đã thanh toán",
+            "active": False,
+            "orders": paid_orders,
+            "count": len(paid_orders),
+            "empty_title": "Chưa có đơn đã thanh toán",
+            "empty_description": "Các đơn được xác nhận thanh toán sẽ xuất hiện tại đây.",
+        },
+    ]
+
+    return render(request, "admin/orders.html", {
+        "title": "Consultation orders",
+        "order_payment_groups": order_payment_groups,
+        "order_actions": build_admin_order_actions(),
+        "pending_count": sum(
+            order.moderation_status == DoctorAppointment.MODERATION_PENDING for order in orders
+        ),
+    })
+
+
+@staff_member_required
+def admin_order_detail(request, appointment_id):
+    order = get_object_or_404(
+        DoctorAppointment.objects.select_related(
+            "patient__account__user",
+            "doctor__account__user",
+        ).prefetch_related("attachments"),
+        pk=appointment_id,
+    )
+    return render(request, "admin/order_detail.html", {
+        "title": f"Consultation request #{order.pk}",
+        "order": order,
+    })
+
+
+@login_required
+@require_POST
+def submit_appointment_payment(request, appointment_id):
+    expire_overdue_appointment_payments()
+    appointment = get_object_or_404(
+        DoctorAppointment,
+        pk=appointment_id,
+        patient__account__user=request.user,
+    )
+    if (
+        appointment.moderation_status != DoctorAppointment.MODERATION_APPROVED
+        or appointment.payment_status != DoctorAppointment.PAYMENT_AWAITING
+        or not appointment.payment_due_at
+    ):
+        messages.error(request, "This consultation request is not available for payment.")
+    elif appointment.payment_submitted_at:
+        messages.info(request, "Your payment is already awaiting admin confirmation.")
+    else:
+        appointment.payment_submitted_at = timezone.now()
+        appointment.save(update_fields=["payment_submitted_at", "updated_at"])
+        messages.success(request, "Payment submitted. Please wait for admin confirmation.")
+    return redirect("/profile?tab=consultation-requests#consultation-request-{}".format(appointment.pk))
+
+
+def build_post_editor_toolbar():
+    # Dãy nút định dạng nội dung trong trình soạn thảo bài viết
+    return [
+        # Nút in đậm
+        {"id": "bold", "label": "B", "title": "In đậm", "command": "bold", "class_name": "bold"},
+        # Nút in nghiêng
+        {"id": "italic", "label": "I", "title": "In nghiêng", "command": "italic", "class_name": "italic"},
+        # Nút gạch chân
+        {"id": "underline", "label": "U", "title": "Gạch chân", "command": "underline", "class_name": "underline"},
+        # Nút tiêu đề cấp hai
+        {"id": "heading", "label": "H2", "title": "Tiêu đề", "command": "formatBlock", "value": "h2"},
+        # Nút đoạn văn
+        {"id": "paragraph", "label": "¶", "title": "Đoạn văn", "command": "formatBlock", "value": "p"},
+        # Nút danh sách dấu chấm
+        {"id": "unordered-list", "label": "• List", "title": "Danh sách dấu chấm", "command": "insertUnorderedList"},
+        # Nút danh sách đánh số
+        {"id": "ordered-list", "label": "1. List", "title": "Danh sách đánh số", "command": "insertOrderedList"},
+        # Nút trích dẫn
+        {"id": "quote", "label": "❝", "title": "Trích dẫn", "command": "formatBlock", "value": "blockquote"},
+        # Nút chèn liên kết
+        {"id": "link", "label": "🔗", "title": "Chèn liên kết", "command": "createLink", "prompt": True},
+        # Nút xóa định dạng
+        {"id": "clear", "label": "Tx", "title": "Xóa định dạng", "command": "removeFormat"},
+    ]
+
+
+def build_admin_post_actions(post):
+    # Dãy nút thao tác của từng bài viết trong trang quản lý
+    return [
+        # Nút thay đổi trạng thái bài viết nổi bật
+        {
+            "type": "submit",
+            "name": "toggle_featured",
+            "value": post.pk,
+            "label": "Bỏ nổi bật" if post.is_featured else "Đặt nổi bật",
+            "class_name": "featured" if post.is_featured else "",
+        },
+        # Nút lưu nhóm bài viết
+        {
+            "type": "submit",
+            "name": "assign_group",
+            "value": post.pk,
+            "label": "Lưu nhóm",
+            "class_name": "group",
+        },
+        # Nút xem bài viết
+        {
+            "type": "link",
+            "label": "Xem bài",
+            "url": reverse("post_detail", args=[post.pk]),
+            "class_name": "secondary",
+        },
+    ]
+
+
+def get_featured_footer_groups():
+    groups = list(FeaturedPostGroup.objects.all())
+    footer_groups = []
+
+    for group in groups:
+        posts = list(BlogPost.objects.filter(
+            is_published=True,
+            is_featured=True,
+            featured_group=group,
+        ).only("id", "title").order_by("-created_at"))
+        if posts:
+            footer_groups.append({"name": group.name, "posts": posts})
+
+    ungrouped_posts = list(BlogPost.objects.filter(
+        is_published=True,
+        is_featured=True,
+        featured_group__isnull=True,
+    ).only("id", "title").order_by("-created_at"))
+    if ungrouped_posts:
+        footer_groups.append({"name": "Bài viết nổi bật", "posts": ungrouped_posts})
+
+    return footer_groups
+
+
+@staff_member_required
+def admin_create_post(request):
+    errors = []
+    form_values = {
+        "title": "",
+        "content_html": "",
+        "seo_description": "",
+        "tags": "",
+        "is_published": True,
+    }
+
+    if request.method == "POST":
+        form_values = {
+            "title": request.POST.get("title", "").strip(),
+            "content_html": request.POST.get("content_html", "").strip(),
+            "seo_description": request.POST.get("seo_description", "").strip(),
+            "tags": request.POST.get("tags", "").strip(),
+            "is_published": request.POST.get("is_published") == "on",
+        }
+        sanitized_content = sanitize_post_html(form_values["content_html"])
+        form_values["content_html"] = sanitized_content
+        plain_content = strip_tags(sanitized_content).strip()
+
+        if not form_values["title"]:
+            errors.append("Vui lòng nhập tiêu đề bài viết.")
+        if not plain_content:
+            errors.append("Vui lòng nhập nội dung bài viết.")
+        if len(form_values["seo_description"]) > 160:
+            errors.append("Mô tả SEO không được vượt quá 160 ký tự.")
+
+        normalized_tags = []
+        normalized_tag_keys = set()
+        for tag in form_values["tags"].replace("\n", ",").split(","):
+            tag = tag.strip()
+            if tag and tag.casefold() not in normalized_tag_keys:
+                normalized_tags.append(tag)
+                normalized_tag_keys.add(tag.casefold())
+
+        if not errors:
+            post = BlogPost.objects.create(
+                title=form_values["title"],
+                content_html=sanitized_content,
+                seo_description=form_values["seo_description"],
+                tags=", ".join(normalized_tags),
+                author=request.user,
+                is_published=form_values["is_published"],
+            )
+            messages.success(request, f'Đã tạo bài viết “{post.title}”.')
+            return redirect("admin_posts")
+
+    return render(request, "admin/post.html", {
+        "title": "Tạo bài viết",
+        "editor_toolbar": build_post_editor_toolbar(),
+        "form_values": form_values,
+        "form_errors": errors,
+        "recent_posts": BlogPost.objects.select_related("author")[:10],
+    })
+
+
+@staff_member_required
+def admin_posts(request):
+    if request.method == "POST":
+        if "create_group" in request.POST:
+            group_name = request.POST.get("group_name", "").strip()
+            if not group_name:
+                messages.error(request, "Vui lòng nhập tên nhóm.")
+            elif FeaturedPostGroup.objects.filter(name__iexact=group_name).exists():
+                messages.error(request, "Tên nhóm này đã tồn tại.")
+            else:
+                FeaturedPostGroup.objects.create(
+                    name=group_name,
+                    position=FeaturedPostGroup.objects.count(),
+                )
+                messages.success(request, f'Đã tạo nhóm “{group_name}”.')
+        elif "assign_group" in request.POST:
+            post_id = request.POST.get("assign_group", "").strip()
+            post = get_object_or_404(BlogPost, pk=post_id)
+            group_id = request.POST.get(f"group_{post.pk}", "").strip()
+            post.featured_group = (
+                get_object_or_404(FeaturedPostGroup, pk=group_id)
+                if group_id else None
+            )
+            post.is_featured = True
+            post.save(update_fields=["featured_group", "is_featured", "updated_at"])
+            group_label = post.featured_group.name if post.featured_group else "Bài viết nổi bật"
+            messages.success(request, f'Đã đưa “{post.title}” vào nhóm “{group_label}”.')
+        else:
+            post_id = request.POST.get("toggle_featured", "").strip()
+            post = get_object_or_404(BlogPost, pk=post_id)
+            post.is_featured = not post.is_featured
+            post.save(update_fields=["is_featured", "updated_at"])
+            state = "bài viết nổi bật" if post.is_featured else "bài viết thường"
+            messages.success(request, f'Đã chuyển “{post.title}” thành {state}.')
+        return redirect("admin_posts")
+
+    posts = list(BlogPost.objects.select_related("author"))
+    for post in posts:
+        post.admin_actions = build_admin_post_actions(post)
+
+    return render(request, "admin/posts.html", {
+        "title": "Quản lý bài viết",
+        "posts": posts,
+        "featured_count": sum(post.is_featured for post in posts),
+        "featured_groups": FeaturedPostGroup.objects.all(),
+    })
+
+
+def post_detail(request, post_id):
+    posts = BlogPost.objects.select_related("author")
+    if not request.user.is_staff:
+        posts = posts.filter(is_published=True)
+    post = get_object_or_404(posts, pk=post_id)
+
+    BlogPost.objects.filter(pk=post.pk).update(view_count=F("view_count") + 1)
+    post.view_count += 1
+
+    search_query = request.GET.get("q", "").strip()
+    sidebar_posts = BlogPost.objects.filter(is_published=True).exclude(pk=post.pk)
+    if search_query:
+        sidebar_posts = sidebar_posts.filter(
+            Q(title__icontains=search_query)
+            | Q(tags__icontains=search_query)
+            | Q(seo_description__icontains=search_query)
+        )
+
+    context = {
+        "post": post,
+        "search_query": search_query,
+        "sidebar_posts": sidebar_posts[:6],
+        "featured_footer_groups": get_featured_footer_groups(),
+    }
+    context.update(build_header_context(request=request))
+    return render(request, "post_detail.html", context)
+
+
+@staff_member_required
+def admin_profiles(request, profile_type):
+    # Profile type navigation buttons in the admin profile directory
+    profile_type_buttons = [
+        # Doctor profiles button
+        {
+            "id": "doctor",
+            "label": "Doctors",
+            "url_name": "admin_doctor_profiles",
+            "active": profile_type == "doctor",
+        },
+        # User profiles button
+        {
+            "id": "users",
+            "label": "Users",
+            "url_name": "admin_user_profiles",
+            "active": profile_type == "users",
+        },
+    ]
+
+    if profile_type == "doctor":
+        profiles = DoctorProfile.objects.select_related("account__user").order_by("full_name", "account_id")
+        profile_rows = [
+            {
+                "profile_id": profile.pk,
+                "name": profile.display_name,
+                "email": get_account_email(profile.account.user),
+                "phone": profile.account.phone or "Not provided",
+                "detail": profile.specialties or "Specialties not provided",
+                "avatar": profile.avatar,
+                "is_verified": profile.is_verified,
+            }
+            for profile in profiles
+        ]
+        page_title = "Doctor profiles"
+        page_description = "View doctor information and manage green verification ticks."
+        detail_url_name = "admin_doctor_profile_detail"
+    else:
+        profiles = PatientProfile.objects.select_related("account__user").order_by("full_name", "account_id")
+        profile_rows = [
+            {
+                "profile_id": profile.pk,
+                "name": profile.full_name or get_account_display_name(profile.account.user),
+                "email": get_account_email(profile.account.user),
+                "phone": profile.account.phone or "Not provided",
+                "detail": profile.country or "Country not provided",
+                "avatar": profile.avatar,
+                "is_verified": False,
+                "is_member": profile.is_member,
+            }
+            for profile in profiles
+        ]
+        page_title = "User profiles"
+        page_description = "View registered patient account information."
+        detail_url_name = "admin_user_profile_detail"
+
+    return render(request, "admin/profiles.html", {
+        "title": page_title,
+        "page_title": page_title,
+        "page_description": page_description,
+        "profile_rows": profile_rows,
+        "profile_type": profile_type,
+        "profile_type_buttons": profile_type_buttons,
+        "detail_url_name": detail_url_name,
+    })
+
+
+def render_admin_no_profile(request, profile_type):
+    is_doctor = profile_type == "doctor"
+    return render(request, "admin/no_profile.html", {
+        "title": "No profile",
+        "profile_label": "doctor" if is_doctor else "user",
+        "profile_list_url_name": (
+            "admin_doctor_profiles" if is_doctor else "admin_user_profiles"
+        ),
+    }, status=404)
+
+
+@staff_member_required
+def admin_profile_detail(request, account_id=None, profile_type=None, profile_id=None):
+    if profile_type == "doctor":
+        role_profile = DoctorProfile.objects.select_related("account__user").filter(pk=profile_id).first()
+        if role_profile is None:
+            return render_admin_no_profile(request, profile_type)
+        account = role_profile.account
+    elif profile_type == "users":
+        role_profile = PatientProfile.objects.select_related("account__user").filter(pk=profile_id).first()
+        if role_profile is None:
+            return render_admin_no_profile(request, profile_type)
+        account = role_profile.account
+    else:
+        account = AccountProfile.objects.select_related("user").filter(pk=account_id).first()
+        if account is None:
+            return render_admin_no_profile(request, "users")
+        role_profile = None
+
+    if (
+        account.role == AccountProfile.ROLE_PATIENT
+        and request.user != account.user
+        and not request.user.is_staff
+    ):
+        if role_profile is None:
+            role_profile = PatientProfile.objects.filter(account=account).first()
+            if role_profile is None:
+                return render_admin_no_profile(request, "users")
+        access_request = PatientProfileAccessRequest.objects.filter(
+            patient=role_profile,
+            requester=request.user,
+        ).first()
+        has_profile_access = (
+            access_request is not None
+            and access_request.status == PatientProfileAccessRequest.STATUS_APPROVED
+        )
+        if not has_profile_access:
+            if request.method == "POST" and request.POST.get("profile_access_action") == "request":
+                access_request, _ = PatientProfileAccessRequest.objects.update_or_create(
+                    patient=role_profile,
+                    requester=request.user,
+                    defaults={"status": PatientProfileAccessRequest.STATUS_PENDING},
+                )
+                messages.success(request, "The patient has been asked to approve access to their profile.")
+                redirect_kwarg = "profile_id" if profile_type else "account_id"
+                redirect_id = role_profile.pk if profile_type else account.pk
+                return redirect(request.resolver_match.url_name, **{redirect_kwarg: redirect_id})
+            return render(request, "admin/profile_consent_required.html", {
+                "title": "Patient consent required",
+                "patient": role_profile,
+                "access_request": access_request,
+                "profile_list_url_name": "admin_user_profiles",
+            }, status=403)
+
+    if account.role == AccountProfile.ROLE_DOCTOR:
+        if role_profile is None:
+            role_profile = DoctorProfile.objects.filter(account=account).first()
+            if role_profile is None:
+                return render_admin_no_profile(request, "doctor")
+        if request.method == "POST":
+            verification_action = request.POST.get("verification_action")
+            if verification_action not in {"grant", "revoke"}:
+                messages.error(request, "Invalid doctor verification action.")
+                redirect_id = role_profile.pk if profile_type else account.pk
+                redirect_kwarg = "profile_id" if profile_type else "account_id"
+                return redirect(request.resolver_match.url_name, **{redirect_kwarg: redirect_id})
+
+            role_profile.is_verified = verification_action == "grant"
+            role_profile.save(update_fields=["is_verified", "updated_at"])
+            if role_profile.is_verified:
+                messages.success(request, "The green verification tick has been granted to this doctor.")
+            else:
+                messages.success(request, "The green verification tick has been removed from this doctor.")
+            redirect_id = role_profile.pk if profile_type else account.pk
+            redirect_kwarg = "profile_id" if profile_type else "account_id"
+            return redirect(request.resolver_match.url_name, **{redirect_kwarg: redirect_id})
+
+        profile_title = "Doctor profile"
+        profile_details = [
+            {"label": "Full name", "value": role_profile.full_name or "Not provided"},
+            {"label": "Email", "value": get_account_email(account.user)},
+            {"label": "Phone number", "value": account.phone or "Not provided"},
+            {"label": "Birth year", "value": role_profile.birth_year or "Not provided"},
+            {"label": "Country", "value": role_profile.country or "Not provided"},
+            {"label": "Specialties", "value": role_profile.specialties or "Not provided"},
+            {"label": "Position", "value": role_profile.position or "Not provided"},
+            {"label": "Workplace", "value": role_profile.workplace or "Not provided"},
+            {"label": "Years of experience", "value": role_profile.years_experience if role_profile.years_experience is not None else "Not provided"},
+            {"label": "Video consultation fee", "value": f"${role_profile.video_consultation_fee} /visit" if role_profile.video_consultation_fee is not None else "Not provided"},
+            {"label": "Message consultation fee", "value": f"${role_profile.message_consultation_fee} /visit" if role_profile.message_consultation_fee is not None else "Not provided"},
+            {"label": "Verified doctor", "value": "Yes" if role_profile.is_verified else "No"},
+            {"label": "Introduction", "value": role_profile.introduction or "Not provided", "multiline": True},
+            {"label": "Training history", "value": role_profile.training_history or "Not provided", "multiline": True},
+        ]
+    else:
+        if role_profile is None:
+            role_profile = PatientProfile.objects.filter(account=account).first()
+            if role_profile is None:
+                return render_admin_no_profile(request, "users")
+        if request.method == "POST":
+            membership_action = request.POST.get("membership_action")
+            if membership_action not in {"grant", "revoke"}:
+                messages.error(request, "Invalid patient membership action.")
+                redirect_id = role_profile.pk if profile_type else account.pk
+                redirect_kwarg = "profile_id" if profile_type else "account_id"
+                return redirect(request.resolver_match.url_name, **{redirect_kwarg: redirect_id})
+
+            role_profile.is_member = membership_action == "grant"
+            role_profile.save(update_fields=["is_member", "updated_at"])
+            if role_profile.is_member:
+                messages.success(request, "The yellow member star has been granted to this patient.")
+            else:
+                messages.success(request, "The yellow member star has been removed from this patient.")
+            redirect_id = role_profile.pk if profile_type else account.pk
+            redirect_kwarg = "profile_id" if profile_type else "account_id"
+            return redirect(request.resolver_match.url_name, **{redirect_kwarg: redirect_id})
+
+        profile_title = "Patient profile"
+        profile_details = [
+            {"label": "Full name", "value": role_profile.full_name or "Not provided"},
+            {"label": "Email", "value": get_account_email(account.user)},
+            {"label": "Phone number", "value": account.phone or "Not provided"},
+            {"label": "Birth year", "value": role_profile.birth_year or "Not provided"},
+            {"label": "Country", "value": role_profile.country or "Not provided"},
+            {"label": "Home address", "value": role_profile.address or "Not provided", "multiline": True},
+            {"label": "Membership", "value": "Member" if role_profile.is_member else "Not a member"},
+        ]
+
+    return render(request, "admin/profile_detail.html", {
+        "title": f"{profile_title} #{account.pk}",
+        "account": account,
+        "role_profile": role_profile,
+        "profile_title": profile_title,
+        "profile_details": profile_details,
+        "profile_display_name": role_profile.full_name or get_account_display_name(account.user),
+        "can_manage_verification": account.role == AccountProfile.ROLE_DOCTOR,
+        "can_manage_membership": account.role == AccountProfile.ROLE_PATIENT,
+        "profile_list_url_name": (
+            "admin_doctor_profiles"
+            if account.role == AccountProfile.ROLE_DOCTOR
+            else "admin_user_profiles"
+        ),
+    })
+
+
 def is_vietnamese_host(request):
     host = request.get_host().split(":", 1)[0].lower()
     return host.startswith("vi.")
 
 
 def build_header_context(language="en", guest_modal=False, request=None):
+    expire_overdue_appointment_payments()
     # Dãy mục điều hướng dùng chung trên header
     if language == "vi":
         # Dãy mục điều hướng tiếng Việt
@@ -126,13 +944,6 @@ def build_header_context(language="en", guest_modal=False, request=None):
             "note": "",
         },
         # Link to the patient's previous medical records
-        {
-            "label": "Medical records",
-            "url_name": "medical_records",
-            "class_name": "",
-            "note": "",
-            "patient_only": True,
-        },
         # Liên kết đăng xuất
         {
             "label": sign_out_label,
@@ -161,8 +972,10 @@ def build_header_context(language="en", guest_modal=False, request=None):
     header_avatar_url = ""
     header_display_name = ""
     header_is_verified = False
+    header_is_member = False
     header_is_patient = False
     header_notifications = []
+    consultation_request_count = 0
     if request is not None and request.user.is_authenticated:
         header_display_name = request.user.email or request.user.username
         try:
@@ -179,8 +992,10 @@ def build_header_context(language="en", guest_modal=False, request=None):
                 header_is_verified = role_profile.is_verified
             else:
                 header_is_patient = True
+                header_is_member = role_profile.is_member
 
             if account_profile.role == AccountProfile.ROLE_PATIENT:
+                consultation_request_count = role_profile.appointments.count()
                 appointments = role_profile.appointments.select_related(
                     "doctor__account__user"
                 ).order_by("-updated_at")[:8]
@@ -188,7 +1003,19 @@ def build_header_context(language="en", guest_modal=False, request=None):
                     doctor_name = appointment.doctor.full_name or appointment.doctor.account.user.email
                     appointment_time = f"{appointment.time_slot}, {appointment.appointment_date.strftime('%d/%m/%Y')}"
 
-                    if appointment.status == DoctorAppointment.STATUS_REJECTED:
+                    if appointment.moderation_status == DoctorAppointment.MODERATION_PENDING:
+                        title = "Appointment request awaiting review"
+                        message = f"Your request for {appointment_time} is being reviewed by the admin team."
+                        notification_type = "pending"
+                    elif appointment.moderation_status == DoctorAppointment.MODERATION_REJECTED:
+                        title = "Appointment request was not approved"
+                        message = f"Your request for {appointment_time} was declined during review."
+                        notification_type = "rejected"
+                    elif appointment.payment_status == DoctorAppointment.PAYMENT_EXPIRED:
+                        title = "Payment deadline expired"
+                        message = f"The 24-hour payment deadline for {appointment_time} has passed. This appointment is no longer being held."
+                        notification_type = "rejected"
+                    elif appointment.status == DoctorAppointment.STATUS_REJECTED:
                         title = "Yêu cầu đặt khám đã bị từ chối"
                         message = f"Bác sĩ {doctor_name} không thể nhận lịch {appointment_time}."
                         notification_type = "rejected"
@@ -196,10 +1023,15 @@ def build_header_context(language="en", guest_modal=False, request=None):
                         title = "Thanh toán thành công"
                         message = f"Giờ khám của bạn với bác sĩ {doctor_name} là {appointment_time}."
                         notification_type = "paid"
-                    elif appointment.status == DoctorAppointment.STATUS_ACCEPTED:
-                        title = "Bác sĩ đã đồng ý yêu cầu"
-                        message = f"Lịch {appointment_time} đã được chấp nhận. Vui lòng hoàn tất thanh toán."
-                        notification_type = "accepted"
+                    elif appointment.moderation_status == DoctorAppointment.MODERATION_APPROVED:
+                        service_label = appointment.get_service_type_display() if appointment.service_type else "consultation"
+                        fee_label = f"${appointment.consultation_fee:.2f} /visit" if appointment.consultation_fee is not None else "the listed consultation fee"
+                        title = "Payment required"
+                        if appointment.status == DoctorAppointment.STATUS_ACCEPTED:
+                            message = f"Doctor {doctor_name} accepted your {service_label.lower()} request. Please pay {fee_label}."
+                        else:
+                            message = f"Your {service_label.lower()} request was verified by the admin. Please pay {fee_label}."
+                        notification_type = "payment"
                     else:
                         title = "Đã gửi yêu cầu lịch khám"
                         message = f"Bạn đã gửi yêu cầu lịch khám {appointment_time} cho bác sĩ {doctor_name}."
@@ -211,9 +1043,29 @@ def build_header_context(language="en", guest_modal=False, request=None):
                         "message": message,
                         "type": notification_type,
                         "created_at": appointment.updated_at,
+                        "href": f"/profile?tab=consultation-requests#consultation-request-{appointment.pk}",
+                    })
+
+                access_requests = role_profile.profile_access_requests.filter(
+                    status=PatientProfileAccessRequest.STATUS_PENDING,
+                ).select_related("requester").order_by("-updated_at")[:8]
+                for access_request in access_requests:
+                    requester_name = (
+                        access_request.requester.get_full_name()
+                        or get_account_email(access_request.requester)
+                    )
+                    header_notifications.append({
+                        "id": f"profile-access-{access_request.pk}",
+                        "title": "Yêu cầu xem hồ sơ mới",
+                        "message": f"{requester_name} muốn xem hồ sơ của bạn. Hãy đồng ý hoặc từ chối yêu cầu.",
+                        "type": "pending",
+                        "created_at": access_request.updated_at,
+                        "href": "/profile?tab=access-requests",
                     })
             else:
-                appointments = role_profile.appointments.select_related(
+                appointments = role_profile.appointments.filter(
+                    moderation_status=DoctorAppointment.MODERATION_APPROVED,
+                ).select_related(
                     "patient__account__user"
                 ).order_by("-updated_at")[:8]
                 for appointment in appointments:
@@ -237,9 +1089,34 @@ def build_header_context(language="en", guest_modal=False, request=None):
                         "message": message,
                         "type": notification_type,
                         "created_at": appointment.updated_at,
+                        "href": f"/profile?tab=schedule&month={appointment.appointment_date.strftime('%Y-%m')}",
                     })
         except ObjectDoesNotExist:
             pass
+
+    header_notifications.sort(key=lambda item: item["created_at"], reverse=True)
+    header_notifications = header_notifications[:8]
+
+    # Dãy nút thao tác nhanh cạnh avatar trên header
+    header_quick_actions = [
+        # Nút chuông mở danh sách thông báo
+        {
+            "id": "notifications",
+            "label": "Mở thông báo",
+            "kind": "notification-menu",
+            "count": len(header_notifications),
+            "patient_only": False,
+        },
+        # Nút giỏ hàng mở danh sách yêu cầu tư vấn
+        {
+            "id": "consultation-requests",
+            "label": "Consultation requests",
+            "kind": "link",
+            "href": "/profile?tab=consultation-requests",
+            "count": consultation_request_count,
+            "patient_only": True,
+        },
+    ]
 
     return {
         "header_nav_items": header_nav_items,
@@ -250,34 +1127,22 @@ def build_header_context(language="en", guest_modal=False, request=None):
         "header_avatar_url": header_avatar_url,
         "header_display_name": header_display_name,
         "header_is_verified": header_is_verified,
+        "header_is_member": header_is_member,
         "header_is_patient": header_is_patient,
         "header_notifications": header_notifications,
         "header_notification_count": len(header_notifications),
+        "header_quick_actions": header_quick_actions,
     }
 
 
 @login_required
 def medical_records_page(request):
     try:
-        patient_profile = request.user.profile.patient_details
+        request.user.profile.patient_details
     except ObjectDoesNotExist:
         messages.error(request, "Medical records are available to patient accounts only.")
         return redirect("profile")
-
-    appointments = patient_profile.appointments.filter(
-        status=DoctorAppointment.STATUS_ACCEPTED,
-        appointment_date__lte=date.today(),
-    ).select_related(
-        "doctor__account__user",
-        "medical_record",
-    ).order_by("-appointment_date", "-time_slot")
-
-    context = {
-        "appointments": appointments,
-        "patient_profile": patient_profile,
-    }
-    context.update(build_header_context(request=request))
-    return render(request, "medical_records.html", context)
+    return redirect("/profile?tab=medical-history")
 
 
 def parse_schedule_month(month_value):
@@ -353,7 +1218,8 @@ def build_doctor_schedule(doctor_profile, month_value=""):
         doctor_profile.appointments.filter(
             appointment_date__gte=month_start,
             appointment_date__lt=next_month,
-        ).select_related("patient__account__user", "referred_doctor__account__user")
+            moderation_status=DoctorAppointment.MODERATION_APPROVED,
+        ).select_related("patient__account__user", "referred_doctor__account__user").prefetch_related("attachments")
     )
     appointment_counts_by_date = {}
     for appointment in appointments:
@@ -471,12 +1337,43 @@ def build_profile_context(request, profile_form, profile_type, active_tab="perso
     ]
     doctor_schedule = None
     recommended_doctors = []
+    medical_history = []
+    consultation_requests = []
+    profile_access_requests = []
     if isinstance(profile_form.instance, DoctorProfile):
         # Tab Lịch đặt khám chỉ dành cho bác sĩ
         profile_tabs.append({"id": "schedule", "label": "Lịch đặt khám"})
         selected_month = request.POST.get("schedule_month") or request.GET.get("month", "")
         doctor_schedule = build_doctor_schedule(profile_form.instance, selected_month)
         recommended_doctors = profile_form.instance.recommended_doctors.select_related("account__user").order_by("full_name")
+    else:
+        # Tab lịch sử khám dành cho tài khoản bệnh nhân
+        profile_tabs.append({"id": "medical-history", "label": "Lịch sử khám"})
+        # Tab danh sách yêu cầu tư vấn dành cho tài khoản bệnh nhân
+        profile_tabs.append({"id": "consultation-requests", "label": "Consultation requests"})
+        # Tab yêu cầu xem hồ sơ dành cho tài khoản bệnh nhân
+        profile_tabs.append({"id": "access-requests", "label": "Yêu cầu xem hồ sơ"})
+        consultation_requests = profile_form.instance.appointments.select_related(
+            "doctor__account__user",
+        ).prefetch_related("attachments").order_by("-created_at")
+        medical_history = profile_form.instance.appointments.filter(
+            status=DoctorAppointment.STATUS_ACCEPTED,
+            appointment_date__lte=date.today(),
+        ).select_related(
+            "doctor__account__user",
+            "medical_record",
+        ).order_by("-appointment_date", "-time_slot")
+        profile_access_requests = profile_form.instance.profile_access_requests.select_related(
+            "requester",
+        ).all()
+
+    # Dãy nút phản hồi yêu cầu xem hồ sơ bệnh nhân
+    profile_access_actions = [
+        # Nút đồng ý cho xem hồ sơ
+        {"id": "approve", "label": "Đồng ý", "class_name": "btn profile-access-approve"},
+        # Nút từ chối cho xem hồ sơ
+        {"id": "reject", "label": "Từ chối", "approved_label": "Thu hồi quyền", "class_name": "profile-access-reject"},
+    ]
 
     # Dãy nút thao tác của biểu mẫu hồ sơ
     profile_actions = [
@@ -484,6 +1381,24 @@ def build_profile_context(request, profile_form, profile_type, active_tab="perso
         {"label": "Save changes", "type": "submit", "class_name": "btn"},
         # Nút Cancel
         {"label": "Cancel", "type": "link", "class_name": "profile-cancel", "url_name": "home"},
+    ]
+
+    # Dãy nút thao tác trong giao diện thanh toán của bệnh nhân
+    payment_modal_actions = [
+        # Nút đóng giao diện thanh toán mà không gửi dữ liệu
+        {
+            "id": "cancel",
+            "label": "Hủy",
+            "type": "button",
+            "class_name": "payment-modal-action cancel",
+        },
+        # Nút xác nhận đã thực hiện thanh toán
+        {
+            "id": "submit",
+            "label": "Xác nhận thanh toán",
+            "type": "submit",
+            "class_name": "payment-modal-action submit",
+        },
     ]
 
     # Dãy thuộc tính được tự động lấy từ model hồ sơ theo vai trò
@@ -541,6 +1456,10 @@ def build_profile_context(request, profile_form, profile_type, active_tab="perso
             isinstance(profile_form.instance, DoctorProfile)
             and profile_form.instance.is_verified
         ),
+        "profile_is_member": (
+            isinstance(profile_form.instance, PatientProfile)
+            and profile_form.instance.is_member
+        ),
         "profile_tabs": profile_tabs,
         "active_profile_tab": active_tab,
         "security_fields": security_fields,
@@ -548,12 +1467,44 @@ def build_profile_context(request, profile_form, profile_type, active_tab="perso
         "account_information": account_information,
         "doctor_schedule": doctor_schedule,
         "recommended_doctors": recommended_doctors,
+        "medical_history": medical_history,
+        "consultation_requests": consultation_requests,
+        "profile_access_requests": profile_access_requests,
+        "profile_access_actions": profile_access_actions,
+        "payment_modal_actions": payment_modal_actions,
     }
     context.update(build_header_context(request=request))
     return context
 
 
 def build_home_context(request):
+    minimum_doctor_fees = DoctorProfile.objects.aggregate(
+        message=Min("message_consultation_fee"),
+        video=Min("video_consultation_fee"),
+    )
+    minimum_member_message_fee = calculate_patient_consultation_fee(
+        minimum_doctor_fees["message"],
+        is_member=True,
+    )
+    minimum_member_video_fee = calculate_patient_consultation_fee(
+        minimum_doctor_fees["video"],
+        is_member=True,
+    )
+    available_member_fees = [
+        fee for fee in (minimum_member_message_fee, minimum_member_video_fee)
+        if fee is not None
+    ]
+    minimum_member_fee = min(available_member_fees) if available_member_fees else None
+
+    def display_home_fee(fee):
+        if fee is None:
+            return "Not available"
+        return f"${fee:.2f}".rstrip("0").rstrip(".")
+
+    home_message_price = display_home_fee(minimum_member_message_fee)
+    home_video_price = display_home_fee(minimum_member_video_fee)
+    home_lowest_member_price = display_home_fee(minimum_member_fee)
+
     # Dãy câu hỏi và nút accordion trong phần FAQ
     faq_items = [
         # Nút câu hỏi Mediall One Medical là gì
@@ -643,8 +1594,8 @@ def build_home_context(request):
                 "FSA/HSA eligible",
             ],
             "care_prices": [
-                {"price": "$8", "label": "/Direct Message Care"},
-                {"price": "$13", "label": "/Video Care"},
+                {"price": home_message_price, "label": "/Direct Message Care"},
+                {"price": home_video_price, "label": "/Video Care"},
             ],
             "disclaimer": "Prices vary by condition. Prices subject to change. Direct Message Care availability varies by state.",
             "button_text": "Request a treatment",
@@ -806,7 +1757,11 @@ def build_home_context(request):
         'carousel_conditions': carousel_conditions,
         'condition_tabs': condition_tabs,
         'how_it_works': how_it_works,
+        'home_message_price': home_message_price,
+        'home_video_price': home_video_price,
+        'home_lowest_member_price': home_lowest_member_price,
         'recaptcha_site_key': settings.RECAPTCHA_SITE_KEY,
+        'featured_footer_groups': get_featured_footer_groups(),
     }
     language = "vi" if is_vietnamese_host(request) else "en"
     context.update(build_header_context(language, guest_modal=language == "en", request=request))
@@ -972,6 +1927,8 @@ def profile_page(request):
     allowed_tabs = {"personal", "security", "information"}
     if profile_type == "Doctor":
         allowed_tabs.add("schedule")
+    else:
+        allowed_tabs.update({"medical-history", "consultation-requests", "access-requests"})
     if active_tab not in allowed_tabs:
         active_tab = "personal"
 
@@ -1011,6 +1968,7 @@ def profile_page(request):
         appointment = DoctorAppointment.objects.filter(
             pk=request.POST.get("appointment_id"),
             doctor=role_profile,
+            moderation_status=DoctorAppointment.MODERATION_APPROVED,
         ).first()
         decision = request.POST.get("decision", "")
 
@@ -1112,6 +2070,26 @@ def profile_page(request):
         messages.success(request, "Mật khẩu đã được cập nhật.")
         return redirect("/profile?tab=security")
 
+    if request.method == "POST" and request.POST.get("profile_action") == "profile_access_decision" and profile_type == "Patient":
+        access_request = PatientProfileAccessRequest.objects.filter(
+            pk=request.POST.get("access_request_id"),
+            patient=role_profile,
+        ).first()
+        decision = request.POST.get("decision")
+        if access_request is None:
+            messages.error(request, "Yêu cầu xem hồ sơ không tồn tại.")
+        elif decision == "approve":
+            access_request.status = PatientProfileAccessRequest.STATUS_APPROVED
+            access_request.save(update_fields=["status", "updated_at"])
+            messages.success(request, "Bạn đã đồng ý cho tài khoản này xem hồ sơ.")
+        elif decision == "reject":
+            access_request.status = PatientProfileAccessRequest.STATUS_REJECTED
+            access_request.save(update_fields=["status", "updated_at"])
+            messages.success(request, "Bạn đã từ chối yêu cầu xem hồ sơ.")
+        else:
+            messages.error(request, "Phản hồi yêu cầu không hợp lệ.")
+        return redirect("/profile?tab=access-requests")
+
     if request.method == "POST":
         profile_form = RoleProfileForm(request.POST, request.FILES, instance=role_profile)
         if profile_form.is_valid():
@@ -1209,6 +2187,7 @@ def doctor_search(request):
 
 
 def build_public_booking_options(doctor, month_value=""):
+    expire_overdue_appointment_payments()
     month_start = parse_schedule_month(month_value)
     next_month = (month_start.replace(day=28) + timedelta(days=4)).replace(day=1)
     previous_month = (month_start - timedelta(days=1)).replace(day=1)
@@ -1261,6 +2240,7 @@ def build_public_booking_options(doctor, month_value=""):
         unavailable_slots = busy_by_date.get(date_value, set()) | booked_by_date.get(date_value, set())
         is_weekend_off = doctor.weekend_off and booking_date.weekday() >= 5
         if not is_weekend_off and len(unavailable_slots) < len(all_slot_ids):
+            valid_dates.add(date_value)
             # Nút chọn ngày trong dải đặt khám nhanh 90 ngày
             quick_dates.append({
                 "value": date_value,
@@ -1303,6 +2283,47 @@ def build_public_booking_options(doctor, month_value=""):
             })
         weeks.append(days)
 
+    calendar_months = []
+    calendar_month_cursor = first_bookable_date.replace(day=1)
+    last_calendar_month = last_bookable_date.replace(day=1)
+    while calendar_month_cursor <= last_calendar_month:
+        calendar_weeks = []
+        for week in calendar.monthcalendar(calendar_month_cursor.year, calendar_month_cursor.month):
+            calendar_days = []
+            for day_number in week:
+                if not day_number:
+                    calendar_days.append({"empty": True})
+                    continue
+                booking_date = calendar_month_cursor.replace(day=day_number)
+                date_value = booking_date.isoformat()
+                unavailable_slots = busy_by_date.get(date_value, set()) | booked_by_date.get(date_value, set())
+                is_weekend_off = doctor.weekend_off and booking_date.weekday() >= 5
+                is_in_booking_range = first_bookable_date <= booking_date <= last_bookable_date
+                is_before_booking_range = booking_date < first_bookable_date
+                selectable = (
+                    is_in_booking_range
+                    and not is_weekend_off
+                    and len(unavailable_slots) < len(all_slot_ids)
+                )
+                calendar_days.append({
+                    "empty": False,
+                    "day": day_number,
+                    "value": date_value,
+                    "in_booking_range": is_in_booking_range,
+                    "before_booking_range": is_before_booking_range,
+                    "selectable": selectable,
+                    "today": booking_date == date.today(),
+                })
+            calendar_weeks.append(calendar_days)
+        calendar_months.append({
+            "value": calendar_month_cursor.strftime("%Y-%m"),
+            "label": calendar_month_cursor.strftime("%B %Y"),
+            "weeks": calendar_weeks,
+        })
+        calendar_month_cursor = (
+            calendar_month_cursor.replace(day=28) + timedelta(days=4)
+        ).replace(day=1)
+
     return {
         "month_value": month_start.strftime("%Y-%m"),
         "month_label": f"Tháng {month_start.month}, {month_start.year}",
@@ -1310,6 +2331,9 @@ def build_public_booking_options(doctor, month_value=""):
         "weekdays": weekdays,
         "weeks": weeks,
         "quick_dates": quick_dates,
+        "calendar_months": calendar_months,
+        "first_bookable_date": first_bookable_date.isoformat(),
+        "last_bookable_date": last_bookable_date.isoformat(),
         "time_groups": time_groups,
         "valid_slots": all_slot_ids,
         "valid_dates": valid_dates,
@@ -1331,6 +2355,15 @@ def doctor_profile_detail(request, doctor_id):
     patient_profile = None
     if request.user.is_authenticated:
         patient_profile = PatientProfile.objects.filter(account__user=request.user).first()
+    viewer_is_member = bool(patient_profile and patient_profile.is_member)
+    video_consultation_price = calculate_patient_consultation_fee(
+        doctor.video_consultation_fee,
+        viewer_is_member,
+    )
+    message_consultation_price = calculate_patient_consultation_fee(
+        doctor.message_consultation_fee,
+        viewer_is_member,
+    )
 
     # Dãy nút chọn số sao khi bệnh nhân đánh giá bác sĩ
     review_rating_options = [
@@ -1353,6 +2386,27 @@ def doctor_profile_detail(request, doctor_id):
     )
     review_errors = []
     booking_errors = []
+    # Dãy thẻ loại dịch vụ và mức phí tư vấn của bác sĩ
+    consultation_services = [
+        # Thẻ dịch vụ khám qua video
+        {
+            "id": DoctorAppointment.SERVICE_VIDEO,
+            "label": "Video consultation",
+            "fee": video_consultation_price,
+            "currency": "$",
+            "unit": "/visit",
+            "selected": request.POST.get("service_type") == DoctorAppointment.SERVICE_VIDEO,
+        },
+        # Thẻ dịch vụ khám qua tin nhắn
+        {
+            "id": DoctorAppointment.SERVICE_MESSAGE,
+            "label": "Message consultation",
+            "fee": message_consultation_price,
+            "currency": "$",
+            "unit": "/visit",
+            "selected": request.POST.get("service_type") == DoctorAppointment.SERVICE_MESSAGE,
+        },
+    ]
     selected_booking_month = request.POST.get("booking_month") or request.GET.get("month", "")
     booking_options = build_public_booking_options(doctor, selected_booking_month)
 
@@ -1362,11 +2416,68 @@ def doctor_profile_detail(request, doctor_id):
         else:
             selected_date_value = request.POST.get("appointment_date", "")
             selected_time_slot = request.POST.get("time_slot", "")
+            selected_service_type = request.POST.get("service_type", "")
             reason = request.POST.get("reason", "").strip()
+            attachments = request.FILES.getlist("attachments")
+            allowed_media_types = {
+                "image/jpeg": AppointmentAttachment.MEDIA_IMAGE,
+                "image/png": AppointmentAttachment.MEDIA_IMAGE,
+                "image/webp": AppointmentAttachment.MEDIA_IMAGE,
+                "image/gif": AppointmentAttachment.MEDIA_IMAGE,
+                "video/mp4": AppointmentAttachment.MEDIA_VIDEO,
+                "video/webm": AppointmentAttachment.MEDIA_VIDEO,
+                "video/quicktime": AppointmentAttachment.MEDIA_VIDEO,
+            }
+            allowed_extensions = {
+                ".jpg": AppointmentAttachment.MEDIA_IMAGE,
+                ".jpeg": AppointmentAttachment.MEDIA_IMAGE,
+                ".png": AppointmentAttachment.MEDIA_IMAGE,
+                ".webp": AppointmentAttachment.MEDIA_IMAGE,
+                ".gif": AppointmentAttachment.MEDIA_IMAGE,
+                ".mp4": AppointmentAttachment.MEDIA_VIDEO,
+                ".webm": AppointmentAttachment.MEDIA_VIDEO,
+                ".mov": AppointmentAttachment.MEDIA_VIDEO,
+            }
             if selected_date_value not in booking_options["valid_dates"]:
                 booking_errors.append("Please choose a valid appointment date.")
             if selected_time_slot not in booking_options["valid_slots"]:
                 booking_errors.append("Please choose a valid appointment time.")
+            service_fees = {
+                DoctorAppointment.SERVICE_VIDEO: video_consultation_price,
+                DoctorAppointment.SERVICE_MESSAGE: message_consultation_price,
+            }
+            selected_consultation_fee = service_fees.get(selected_service_type)
+            if selected_service_type not in service_fees:
+                booking_errors.append("Please choose a consultation service.")
+            elif selected_consultation_fee is None:
+                booking_errors.append("The selected consultation service is not currently available.")
+            if len(attachments) > 5:
+                booking_errors.append("You can attach up to 5 photos or videos.")
+            for attachment in attachments:
+                extension = Path(attachment.name).suffix.lower()
+                media_type_matches = (
+                    attachment.content_type in allowed_media_types
+                    and extension in allowed_extensions
+                    and allowed_media_types.get(attachment.content_type) == allowed_extensions.get(extension)
+                )
+                if not media_type_matches:
+                    booking_errors.append(f"{attachment.name} is not a supported photo or video format.")
+                elif allowed_media_types[attachment.content_type] == AppointmentAttachment.MEDIA_VIDEO:
+                    video_duration = get_uploaded_video_duration(attachment)
+                    if video_duration is None:
+                        booking_errors.append(f"The duration of {attachment.name} could not be verified. Please use a valid MP4, MOV, or WebM video.")
+                    elif video_duration > 30:
+                        booking_errors.append(f"{attachment.name} is longer than the 30-second video limit.")
+                if (
+                    attachment.content_type not in allowed_media_types
+                    or extension not in allowed_extensions
+                    or allowed_media_types.get(attachment.content_type) != allowed_extensions.get(extension)
+                ):
+                    continue
+                if attachment.size > 50 * 1024 * 1024:
+                    booking_errors.append(f"{attachment.name} exceeds the 50 MB file limit.")
+            if sum(attachment.size for attachment in attachments) > 150 * 1024 * 1024:
+                booking_errors.append("The total attachment size cannot exceed 150 MB.")
 
             if not booking_errors:
                 selected_date = datetime.strptime(selected_date_value, "%Y-%m-%d").date()
@@ -1379,17 +2490,27 @@ def doctor_profile_detail(request, doctor_id):
                     booking_errors.append("This time was just booked or marked unavailable. Please choose another time.")
                 else:
                     try:
-                        DoctorAppointment.objects.create(
-                            patient=patient_profile,
-                            doctor=doctor,
-                            appointment_date=selected_date,
-                            time_slot=selected_time_slot,
-                            reason=reason,
-                        )
+                        with transaction.atomic():
+                            appointment = DoctorAppointment.objects.create(
+                                patient=patient_profile,
+                                doctor=doctor,
+                                appointment_date=selected_date,
+                                time_slot=selected_time_slot,
+                                service_type=selected_service_type,
+                                consultation_fee=selected_consultation_fee,
+                                reason=reason,
+                            )
+                            for attachment in attachments:
+                                AppointmentAttachment.objects.create(
+                                    appointment=appointment,
+                                    file=attachment,
+                                    media_type=allowed_media_types[attachment.content_type],
+                                    original_name=attachment.name[:255],
+                                )
                     except IntegrityError:
                         booking_errors.append("This time was just booked by another patient. Please choose another time.")
                     else:
-                        messages.success(request, "Your appointment request was sent to the doctor.")
+                        messages.success(request, "Your appointment request was submitted for admin review.")
                         return redirect("doctor_profile_detail", doctor_id=doctor.pk)
 
     if request.method == "POST" and request.POST.get("profile_action") == "review":
@@ -1419,6 +2540,7 @@ def doctor_profile_detail(request, doctor_id):
     review_summary = reviews.aggregate(average=Avg("rating"))
     context = {
         "doctor": doctor,
+        "consultation_services": consultation_services,
         "visit_count": doctor.appointments.filter(status=DoctorAppointment.STATUS_ACCEPTED).count(),
         "reviews": reviews,
         "review_count": reviews.count(),
@@ -1430,6 +2552,12 @@ def doctor_profile_detail(request, doctor_id):
         "booking_options": booking_options,
         "booking_errors": booking_errors,
         "can_book": patient_profile is not None,
+        "viewer_is_member": viewer_is_member,
+        "consultation_price_note": (
+            "Member price: the doctor's base fee is multiplied by 1.5."
+            if viewer_is_member
+            else "Standard price: the doctor's base fee is multiplied by 2.05."
+        ),
         "recommended_doctors": doctor.recommended_doctors.select_related("account__user").order_by("full_name"),
     }
     context.update(build_header_context(request=request))

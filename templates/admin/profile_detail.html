@@ -1,0 +1,63 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; <a href="{% url profile_list_url_name %}">{{ account.get_role_display }} profiles</a> &rsaquo; {{ profile_title }} #{{ account.pk }}</div>
+{% endblock %}
+
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div class="admin-readonly-profile-heading">
+    <div class="admin-readonly-profile-avatar">
+        {% if role_profile.avatar %}<img src="{{ role_profile.avatar.url }}" alt="">{% else %}<img src="{% static 'images/no-profile.png' %}" alt="">{% endif %}
+    </div>
+    <div>
+        <span>{{ profile_title }}</span>
+        <h1>
+            {{ profile_display_name }}
+            {% if can_manage_verification and role_profile.is_verified %}<span class="admin-doctor-verified" title="Verified doctor" aria-label="Verified doctor">&#10003;</span>{% endif %}
+            {% if can_manage_membership and role_profile.is_member %}<span class="member-badge" title="Member" aria-label="Member">&#9733;</span>{% endif %}
+        </h1>
+        <p>Account #{{ account.pk }} &middot; {{ account.get_role_display }}</p>
+    </div>
+    {% if can_manage_verification %}
+    <form class="admin-profile-verification" method="post">
+        {% csrf_token %}
+        {% if role_profile.is_verified %}
+        <input type="hidden" name="verification_action" value="revoke">
+        <button class="admin-verification-button revoke" type="submit" onclick="return confirm('Remove the green verification tick from this doctor?')">Remove green tick</button>
+        {% else %}
+        <input type="hidden" name="verification_action" value="grant">
+        <button class="admin-verification-button grant" type="submit" onclick="return confirm('Grant the green verification tick to this doctor?')">Grant green tick</button>
+        {% endif %}
+    </form>
+    {% endif %}
+    {% if can_manage_membership %}
+    <form class="admin-profile-verification" method="post">
+        {% csrf_token %}
+        {% if role_profile.is_member %}
+        <input type="hidden" name="membership_action" value="revoke">
+        <button class="admin-verification-button revoke" type="submit" onclick="return confirm('Remove the yellow member star from this patient?')">Remove member star</button>
+        {% else %}
+        <input type="hidden" name="membership_action" value="grant">
+        <button class="admin-verification-button member-grant" type="submit" onclick="return confirm('Grant the yellow member star to this patient?')">Grant member star</button>
+        {% endif %}
+    </form>
+    {% endif %}
+</div>
+
+<section class="admin-readonly-profile-card">
+    <h2>Profile information</h2>
+    <dl>
+        {% for detail in profile_details %}
+        <div{% if detail.multiline %} class="multiline"{% endif %}>
+            <dt>{{ detail.label }}</dt>
+            <dd>{% if detail.multiline %}{{ detail.value|linebreaksbr }}{% else %}{{ detail.value }}{% endif %}</dd>
+        </div>
+        {% endfor %}
+    </dl>
+</section>
+
+<a class="admin-order-back" href="{% url profile_list_url_name %}">Back to profile list</a>
+{% endblock %}

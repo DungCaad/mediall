@@ -22,6 +22,16 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path("admin/creat", views.admin_create_post, name="admin_create_post"),
+    path("admin/posts", views.admin_posts, name="admin_posts"),
+    path("admin/orders", views.admin_orders, name="admin_orders"),
+    path("admin/orders/<int:appointment_id>", views.admin_order_detail, name="admin_order_detail"),
+    path("appointments/<int:appointment_id>/payment", views.submit_appointment_payment, name="submit_appointment_payment"),
+    path("admin/profiles/doctor/", views.admin_profiles, {"profile_type": "doctor"}, name="admin_doctor_profiles"),
+    path("admin/profiles/doctor/<int:profile_id>", views.admin_profile_detail, {"profile_type": "doctor"}, name="admin_doctor_profile_detail"),
+    path("admin/profiles/users/", views.admin_profiles, {"profile_type": "users"}, name="admin_user_profiles"),
+    path("admin/profiles/users/<int:profile_id>", views.admin_profile_detail, {"profile_type": "users"}, name="admin_user_profile_detail"),
+    path("admin/profiles/<int:account_id>", views.admin_profile_detail, name="admin_profile_detail"),
     path("admin/", admin.site.urls),
     path("", views.home_page, name="home"),
     path("dat-kham/", views.appointment_page, name="appointment"),
@@ -33,6 +43,8 @@ urlpatterns = [
     path("profile", views.profile_page, name="profile"),
     path("medical-records", views.medical_records_page, name="medical_records"),
     path("translate/english", views.translate_to_english, name="translate_to_english"),
+    path("appointment-attachments/<int:attachment_id>", views.appointment_attachment_file, name="appointment_attachment"),
+    path("post/<int:post_id>", views.post_detail, name="post_detail"),
 ]
 
 if settings.DEBUG:

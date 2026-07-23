@@ -1,4 +1,4 @@
-{% load static %}
+﻿{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mediall One Medical</title>
     <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260722-6">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260722-24">
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
@@ -108,7 +108,7 @@
     <section class="hero" style="background-image: url('{% static 'images/hero_care.jpeg' %}');">
         <div class="container">
             <div class="hero-copy">
-                <h1>Health Education & Information Sessions from $8</h1>
+                <h1>Health Education & Information Sessions from {{ home_lowest_member_price }}</h1>
                 <form class="hero-search" action="{% url 'doctor_search' %}" method="get" role="search">
                     <span class="hero-search-icon" aria-hidden="true">⌕</span>
                     <input type="search" name="specialty" placeholder="Search doctors, specialties, or locations" aria-label="Search doctors, specialties, or locations" required>
@@ -116,7 +116,7 @@
                 </form>
                 <p>Schedule your Health Education Session NOW or at your preferred time</p>
             </div>
-            
+
             <div class="conditions-carousel">
                 {% for item in carousel_conditions %}
                 <a class="condition-item" href="{% url 'doctor_search' %}?specialty={{ item.specialty|urlencode }}">
@@ -143,7 +143,7 @@
                 <div>
                     <h2 class="section-title">Two options to get care</h2>
                     <a href="#" style="display:block; margin-bottom: 20px; font-size:14px;">Compare options</a>
-                    
+
                     <div class="toggle-cards">
                         {% for option in care_options %}
                         <button class="toggle-card{% if option.active %} active{% endif %}" type="button" data-care-option="{{ option.id }}">
@@ -202,7 +202,7 @@
     <section class="conditions-section" id="health-topics">
         <div class="container">
             <h2 class="section-title">What would you like help with?</h2>
-            
+
             <div class="tabs" role="tablist" aria-label="Condition categories">
                 {% for tab in condition_tabs %}
                 <button
@@ -229,7 +229,7 @@
                 </div>
                 {% endfor %}
             </div>
-            
+
             <div style="margin-top: 30px;">
                 <h4 style="margin-bottom: 10px;">More ways we can help you</h4>
                 <p style="font-size: 14px;">Looking for primary care, pediatrics, chronic condition care, or mental health support? <a href="#">See additional One Medical services</a></p>
@@ -244,7 +244,7 @@
                     <img src="{% static 'images/logo.ico' %}" width="131" height="23" alt="Mediall" style="margin-bottom: 10px;">
                     <h2 class="section-title" style="font-size:36px; margin: 15px 0;">Get trusted care for<br><span style="color: var(--accent-teal);">your child</span></h2>
                     <p>Connect with family care providers for secure telehealth treatment for children ages 2-17.* No waiting rooms, no hassle.</p>
-                    
+
                     <div class="pill-container">
                         <div class="pill">Pink eye</div>
                         <div class="pill">Eczema</div>
@@ -274,13 +274,13 @@
                         <li>Member rate: Single-session health education from</li>
                     </ul>
                     <a href="#" style="font-size: 14px; font-weight: bold; display: block; margin-bottom: 30px;">See locations and appointment availability</a>
-                    
+
                     <h4 style="margin-bottom: 5px; display: flex; align-items:center; gap: 10px;">
                         <span style="font-size:24px;">💳</span> One Medical accepts insurance like a typical doctor's office
                     </h4>
                     <div class="price-breakdown">
-                        $8 <span style="font-size:14px; font-weight:normal;">/Direct Message Care &nbsp;|&nbsp; </span> 
-                        $13 <span style="font-size:14px; font-weight:normal;">/Video Care</span>
+                        {{ home_message_price }} <span style="font-size:14px; font-weight:normal;">/Direct Message Care &nbsp;|&nbsp; </span>
+                        {{ home_video_price }} <span style="font-size:14px; font-weight:normal;">/Video Care</span>
                     </div>
                     <a href="#" style="font-size: 14px; font-weight: bold;">See accepted insurance plans</a>
                 </div>
@@ -301,13 +301,13 @@
                     <span class="badge" style="background:#EAEAEA;">ON-DEMAND CARE</span>
                     <h2 class="section-title">Just want one-time virtual care?</h2>
                     <p style="font-size: 14px; margin-bottom: 20px;">Day or night, you can request one-time virtual care from Mediall One Medical to find treatment for 30+ common conditions.</p>
-                    
+
                     <div class="price-breakdown">
-                        $8 <span style="font-size:14px; font-weight:normal;">/Direct Message Care &nbsp;|&nbsp; </span> 
-                        $13 <span style="font-size:14px; font-weight:normal;">/Video Care</span>
+                        {{ home_message_price }} <span style="font-size:14px; font-weight:normal;">/Direct Message Care &nbsp;|&nbsp; </span>
+                        {{ home_video_price }} <span style="font-size:14px; font-weight:normal;">/Video Care</span>
                     </div>
                     <p class="price-disclaimer">Prices vary by condition. Prices subject to change. Direct Message Care availability varies by state.</p>
-                    
+
                     <ul class="features-list">
                         <li>Quick treatment of common conditions</li>
                         <li>Fast care by direct message or video</li>
@@ -385,6 +385,7 @@
         </div>
     </section>
 
+    {% include "includes/footer_featured_posts.html" %}
     <footer>
         <div class="container">
             <div style="margin-bottom: 20px; font-size: 18px; font-weight:bold;">Mediall one medical</div>

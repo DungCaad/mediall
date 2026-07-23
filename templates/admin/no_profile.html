@@ -1,0 +1,17 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; <a href="{% url profile_list_url_name %}">{{ profile_label|title }} profiles</a> &rsaquo; No profile</div>
+{% endblock %}
+
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<section class="admin-no-profile">
+    <img src="{% static 'images/no-profile.png' %}" alt="No profile">
+    <h1>No profile</h1>
+    <p>The requested {{ profile_label }} profile does not exist.</p>
+    <a class="admin-order-back" href="{% url profile_list_url_name %}">Back to {{ profile_label }} profiles</a>
+</section>
+{% endblock %}

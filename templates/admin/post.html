@@ -1,0 +1,106 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Tạo bài viết | Mediall Admin{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Tạo bài viết</div>
+{% endblock %}
+
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div class="admin-post-heading">
+    <div>
+        <h1>Tạo bài viết</h1>
+        <p>Soạn và xuất bản nội dung sức khỏe trên Mediall.</p>
+    </div>
+    <a class="admin-post-create-link" href="{% url 'admin_posts' %}">Quản lý bài viết</a>
+</div>
+
+{% if messages %}
+<ul class="messagelist">{% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}</ul>
+{% endif %}
+
+{% if form_errors %}
+<ul class="errorlist">{% for error in form_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+{% endif %}
+
+<div class="admin-post-layout">
+    <form class="admin-post-form" method="post" data-post-editor-form>
+        {% csrf_token %}
+        <section class="admin-post-card">
+            <h2>Tạo bài viết mới</h2>
+
+            <label>
+                Tiêu đề <span aria-hidden="true">*</span>
+                <input type="text" name="title" maxlength="200" value="{{ form_values.title }}" required>
+            </label>
+
+            <label>
+                Nội dung <span aria-hidden="true">*</span>
+            </label>
+            <div class="post-editor-shell">
+                <div class="post-editor-toolbar" role="toolbar" aria-label="Công cụ định dạng nội dung">
+                    {% for tool in editor_toolbar %}
+                    <button
+                        class="post-editor-tool{% if tool.class_name %} {{ tool.class_name }}{% endif %}"
+                        type="button"
+                        title="{{ tool.title }}"
+                        aria-label="{{ tool.title }}"
+                        data-editor-command="{{ tool.command }}"
+                        {% if tool.value %}data-editor-value="{{ tool.value }}"{% endif %}
+                        {% if tool.prompt %}data-editor-prompt="true"{% endif %}
+                    >{{ tool.label }}</button>
+                    {% endfor %}
+                </div>
+                <div
+                    class="post-editor-content"
+                    contenteditable="true"
+                    role="textbox"
+                    aria-multiline="true"
+                    data-post-editor
+                    data-placeholder="Nhập nội dung bài viết..."
+                >{{ form_values.content_html|safe }}</div>
+                <textarea name="content_html" data-post-editor-input hidden required></textarea>
+            </div>
+
+            <label>
+                Mô tả SEO
+                <textarea name="seo_description" maxlength="160" rows="3" placeholder="Mô tả ngắn gọn về bài viết (tối đa 160 ký tự)" data-seo-description>{{ form_values.seo_description }}</textarea>
+                <small>Mô tả này sẽ hiển thị trên kết quả tìm kiếm · <span data-seo-count>0</span>/160</small>
+            </label>
+
+            <label>
+                Tags
+                <input type="text" name="tags" value="{{ form_values.tags }}" placeholder="Sức khỏe, dinh dưỡng, tư vấn">
+                <small>Phân tách các tags bằng dấu phẩy.</small>
+            </label>
+
+            <label class="admin-post-publish-toggle">
+                <input type="checkbox" name="is_published"{% if form_values.is_published %} checked{% endif %}>
+                Xuất bản ngay
+            </label>
+
+            <button class="admin-post-submit" type="submit">Lưu bài viết</button>
+        </section>
+    </form>
+
+    <aside class="admin-post-recent">
+        <h2>Bài viết gần đây</h2>
+        {% for item in recent_posts %}
+        <article>
+            <div>
+                <strong>{{ item.title }}</strong>
+                <span>{{ item.created_at|date:"d/m/Y H:i" }} · {{ item.view_count }} lượt xem</span>
+            </div>
+            <a href="{% url 'post_detail' item.pk %}" target="_blank" rel="noopener">Xem bài</a>
+        </article>
+        {% empty %}
+        <p>Chưa có bài viết nào.</p>
+        {% endfor %}
+    </aside>
+</div>
+
+<script src="{% static 'js/admin_post.js' %}?v=20260723-01" defer></script>
+{% endblock %}

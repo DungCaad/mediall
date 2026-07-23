@@ -1,0 +1,32 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; <a href="{% url profile_list_url_name %}">User profiles</a> &rsaquo; Consent required</div>
+{% endblock %}
+
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<section class="admin-no-profile admin-profile-consent">
+    <img src="{% static 'images/no-profile.png' %}" alt="Patient profile protected">
+    <h1>Patient consent required</h1>
+    <div class="admin-consent-patient-name">
+        <strong>{{ patient.full_name|default:patient.account.user.email|default:patient.account.user.username }}</strong>
+        <span>Patient profile #{{ patient.pk }}</span>
+    </div>
+    <p>This patient's information is private. The patient must approve your request before you can view their profile.</p>
+
+    {% if access_request.status == 'pending' %}
+    <span class="admin-consent-status pending">Waiting for patient approval</span>
+    {% else %}
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="profile_access_action" value="request">
+        <button class="admin-order-back admin-consent-request" type="submit">{% if access_request.status == 'rejected' %}Request access again{% else %}Request patient consent{% endif %}</button>
+    </form>
+    {% endif %}
+
+    <a class="admin-consent-back" href="{% url profile_list_url_name %}">Back to user profiles</a>
+</section>
+{% endblock %}

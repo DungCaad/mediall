@@ -1,0 +1,54 @@
+{% extends "admin/base_site.html" %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; <a href="{% url 'admin_orders' %}">Consultation orders</a> &rsaquo; Request #{{ order.pk }}</div>
+{% endblock %}
+
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div class="admin-order-detail-heading">
+    <div>
+        <h1>Consultation request #{{ order.pk }}</h1>
+        <p>Submitted {{ order.created_at|date:"d M Y, H:i" }}</p>
+    </div>
+    <span class="admin-order-review-status {{ order.moderation_status }}">{{ order.get_moderation_status_display }}</span>
+</div>
+
+<div class="admin-order-detail-grid">
+    <section class="admin-order-detail-card">
+        <h2>Consultation information</h2>
+        <dl>
+            <div><dt>Patient</dt><dd><a class="admin-order-profile-link" href="{% url 'admin_user_profile_detail' order.patient.pk %}">{{ order.patient.full_name|default:order.patient.account.user.email }}</a></dd></div>
+            <div><dt>Patient email</dt><dd>{{ order.patient.account.user.email }}</dd></div>
+            <div><dt>Doctor</dt><dd><a class="admin-order-profile-link" href="{% url 'admin_doctor_profile_detail' order.doctor.pk %}">{{ order.doctor.display_name }}</a></dd></div>
+            <div><dt>Appointment</dt><dd>{{ order.appointment_date|date:"d M Y" }} · {{ order.time_slot }}</dd></div>
+            <div><dt>Service</dt><dd>{{ order.get_service_type_display|default:"Not selected" }}</dd></div>
+            <div><dt>Consultation fee</dt><dd>{% if order.consultation_fee is not None %}${{ order.consultation_fee|floatformat:-2 }} /visit{% else %}Not provided{% endif %}</dd></div>
+            <div><dt>Payment status</dt><dd>{{ order.get_payment_status_display }}</dd></div>
+            <div><dt>Payment deadline</dt><dd>{% if order.payment_due_at %}{{ order.payment_due_at|date:"d M Y, H:i" }}{% else %}Not started{% endif %}</dd></div>
+            <div><dt>Reason for visit</dt><dd>{{ order.reason|default:"No reason provided."|linebreaksbr }}</dd></div>
+        </dl>
+    </section>
+
+    <section class="admin-order-detail-card">
+        <h2>Photos and videos</h2>
+        <div class="admin-order-media-grid">
+            {% for attachment in order.attachments.all %}
+            <article>
+                {% if attachment.media_type == 'image' %}
+                <a href="{% url 'appointment_attachment' attachment.pk %}" target="_blank"><img src="{% url 'appointment_attachment' attachment.pk %}" alt="{{ attachment.original_name }}"></a>
+                {% else %}
+                <video controls preload="metadata"><source src="{% url 'appointment_attachment' attachment.pk %}"></video>
+                {% endif %}
+                <strong>{{ attachment.original_name }}</strong>
+            </article>
+            {% empty %}
+            <p class="admin-order-no-media">No photos or videos were attached.</p>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+
+<a class="admin-order-back" href="{% url 'admin_orders' %}">Back to consultation orders</a>
+{% endblock %}

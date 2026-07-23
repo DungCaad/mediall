@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ doctor.display_name }} | Mediall</title>
     <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260722-11">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260722-33">
 </head>
 <body class="doctor-public-page">
     {% include 'includes/header.html' %}
@@ -55,12 +55,28 @@
             </div>
         </section>
 
+        <section class="doctor-service-fees" aria-labelledby="doctor-service-fees-title">
+            <div class="doctor-service-fees-heading">
+                <h2 id="doctor-service-fees-title">Consultation fees</h2>
+                <p>{{ consultation_price_note }}</p>
+            </div>
+            <div class="doctor-service-fee-list">
+                {% for service in consultation_services %}
+                <article class="doctor-service-fee-card" data-consultation-service="{{ service.id }}">
+                    <span>{{ service.label }}</span>
+                    <strong>{% if service.fee is not None %}{{ service.currency }}{{ service.fee|floatformat:-2 }} <small>{{ service.unit }}</small>{% else %}Not provided{% endif %}</strong>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+
         <section class="doctor-booking-card" id="doctor-booking">
             <div class="doctor-booking-heading">
                 <div>
                     <h2>Quick appointment</h2>
                     <p>Choose an available date and time. The doctor will confirm your request.</p>
                 </div>
+                <button class="booking-now-button" type="button" data-open-booking-entry{% if not can_book %} disabled{% endif %}>Đặt lịch khám ngay</button>
             </div>
 
             {% if booking_errors %}
@@ -75,48 +91,10 @@
                 {% endif %}
             {% endif %}
 
-            <form action="{% url 'doctor_profile_detail' doctor.pk %}" method="post" data-doctor-booking-form>
+            <form action="{% url 'doctor_profile_detail' doctor.pk %}" method="post" enctype="multipart/form-data" data-doctor-booking-form>
                 {% csrf_token %}
                 <input type="hidden" name="profile_action" value="book_appointment">
                 <input type="hidden" name="booking_month" value="{{ booking_options.month_value }}">
-                <input type="hidden" name="appointment_date" value="" data-booking-selected-date>
-
-                {% include "includes/month_calendar.html" with calendar=booking_options calendar_mode="booking" doctor=doctor %}
-
-                <div class="public-booking-shifts" data-booking-shifts hidden>
-                    <div class="public-booking-selected-heading">
-                        <div>
-                            <span>Appointment times for</span>
-                            <strong data-booking-selected-label></strong>
-                        </div>
-                    </div>
-                    <div class="booking-slot-unavailable-message" data-booking-slot-message hidden>
-                        This time is fully booked. Please choose another time.
-                    </div>
-
-                    <div class="doctor-booking-time-groups">
-                        {% for group in booking_options.time_groups %}
-                        <fieldset class="doctor-booking-time-group">
-                            <legend>{{ group.label }}</legend>
-                            <div>
-                                {% for slot in group.slots %}
-                                <label data-booking-slot>
-                                    <input type="radio" name="time_slot" value="{{ slot.id }}" required>
-                                    <span>{{ slot.label }}</span>
-                                </label>
-                                {% endfor %}
-                            </div>
-                        </fieldset>
-                        {% endfor %}
-                    </div>
-
-                    {% if not can_book and request.user.is_authenticated %}
-                    <p class="doctor-booking-notice">Sign in with a patient account to book the selected time.</p>
-                    {% elif not can_book %}
-                    <p class="doctor-booking-notice">Please sign in to book the selected time.</p>
-                    {% endif %}
-                </div>
-
                 {% if can_book %}
                 <div class="booking-request-modal-backdrop" data-booking-request-modal hidden>
                     <div class="booking-request-modal" role="dialog" aria-modal="true" aria-labelledby="booking-request-modal-title">
@@ -126,14 +104,90 @@
                         {% endif %}
                         {% endfor %}
                         <h3 id="booking-request-modal-title">Confirm appointment request</h3>
-                        <p class="booking-request-summary">
-                            <strong data-booking-modal-date></strong>
-                            <span data-booking-modal-time></span>
-                        </p>
+                        <div class="booking-schedule-fields">
+                            <div class="booking-date-field">
+                                <span class="booking-field-label">Appointment date</span>
+                                <input type="hidden" name="appointment_date" value="{{ request.POST.appointment_date }}" data-booking-date-select>
+                                <button class="booking-date-trigger" type="button" data-open-booking-date-picker>
+                                    <span data-booking-date-summary>{% if request.POST.appointment_date %}{{ request.POST.appointment_date }}{% else %}Choose a date{% endif %}</span>
+                                    <span aria-hidden="true">📅</span>
+                                </button>
+                                <div class="booking-date-picker" data-booking-date-picker hidden>
+                                    <div class="booking-date-picker-header">
+                                        {% for action in booking_options.month_actions %}
+                                        <button type="button" data-booking-month-direction="{{ action.direction }}" aria-label="{{ action.aria_label }}">{{ action.label }}</button>
+                                        {% if forloop.first %}<strong data-booking-month-label>{{ booking_options.calendar_months.0.label }}</strong>{% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    <div class="booking-date-weekdays">
+                                        {% for weekday in booking_options.weekdays %}<span>{{ weekday.label }}</span>{% endfor %}
+                                    </div>
+                                    <div class="booking-date-month-stage">
+                                    {% for calendar_month in booking_options.calendar_months %}
+                                    <div class="booking-date-grid" data-booking-calendar-month data-month-label="{{ calendar_month.label }}"{% if not forloop.first %} hidden{% endif %}>
+                                        {% for week in calendar_month.weeks %}
+                                            {% for day in week %}
+                                                {% if day.empty %}
+                                                <span class="booking-date-day empty"></span>
+                                                {% else %}
+                                                <button
+                                                    class="booking-date-day{% if day.before_booking_range %} out-of-range{% elif not day.selectable %} unavailable{% endif %}{% if day.today %} today{% endif %}{% if request.POST.appointment_date == day.value %} selected{% endif %}"
+                                                    type="button"
+                                                    data-booking-calendar-day="{{ day.value }}"
+                                                    {% if not day.selectable %}disabled title="{% if day.in_booking_range %}Doctor unavailable{% else %}Outside booking window{% endif %}"{% endif %}
+                                                >{{ day.day }}</button>
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% endfor %}
+                                    </div>
+                                    {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="booking-date-availability" hidden>
+                                    {% for booking_date in booking_options.quick_dates %}
+                                    <span data-booking-date-option data-date-value="{{ booking_date.value }}" data-unavailable-slots="{{ booking_date.unavailable_slots }}"></span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <label>
+                                Appointment time
+                                <select name="time_slot" data-booking-time-select required disabled>
+                                    <option value="">Choose a time</option>
+                                    {% for group in booking_options.time_groups %}
+                                    <optgroup label="{{ group.label }}">
+                                        {% for slot in group.slots %}<option value="{{ slot.id }}"{% if request.POST.time_slot == slot.id %} selected{% endif %}>{{ slot.label }}</option>{% endfor %}
+                                    </optgroup>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                        </div>
+                        <fieldset class="booking-service-selector" data-booking-service-selector>
+                            <legend>Choose consultation service</legend>
+                            <div>
+                                {% for service in consultation_services %}
+                                <label class="booking-service-option{% if service.selected %} selected{% endif %}{% if service.fee is None %} unavailable{% endif %}">
+                                    <input type="radio" name="service_type" value="{{ service.id }}" data-service-fee="{% if service.fee is not None %}{{ service.fee }}{% endif %}"{% if service.selected %} checked{% endif %}{% if service.fee is None %} disabled{% endif %} required>
+                                    <span>{{ service.label }}</span>
+                                    <strong>{% if service.fee is not None %}{{ service.currency }}{{ service.fee|floatformat:-2 }} <small>{{ service.unit }}</small>{% else %}Unavailable{% endif %}</strong>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </fieldset>
+                        <div class="booking-fee-total" data-booking-fee-total hidden>
+                            <span>Total consultation fee</span>
+                            <strong data-booking-fee-value></strong>
+                        </div>
                         <label class="doctor-booking-reason">
                             Reason for visit <small>(optional)</small>
                             <textarea name="reason" maxlength="2000" rows="4" placeholder="Briefly describe what you would like help with..."></textarea>
                         </label>
+                        <label class="booking-attachment-field">
+                            Photos or videos <small>(optional)</small>
+                            <input type="file" name="attachments" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" multiple data-booking-attachments>
+                            <small class="booking-attachment-help">Videos must be 30 seconds or shorter.</small>
+                            <span>Up to 5 files, 50 MB each. JPG, PNG, WEBP, GIF, MP4, WEBM, or MOV.</span>
+                        </label>
+                        <ul class="booking-attachment-preview" data-booking-attachment-preview hidden></ul>
                         <div class="booking-request-modal-actions">
                             {% for action in booking_options.shift_actions %}
                             {% if action.id == 'submit' %}
@@ -253,6 +307,6 @@
             </aside>
         </div>
     </main>
-    <script src="{% static 'js/doctor_profile.js' %}?v=20260722-11"></script>
+    <script src="{% static 'js/doctor_profile.js' %}?v=20260722-31"></script>
 </body>
 </html>

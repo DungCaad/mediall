@@ -1,0 +1,75 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ post.title }} | Mediall</title>
+    <meta name="description" content="{{ post.seo_description|default:post.title }}">
+    <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260723-03">
+    <link rel="stylesheet" href="{% static 'css/post.css' %}?v=20260723-01">
+</head>
+<body class="post-page">
+    {% include "includes/header.html" %}
+
+    <main class="post-layout">
+        <article class="post-article">
+            <nav class="post-breadcrumb" aria-label="Breadcrumb">
+                <a href="{% url 'home' %}">Trang chủ</a>
+                <span>/</span>
+                <span>Bài viết</span>
+            </nav>
+
+            <header class="post-header">
+                <h1>{{ post.title }}</h1>
+                <div>
+                    <span>{{ post.created_at|date:"d/m/Y" }}</span>
+                    <span>·</span>
+                    <span>{{ post.view_count }} lượt xem</span>
+                    {% if post.author %}<span>·</span><span>{{ post.author.email|default:post.author.username }}</span>{% endif %}
+                </div>
+            </header>
+
+            {% if post.seo_description %}
+            <p class="post-lead">{{ post.seo_description }}</p>
+            {% endif %}
+
+            <div class="post-content">
+                {{ post.content_html|safe }}
+            </div>
+
+            {% if post.tag_list %}
+            <footer class="post-tags">
+                <strong>Tags:</strong>
+                {% for tag in post.tag_list %}<span>{{ tag }}</span>{% endfor %}
+            </footer>
+            {% endif %}
+        </article>
+
+        <aside class="post-sidebar">
+            <section class="post-search-card">
+                <h2>Tìm kiếm</h2>
+                <form method="get" action="{% url 'post_detail' post.pk %}">
+                    <input type="search" name="q" value="{{ search_query }}" placeholder="Nhập từ khóa..." aria-label="Tìm bài viết">
+                    <button type="submit" aria-label="Tìm kiếm">⌕</button>
+                </form>
+            </section>
+
+            <section class="post-latest-card">
+                <h2>{% if search_query %}Kết quả tìm kiếm{% else %}Bài viết mới{% endif %}</h2>
+                {% for item in sidebar_posts %}
+                <a href="{% url 'post_detail' item.pk %}">
+                    <strong>{{ item.title }}</strong>
+                    <span>{{ item.created_at|date:"d/m/Y" }} · {{ item.view_count }} lượt xem</span>
+                </a>
+                {% empty %}
+                <p>Không tìm thấy bài viết phù hợp.</p>
+                {% endfor %}
+            </section>
+        </aside>
+    </main>
+
+    {% include "includes/footer_featured_posts.html" %}
+</body>
+</html>

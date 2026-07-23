@@ -1,0 +1,52 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; {{ page_title }}</div>
+{% endblock %}
+
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div class="admin-profiles-heading">
+    <div>
+        <h1>{{ page_title }}</h1>
+        <p>{{ page_description }}</p>
+    </div>
+    <span>{{ profile_rows|length }} profiles</span>
+</div>
+
+<nav class="admin-profile-tabs" aria-label="Profile type">
+    {% for button in profile_type_buttons %}
+    <a class="{% if button.active %}active{% endif %}" href="{% url button.url_name %}"{% if button.active %} aria-current="page"{% endif %}>{{ button.label }}</a>
+    {% endfor %}
+</nav>
+
+<div class="admin-profile-list">
+    {% for profile in profile_rows %}
+    <a class="admin-profile-row" href="{% url detail_url_name profile.profile_id %}">
+        <span class="admin-profile-row-avatar">
+            {% if profile.avatar %}<img src="{{ profile.avatar.url }}" alt="">{% else %}<img src="{% static 'images/no-profile.png' %}" alt="">{% endif %}
+        </span>
+        <span class="admin-profile-row-primary">
+            <strong>{{ profile.name }}</strong>
+            <small>{{ profile.email }}</small>
+        </span>
+        <span class="admin-profile-row-meta">
+            <small>Phone number</small>
+            <strong>{{ profile.phone }}</strong>
+        </span>
+        <span class="admin-profile-row-meta">
+            <small>{% if profile_type == "doctor" %}Specialties{% else %}Country{% endif %}</small>
+            <strong>{{ profile.detail }}</strong>
+        </span>
+        {% if profile_type == "doctor" %}
+        <span class="admin-profile-row-status{% if profile.is_verified %} verified{% endif %}">{% if profile.is_verified %}Verified &#10003;{% else %}Not verified{% endif %}</span>
+        {% endif %}
+        <span class="admin-profile-row-open">View profile &rsaquo;</span>
+    </a>
+    {% empty %}
+    <div class="admin-order-empty">No profiles found.</div>
+    {% endfor %}
+</div>
+{% endblock %}

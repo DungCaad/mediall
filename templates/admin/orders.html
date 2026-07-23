@@ -1,0 +1,101 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Consultation orders</div>
+{% endblock %}
+
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div class="admin-orders-heading">
+    <div>
+        <h1>Consultation orders</h1>
+        <p>Review consultation requests before they are sent to doctors.</p>
+    </div>
+    <span>{{ pending_count }} pending review</span>
+</div>
+
+{% if messages %}
+<ul class="messagelist">{% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}</ul>
+{% endif %}
+
+<div class="admin-order-payment-tabs" role="tablist" aria-label="Nhóm trạng thái thanh toán">
+    {% for group in order_payment_groups %}
+    <button
+        class="admin-order-payment-tab{% if group.active %} active{% endif %}"
+        type="button"
+        role="tab"
+        aria-selected="{% if group.active %}true{% else %}false{% endif %}"
+        data-admin-order-tab="{{ group.id }}"
+    >
+        {{ group.label }}
+        <span>{{ group.count }}</span>
+    </button>
+    {% endfor %}
+</div>
+
+{% for group in order_payment_groups %}
+<section
+    class="admin-order-payment-panel{% if group.active %} active{% endif %}"
+    role="tabpanel"
+    data-admin-order-panel="{{ group.id }}"
+>
+<div class="admin-order-list">
+    {% for order in group.orders %}
+    <article class="admin-order-card">
+        <div class="admin-order-person">
+            <span>{{ order.patient.full_name|default:order.patient.account.user.email|first|upper }}</span>
+            <div>
+                <strong><a class="admin-order-profile-link" href="{% url 'admin_user_profile_detail' order.patient.pk %}">{{ order.patient.full_name|default:order.patient.account.user.email }}</a></strong>
+                <small>Request #{{ order.pk }} · {{ order.created_at|date:"d M Y, H:i" }}</small>
+            </div>
+        </div>
+        <div class="admin-order-summary">
+            <span>Doctor</span>
+            <strong><a class="admin-order-profile-link" href="{% url 'admin_doctor_profile_detail' order.doctor.pk %}">{{ order.doctor.display_name }}</a></strong>
+        </div>
+        <div class="admin-order-summary">
+            <span>Appointment</span>
+            <strong>{{ order.appointment_date|date:"d M Y" }} · {{ order.time_slot }}</strong>
+            <small>{% if order.service_type %}{{ order.get_service_type_display }} · ${{ order.consultation_fee|floatformat:-2 }} /visit{% else %}Service not selected{% endif %}</small>
+        </div>
+        <div class="admin-order-review-status {{ order.moderation_status }}">{{ order.get_moderation_status_display }}</div>
+        <div class="admin-order-actions">
+            {% for action in order_actions %}
+                {% if action.id == 'verify' %}
+                <form method="post" action="{% url 'admin_orders' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="order_action" value="{{ action.id }}">
+                    <input type="hidden" name="appointment_id" value="{{ order.pk }}">
+                    <button class="{{ action.class_name }}" type="{{ action.type }}"{% if order.moderation_status != 'pending' %} disabled{% endif %}>{% if order.moderation_status == 'approved' %}Verified{% else %}{{ action.label }}{% endif %}</button>
+                </form>
+                {% elif action.id == 'confirm-payment' %}
+                <form method="post" action="{% url 'admin_orders' %}" onsubmit="return confirm('Confirm that payment has been received for this consultation request?')">
+                    {% csrf_token %}
+                    <input type="hidden" name="order_action" value="{{ action.id }}">
+                    <input type="hidden" name="appointment_id" value="{{ order.pk }}">
+                    <button class="{{ action.class_name }}" type="{{ action.type }}"{% if not order.can_confirm_payment %} disabled{% endif %}>{% if order.payment_status == 'paid' %}{{ action.confirmed_label }}{% else %}{{ action.label }}{% endif %}</button>
+                </form>
+                {% elif action.id == 'details' %}
+                <a class="{{ action.class_name }}" href="{% url 'admin_order_detail' order.pk %}">{{ action.label }}</a>
+                {% elif action.id == 'cleanup' and order.can_cleanup %}
+                <form method="post" action="{% url 'admin_orders' %}" onsubmit="return confirm('Permanently delete this failed consultation request and its uploaded files?')">
+                    {% csrf_token %}
+                    <input type="hidden" name="order_action" value="{{ action.id }}">
+                    <input type="hidden" name="appointment_id" value="{{ order.pk }}">
+                    <button class="{{ action.class_name }}" type="{{ action.type }}">{{ action.label }}</button>
+                </form>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </article>
+    {% empty %}
+    <div class="admin-order-empty"><h2>{{ group.empty_title }}</h2><p>{{ group.empty_description }}</p></div>
+    {% endfor %}
+</div>
+</section>
+{% endfor %}
+
+<script src="{% static 'js/admin_orders.js' %}?v=20260723-01" defer></script>
+{% endblock %}

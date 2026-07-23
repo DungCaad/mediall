@@ -18,7 +18,15 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
+# 1. Khai báo các domain được phép gửi request CSRF (Bắt buộc phải có https://)
+CSRF_TRUSTED_ORIGINS = [
+    'https://mediall.net',
+    'https://www.mediall.net',
+    'https://vi.mediall.net',
+]
 
+# 2. Bật dòng này để Django nhận biết request HTTPS được gửi từ Reverse Proxy (Nginx/Cloudflare)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 

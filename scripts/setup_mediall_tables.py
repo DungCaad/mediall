@@ -10,7 +10,7 @@ load_dotenv(BASE_DIR / ".env")
 
 
 DOCTOR_TABLE_SQL = """
-CREATE TABLE IF NOT EXISTS `mediall` (
+CREATE TABLE IF NOT EXISTS `mediall_doctor` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `source_profile_id` BIGINT UNSIGNED NULL,
     `source_user_id` BIGINT UNSIGNED NULL,
@@ -36,9 +36,9 @@ CREATE TABLE IF NOT EXISTS `mediall` (
     `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     PRIMARY KEY (`id`),
-    UNIQUE KEY `mediall_source_profile_uniq` (`source_profile_id`),
-    KEY `mediall_email_idx` (`email`),
-    KEY `mediall_specialties_idx` (`specialties`)
+    UNIQUE KEY `mediall_doctor_source_profile_uniq` (`source_profile_id`),
+    KEY `mediall_doctor_email_idx` (`email`),
+    KEY `mediall_doctor_specialties_idx` (`specialties`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 """
 
@@ -86,6 +86,19 @@ def main():
     )
     try:
         with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT TABLE_NAME
+                FROM information_schema.TABLES
+                WHERE TABLE_SCHEMA = %s
+                  AND TABLE_NAME IN ('mediall', 'mediall_doctor')
+                """,
+                (required_env("DB_NAME"),),
+            )
+            existing_tables = {row[0] for row in cursor.fetchall()}
+            if "mediall" in existing_tables and "mediall_doctor" not in existing_tables:
+                cursor.execute("RENAME TABLE `mediall` TO `mediall_doctor`")
+
             cursor.execute(DOCTOR_TABLE_SQL)
             cursor.execute(CUSTOMER_TABLE_SQL)
         connection.commit()
@@ -96,7 +109,7 @@ def main():
                 SELECT TABLE_NAME, COUNT(*)
                 FROM information_schema.COLUMNS
                 WHERE TABLE_SCHEMA = %s
-                  AND TABLE_NAME IN ('mediall', 'mediall_cus')
+                  AND TABLE_NAME IN ('mediall_doctor', 'mediall_cus')
                 GROUP BY TABLE_NAME
                 ORDER BY TABLE_NAME
                 """,

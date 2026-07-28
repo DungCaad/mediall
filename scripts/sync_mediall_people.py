@@ -82,13 +82,17 @@ def required_env(name):
     return value
 
 
+def shared_database_name():
+    return os.getenv("SHARED_DB_NAME", os.getenv("DB_NAME", "")).strip()
+
+
 def mysql_connection():
     return pymysql.connect(
         host=required_env("DB_HOST"),
         port=int(os.getenv("DB_PORT", "3306")),
         user=required_env("DB_USER"),
         password=required_env("DB_PASSWORD"),
-        database=required_env("DB_NAME"),
+        database=shared_database_name(),
         charset="utf8mb4",
         autocommit=False,
         connect_timeout=10,

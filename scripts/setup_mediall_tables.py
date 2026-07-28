@@ -73,13 +73,17 @@ def required_env(name):
     return value
 
 
+def shared_database_name():
+    return os.getenv("SHARED_DB_NAME", os.getenv("DB_NAME", "")).strip()
+
+
 def main():
     connection = pymysql.connect(
         host=required_env("DB_HOST"),
         port=int(os.getenv("DB_PORT", "3306")),
         user=required_env("DB_USER"),
         password=required_env("DB_PASSWORD"),
-        database=required_env("DB_NAME"),
+        database=shared_database_name(),
         charset="utf8mb4",
         autocommit=False,
         connect_timeout=10,
@@ -93,7 +97,7 @@ def main():
                 WHERE TABLE_SCHEMA = %s
                   AND TABLE_NAME IN ('mediall', 'mediall_doctor')
                 """,
-                (required_env("DB_NAME"),),
+                (shared_database_name(),),
             )
             existing_tables = {row[0] for row in cursor.fetchall()}
             if "mediall" in existing_tables and "mediall_doctor" not in existing_tables:
@@ -113,7 +117,7 @@ def main():
                 GROUP BY TABLE_NAME
                 ORDER BY TABLE_NAME
                 """,
-                (required_env("DB_NAME"),),
+                (shared_database_name(),),
             )
             for table_name, column_count in cursor.fetchall():
                 print(f"{table_name}: {column_count} columns")

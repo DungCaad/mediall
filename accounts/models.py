@@ -242,13 +242,6 @@ class DoctorAppointment(models.Model):
 
     class Meta:
         ordering = ["appointment_date", "time_slot"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["doctor", "appointment_date", "time_slot"],
-                condition=~models.Q(status="rejected"),
-                name="unique_doctor_appointment_time_slot",
-            ),
-        ]
 
     def __str__(self):
         return f"{self.patient.account.user.username} → {self.doctor.account.user.username}: {self.appointment_date} {self.time_slot}"

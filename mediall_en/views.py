@@ -185,16 +185,13 @@ def get_uploaded_video_duration(uploaded_file):
 
 def expire_overdue_appointment_payments():
     now = timezone.now()
-    return DoctorAppointment.objects.filter(
+    deleted_count, _ = DoctorAppointment.objects.filter(
         moderation_status=DoctorAppointment.MODERATION_APPROVED,
         payment_status=DoctorAppointment.PAYMENT_AWAITING,
         payment_due_at__isnull=False,
         payment_due_at__lte=now,
-    ).exclude(status=DoctorAppointment.STATUS_REJECTED).update(
-        payment_status=DoctorAppointment.PAYMENT_EXPIRED,
-        status=DoctorAppointment.STATUS_REJECTED,
-        updated_at=now,
-    )
+    ).delete()
+    return deleted_count
 
 
 def verify_recaptcha(token, remote_ip=""):

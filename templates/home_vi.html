@@ -11,15 +11,17 @@
 <body>
     {% include 'includes/header.html' %}
 
-    <section class="hero">
+    <section class="hero" style="background-image: url('{% static 'images/hero_care.jpeg' %}');">
         <div class="container">
-            <h1>Chăm sóc sức khỏe<br>dễ dàng hơn</h1>
-            <form class="hero-search" action="{% url 'doctor_search' %}" method="get" role="search">
-                <span class="hero-search-icon" aria-hidden="true">⌕</span>
-                <input type="search" name="specialty" placeholder="Tìm bác sĩ, chuyên khoa hoặc địa điểm" aria-label="Tìm bác sĩ, chuyên khoa hoặc địa điểm" required>
-                <button type="submit">Tìm kiếm</button>
-            </form>
-            <p>Đặt lịch khám gần bạn, hoặc nhận hỗ trợ trực tuyến 24/7 cho các vấn đề phổ biến.</p>
+            <div class="hero-copy">
+                <h1>Chăm sóc sức khỏe<br>dễ dàng hơn</h1>
+                <form class="hero-search" action="{% url 'doctor_search' %}" method="get" role="search">
+                    <span class="hero-search-icon" aria-hidden="true">⌕</span>
+                    <input type="search" name="specialty" placeholder="Tìm bác sĩ, chuyên khoa hoặc địa điểm" aria-label="Tìm bác sĩ, chuyên khoa hoặc địa điểm" required>
+                    <button type="submit">Tìm kiếm</button>
+                </form>
+                <p>Đặt lịch khám gần bạn, hoặc nhận hỗ trợ trực tuyến 24/7 cho các vấn đề phổ biến.</p>
+            </div>
 
             <div class="conditions-carousel">
                 {% for item in carousel_conditions %}

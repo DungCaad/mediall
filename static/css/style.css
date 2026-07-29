@@ -2422,6 +2422,16 @@ header {
     background: #f3f5f7;
 }
 
+.doctor-row > .doctor-avatar-fallback {
+    align-items: center;
+    color: #173f4c;
+    display: flex;
+    font-size: 24px;
+    font-weight: 700;
+    justify-content: center;
+    line-height: 1;
+}
+
 .doctor-info h2 {
     font-size: 17px;
     line-height: 1.3;

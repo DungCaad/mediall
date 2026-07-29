@@ -1033,7 +1033,9 @@ def build_header_context(language="en", guest_modal=False, request=None):
                 header_is_member = role_profile.is_member
 
             if account_profile.role == AccountProfile.ROLE_PATIENT:
-                consultation_request_count = role_profile.appointments.count()
+                consultation_request_count = role_profile.appointments.exclude(
+                    payment_status=DoctorAppointment.PAYMENT_PAID,
+                ).count()
                 appointments = role_profile.appointments.select_related(
                     "doctor__account__user"
                 ).order_by("-updated_at")[:8]
@@ -1484,7 +1486,9 @@ def build_profile_context(request, profile_form, profile_type, active_tab="perso
         profile_tabs.append({"id": "consultation-requests", "label": "Consultation requests"})
         # Tab yêu cầu xem hồ sơ dành cho tài khoản bệnh nhân
         profile_tabs.append({"id": "access-requests", "label": "Profile access requests"})
-        consultation_requests = profile_form.instance.appointments.select_related(
+        consultation_requests = profile_form.instance.appointments.exclude(
+            payment_status=DoctorAppointment.PAYMENT_PAID,
+        ).select_related(
             "doctor__account__user",
         ).prefetch_related("attachments").order_by("-created_at")
         medical_history = profile_form.instance.appointments.filter(

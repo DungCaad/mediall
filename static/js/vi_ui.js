@@ -31,8 +31,11 @@
 
     function translateElement(root) {
         if (!root || root.nodeType !== Node.ELEMENT_NODE) return;
-        ["placeholder", "aria-label", "title"].forEach(function (name) {
-            if (root.hasAttribute(name)) root.setAttribute(name, translated(root.getAttribute(name)));
+        var elements = [root].concat(Array.from(root.querySelectorAll("[placeholder], [aria-label], [title]")));
+        elements.forEach(function (element) {
+            ["placeholder", "aria-label", "title"].forEach(function (name) {
+                if (element.hasAttribute(name)) element.setAttribute(name, translated(element.getAttribute(name)));
+            });
         });
         var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
         var node;

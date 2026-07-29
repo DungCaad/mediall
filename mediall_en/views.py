@@ -2512,8 +2512,7 @@ def doctor_search(request):
     else:
         matched_doctors = doctors
 
-    has_direct_match = matched_doctors.exists() or not specialty
-    visible_doctors = list(matched_doctors if has_direct_match else doctors)
+    visible_doctors = list(matched_doctors)
     recommended_ids = set(viewer_doctor.recommended_doctors.values_list("pk", flat=True)) if viewer_doctor else set()
     for doctor in visible_doctors:
         doctor.is_recommended_by_viewer = doctor.pk in recommended_ids
@@ -2532,7 +2531,6 @@ def doctor_search(request):
         "specialty": specialty,
         "doctors": visible_doctors,
         "result_count": len(visible_doctors),
-        "has_direct_match": has_direct_match,
         "viewer_doctor": viewer_doctor,
         "doctor_result_actions": doctor_result_actions,
     }

@@ -42,9 +42,6 @@
                     <p>
                         Found {{ result_count }} result{{ result_count|pluralize }}{% if specialty %} for "{{ specialty }}"{% endif %}.
                     </p>
-                    {% if specialty and not has_direct_match %}
-                    <p class="fallback-note">No exact match yet, showing providers who may be able to help.</p>
-                    {% endif %}
                 </div>
 
                 <div class="doctor-list">

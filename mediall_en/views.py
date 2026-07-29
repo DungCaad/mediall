@@ -30,7 +30,7 @@ from django.utils import timezone
 from django.utils.html import strip_tags
 from django.views.decorators.http import require_POST
 
-from accounts.models import AccountProfile, AppointmentAttachment, BlogPost, DoctorAppointment, DoctorBusyDate, DoctorProfile, DoctorReview, FeaturedPostGroup, MedicalRecord, PatientProfile, PatientProfileAccessRequest
+from accounts.models import AccountProfile, AppointmentAttachment, BlogPost, DoctorAppointment, DoctorBusyDate, DoctorProfile, DoctorReview, FeaturedPostGroup, MedicalRecord, PatientProfile, PatientProfileAccessRequest, UiTranslation
 from chat.models import ConversationMember, Message
 
 
@@ -1237,9 +1237,14 @@ def build_header_context(language="en", guest_modal=False, request=None):
         {"id": "group", "label": "Groups", "active": False},
     ]
 
+    ui_translations = {}
+    if language == "vi":
+        ui_translations = dict(UiTranslation.objects.values_list("source_text", "vietnamese_text"))
+
     return {
         "page_language": language,
         "is_vi": language == "vi",
+        "ui_translations": ui_translations,
         "header_nav_items": header_nav_items,
         "authenticated_account_actions": authenticated_account_actions,
         "guest_account_actions": guest_account_actions,

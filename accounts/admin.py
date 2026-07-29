@@ -4,7 +4,7 @@ from django.contrib import admin
 from django.utils import timezone
 from django.utils.html import format_html
 
-from .models import AccountProfile, AppointmentAttachment, DoctorAppointment, DoctorBusyDate, DoctorProfile, DoctorReview, MedicalRecord, PatientProfile, PatientProfileAccessRequest
+from .models import AccountProfile, AppointmentAttachment, DoctorAppointment, DoctorBusyDate, DoctorProfile, DoctorReview, MedicalRecord, PatientProfile, PatientProfileAccessRequest, UiTranslation
 
 
 @admin.register(AccountProfile)
@@ -149,6 +149,13 @@ class DoctorReviewAdmin(admin.ModelAdmin):
     list_display = ("appointment", "patient", "doctor", "rating", "updated_at")
     list_filter = ("rating",)
     search_fields = ("patient__full_name", "doctor__full_name", "comment")
+
+
+@admin.register(UiTranslation)
+class UiTranslationAdmin(admin.ModelAdmin):
+    list_display = ("source_text", "vietnamese_text")
+    search_fields = ("source_text", "vietnamese_text")
+    list_per_page = 50
 
 
 admin.site.site_header = "Mediall Administration"

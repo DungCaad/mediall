@@ -392,3 +392,16 @@ class BlogPost(models.Model):
     @property
     def tag_list(self):
         return [tag.strip() for tag in self.tags.split(",") if tag.strip()]
+
+
+class UiTranslation(models.Model):
+    source_text = models.CharField("English source text", max_length=255, primary_key=True)
+    vietnamese_text = models.CharField("Vietnamese translation", max_length=1000)
+
+    class Meta:
+        ordering = ["source_text"]
+        verbose_name = "UI translation"
+        verbose_name_plural = "UI translations"
+
+    def __str__(self):
+        return self.source_text

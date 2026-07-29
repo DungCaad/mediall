@@ -122,7 +122,7 @@
             {% if action.modal_target %}
             <button type="button" class="text-button" data-open-modal="{{ action.modal_target }}">{{ action.label }}</button>
             {% else %}
-            <a class="text-button" href="{% url action.url_name %}">{{ action.label }}</a>
+            <a class="text-button" href="{% if action.url_name %}{% url action.url_name %}{% else %}{{ action.href }}{% endif %}">{{ action.label }}</a>
             {% endif %}
             {% endfor %}
             {% endif %}

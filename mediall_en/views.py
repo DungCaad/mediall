@@ -994,13 +994,15 @@ def build_header_context(language="en", guest_modal=False, request=None):
         {
             "label": sign_in_label,
             "modal_target": "login" if guest_modal else "",
-            "url_name": "home",
+            "url_name": "home" if guest_modal else "",
+            "href": "/?auth=login",
         },
         # Nút hoặc liên kết đăng ký
         {
             "label": sign_up_label,
             "modal_target": "register" if guest_modal else "",
-            "url_name": "home",
+            "url_name": "home" if guest_modal else "",
+            "href": "/?auth=register",
         },
     ]
 
@@ -2119,15 +2121,19 @@ def build_home_context(request):
         'featured_footer_groups': get_featured_footer_groups(),
     }
     language = "vi" if is_vietnamese_host(request) else "en"
-    context.update(build_header_context(language, guest_modal=language == "en", request=request))
+    context.update(build_header_context(language, guest_modal=True, request=request))
+    context["open_login_modal"] = request.GET.get("auth") == "login"
+    context["open_register_modal"] = request.GET.get("auth") == "register"
     
     return context
 
 
+def get_home_template(request):
+    return "home_vi.html" if is_vietnamese_host(request) else "home.html"
+
+
 def home_page(request):
-    if is_vietnamese_host(request):
-        return render(request, 'home_vi.html', build_home_context(request))
-    return render(request, 'home.html', build_home_context(request))
+    return render(request, get_home_template(request), build_home_context(request))
 
 
 def register_account(request):
@@ -2176,7 +2182,7 @@ def register_account(request):
             },
             "open_register_modal": True,
         })
-        return render(request, "home.html", context, status=400)
+        return render(request, get_home_template(request), context, status=400)
 
     user = User.objects.create_user(username=email, email=email, password=password)
     account_profile = AccountProfile.objects.create(
@@ -2193,7 +2199,7 @@ def register_account(request):
         PatientProfile.objects.create(account=account_profile, full_name=full_name)
     context = build_home_context(request)
     context["registration_success"] = "Your account has been created."
-    return render(request, "home.html", context)
+    return render(request, get_home_template(request), context)
 
 
 def login_account(request):
@@ -2222,7 +2228,7 @@ def login_account(request):
             "login_form": {"email": email},
             "open_login_modal": True,
         })
-        return render(request, "home.html", context, status=400)
+        return render(request, get_home_template(request), context, status=400)
 
     account = User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)).first()
     user = authenticate(request, username=account.username, password=password) if account else None
@@ -2234,7 +2240,7 @@ def login_account(request):
             "login_form": {"email": email},
             "open_login_modal": True,
         })
-        return render(request, "home.html", context, status=400)
+        return render(request, get_home_template(request), context, status=400)
 
     login(request, user)
     return redirect("home")

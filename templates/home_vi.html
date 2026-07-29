@@ -7,9 +7,51 @@
     <title>Mediall | Chăm sóc sức khỏe trực tuyến</title>
     <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
     <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260729-1">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
     {% include 'includes/header.html' %}
+
+    {% if registration_success %}<div class="form-alert success">{{ registration_success }}</div>{% endif %}
+
+    <div class="modal-backdrop{% if open_login_modal %} active{% endif %}" data-login-modal>
+        <div class="register-modal" role="dialog" aria-modal="true" aria-labelledby="login-title">
+            <button class="modal-close" type="button" aria-label="Đóng" data-close-login>&times;</button>
+            <h2 id="login-title">Đăng nhập</h2>
+            <p>Đăng nhập bằng email và mật khẩu của bạn.</p>
+            {% if login_errors %}<div class="form-alert error">{% for error in login_errors %}<div>{{ error }}</div>{% endfor %}</div>{% endif %}
+            <form class="register-form" action="{% url 'login_account' %}" method="post">
+                {% csrf_token %}
+                <label>Email<input type="email" name="email" value="{{ login_form.email }}" autocomplete="email" required></label>
+                <label>Mật khẩu<input type="password" name="password" autocomplete="current-password" required></label>
+                <div class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}"></div>
+                <button class="btn register-submit" type="submit">Đăng nhập</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-backdrop{% if open_register_modal %} active{% endif %}" data-register-modal>
+        <div class="register-modal" role="dialog" aria-modal="true" aria-labelledby="register-title">
+            <button class="modal-close" type="button" aria-label="Đóng" data-close-register>&times;</button>
+            <h2 id="register-title">Tạo tài khoản</h2>
+            <p>Tạo tài khoản Mediall để đặt lịch và quản lý các lần tư vấn.</p>
+            {% if registration_errors %}<div class="form-alert error">{% for error in registration_errors %}<div>{{ error }}</div>{% endfor %}</div>{% endif %}
+            <form class="register-form" action="{% url 'register_account' %}" method="post">
+                {% csrf_token %}
+                <label>Email<input type="email" name="email" value="{{ registration_form.email }}" autocomplete="email" required></label>
+                <label>Họ và tên<input type="text" name="full_name" value="{{ registration_form.full_name }}" autocomplete="name" required></label>
+                <label>Số điện thoại<input type="tel" name="phone" value="{{ registration_form.phone }}" autocomplete="tel" required></label>
+                <label>Mật khẩu<input type="password" name="password" autocomplete="new-password" minlength="6" required></label>
+                <fieldset class="role-choice">
+                    <legend>Bạn là ai?</legend>
+                    <label><input type="radio" name="role" value="patient" {% if registration_form.role != "doctor" %}checked{% endif %}> Bệnh nhân</label>
+                    <label><input type="radio" name="role" value="doctor" {% if registration_form.role == "doctor" %}checked{% endif %}> Bác sĩ</label>
+                </fieldset>
+                <div class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}"></div>
+                <button class="btn register-submit" type="submit">Tạo tài khoản</button>
+            </form>
+        </div>
+    </div>
 
     <section class="hero" style="background-image: url('{% static 'images/hero_care.jpeg' %}');">
         <div class="container">
@@ -216,6 +258,8 @@
             modal.addEventListener("click", function (event) { if (event.target === modal) { modal.classList.remove("active"); document.body.classList.remove("modal-open"); } });
         }
         setupModal("[data-compare-options-modal]", "[data-open-compare-options]", "[data-close-compare-options]");
+        setupModal("[data-login-modal]", "[data-open-modal='login']", "[data-close-login]");
+        setupModal("[data-register-modal]", "[data-open-modal='register']", "[data-close-register]");
 
         document.querySelectorAll("[data-care-option]").forEach(function (optionButton) {
             optionButton.addEventListener("click", function () {

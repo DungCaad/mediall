@@ -1,5 +1,6 @@
 import json
 import mimetypes
+from io import BytesIO
 from pathlib import Path
 
 from django.contrib.auth.decorators import login_required
@@ -109,7 +110,7 @@ def member_profile(request, user_id):
 def _visible_messages(conversation, user):
     return conversation.messages.filter(
         Q(moderation_status=Message.STATUS_APPROVED) | Q(sender=user)
-    ).select_related("sender")
+    ).select_related("sender").defer("attachment_data")
 
 
 def _serialize_message(message, user):
@@ -117,7 +118,7 @@ def _serialize_message(message, user):
     sender = _profile_data(message.sender)
     display_status = "failed" if mine and message.moderation_status == Message.STATUS_REJECTED else "sent"
     attachment = None
-    if message.attachment:
+    if message.attachment_size or message.attachment:
         attachment = {
             "type": message.attachment_type,
             "name": message.attachment_name,
@@ -276,7 +277,9 @@ def send_message(request, conversation_id):
             conversation=membership.conversation,
             sender=request.user,
             content="",
-            attachment=attachment,
+            attachment_data=attachment.read(),
+            attachment_content_type=content_type,
+            attachment_size=attachment.size,
             attachment_type=attachment_type,
             attachment_name=Path(attachment.name).name[:255],
         )
@@ -313,12 +316,22 @@ def message_attachment(request, message_id):
         message.moderation_status == Message.STATUS_APPROVED
         and message.conversation.members.filter(user=request.user).exists()
     )
-    if not (can_review or is_sender or is_approved_recipient) or not message.attachment:
+    if not (can_review or is_sender or is_approved_recipient):
         raise Http404
     as_attachment = message.attachment_type == Message.ATTACHMENT_DOCUMENT
-    content_type = mimetypes.guess_type(message.attachment_name)[0] or "application/octet-stream"
+    content_type = (
+        message.attachment_content_type
+        or mimetypes.guess_type(message.attachment_name)[0]
+        or "application/octet-stream"
+    )
+    if message.attachment_data is not None:
+        source = BytesIO(bytes(message.attachment_data))
+    elif message.attachment:
+        source = message.attachment.open("rb")
+    else:
+        raise Http404
     response = FileResponse(
-        message.attachment.open("rb"),
+        source,
         as_attachment=as_attachment,
         filename=message.attachment_name,
         content_type=content_type,

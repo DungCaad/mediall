@@ -52,6 +52,7 @@ class MessageAdmin(admin.ModelAdmin):
         pending_messages = (
             Message.objects.filter(moderation_status=Message.STATUS_PENDING)
             .select_related("sender", "conversation")
+            .defer("attachment_data")
             .prefetch_related("conversation__members__user")
             .order_by("created_at")
         )
@@ -83,7 +84,7 @@ class MessageAdmin(admin.ModelAdmin):
             return HttpResponseNotAllowed(["POST"])
         if not self.has_change_permission(request):
             return self.admin_site.login(request)
-        message = get_object_or_404(Message, id=message_id)
+        message = get_object_or_404(Message.objects.defer("attachment_data"), id=message_id)
         if message.moderation_status == Message.STATUS_PENDING:
             message.moderation_status = Message.STATUS_APPROVED
             message.reviewed_by = request.user
@@ -106,7 +107,11 @@ class MessageAdmin(admin.ModelAdmin):
             Conversation.objects.prefetch_related("members__user"),
             id=conversation_id,
         )
-        history = conversation.messages.select_related("sender", "reviewed_by").order_by("created_at")
+        history = (
+            conversation.messages.select_related("sender", "reviewed_by")
+            .defer("attachment_data")
+            .order_by("created_at")
+        )
         member_names = [
             member.user.get_full_name().strip() or member.user.username
             for member in conversation.members.all()

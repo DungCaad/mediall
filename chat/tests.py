@@ -1,10 +1,8 @@
 import json
-import tempfile
 
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
-from django.test.utils import override_settings
 from django.urls import reverse
 
 from .models import Conversation, ConversationMember, Message
@@ -84,39 +82,46 @@ class ChatFlowTests(TestCase):
         self.assertEqual(response.json()["message"]["display_status"], "sent")
 
     def test_attachment_is_sent_immediately_but_hidden_until_approved(self):
-        with tempfile.TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
-            self.client.force_login(self.sender)
-            response = self.client.post(
-                reverse("chat_send_message", args=[self.conversation.id]),
-                data={
-                    "attachment": SimpleUploadedFile(
-                        "photo.png",
-                        b"test-image-content",
-                        content_type="image/png",
-                    ),
-                },
-            )
-            self.assertEqual(response.status_code, 201)
-            message = Message.objects.get()
-            self.assertEqual(message.moderation_status, Message.STATUS_PENDING)
-            self.assertEqual(message.attachment_type, Message.ATTACHMENT_IMAGE)
-            self.assertEqual(response.json()["message"]["attachment"]["name"], "photo.png")
+        image_bytes = b"test-image-content"
+        self.client.force_login(self.sender)
+        response = self.client.post(
+            reverse("chat_send_message", args=[self.conversation.id]),
+            data={
+                "attachment": SimpleUploadedFile(
+                    "photo.png",
+                    image_bytes,
+                    content_type="image/png",
+                ),
+            },
+        )
+        self.assertEqual(response.status_code, 201)
+        message = Message.objects.get()
+        self.assertEqual(message.moderation_status, Message.STATUS_PENDING)
+        self.assertEqual(message.attachment_type, Message.ATTACHMENT_IMAGE)
+        self.assertEqual(message.attachment_content_type, "image/png")
+        self.assertEqual(message.attachment_size, len(image_bytes))
+        self.assertEqual(bytes(message.attachment_data), image_bytes)
+        self.assertFalse(message.attachment)
+        self.assertEqual(response.json()["message"]["attachment"]["name"], "photo.png")
 
-            attachment_url = reverse("chat_message_attachment", args=[message.id])
-            self.assertEqual(self.client.get(attachment_url).status_code, 200)
+        attachment_url = reverse("chat_message_attachment", args=[message.id])
+        attachment_response = self.client.get(attachment_url)
+        self.assertEqual(attachment_response.status_code, 200)
+        self.assertEqual(attachment_response["Content-Type"], "image/png")
+        self.assertEqual(b"".join(attachment_response.streaming_content), image_bytes)
 
-            self.client.force_login(self.receiver)
-            self.assertEqual(self.client.get(attachment_url).status_code, 404)
-            self.assertEqual(
-                self.client.get(reverse("chat_messages", args=[self.conversation.id])).json()["messages"],
-                [],
-            )
+        self.client.force_login(self.receiver)
+        self.assertEqual(self.client.get(attachment_url).status_code, 404)
+        self.assertEqual(
+            self.client.get(reverse("chat_messages", args=[self.conversation.id])).json()["messages"],
+            [],
+        )
 
-            message.moderation_status = Message.STATUS_APPROVED
-            message.save(update_fields=["moderation_status"])
-            self.assertEqual(self.client.get(attachment_url).status_code, 200)
-            messages = self.client.get(reverse("chat_messages", args=[self.conversation.id])).json()["messages"]
-            self.assertEqual(messages[0]["attachment"]["type"], "image")
+        message.moderation_status = Message.STATUS_APPROVED
+        message.save(update_fields=["moderation_status"])
+        self.assertEqual(self.client.get(attachment_url).status_code, 200)
+        messages = self.client.get(reverse("chat_messages", args=[self.conversation.id])).json()["messages"]
+        self.assertEqual(messages[0]["attachment"]["type"], "image")
 
 
 class ChatAdminReviewTests(TestCase):

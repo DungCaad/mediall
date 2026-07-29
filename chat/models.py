@@ -87,6 +87,9 @@ class Message(models.Model):
         upload_to=chat_attachment_upload_to,
         blank=True,
     )
+    attachment_data = models.BinaryField("Attachment data", null=True, blank=True, editable=False)
+    attachment_content_type = models.CharField("Attachment content type", max_length=255, blank=True)
+    attachment_size = models.PositiveBigIntegerField("Attachment size", default=0)
     attachment_type = models.CharField(
         "Attachment type",
         max_length=20,

@@ -5,6 +5,10 @@
 
     var translationData = document.getElementById("ui-translations");
     var translations = translationData ? JSON.parse(translationData.textContent) : {};
+    var sourceByVietnamese = Object.keys(translations).reduce(function (result, source) {
+        result[translations[source]] = source;
+        return result;
+    }, {});
 
     var patterns = [
         [/^Found (\d+) results?(?: for "(.+)")?\.$/, function (m) { return "Tìm thấy " + m[1] + " kết quả" + (m[2] ? " cho “" + m[2] + "”" : "") + "."; }],
@@ -20,7 +24,9 @@
         if (!result) {
             patterns.some(function (entry) {
                 if (entry[0].test(clean)) {
-                    result = clean.replace(entry[0], entry[1]);
+                    result = typeof entry[1] === "function"
+                        ? entry[1](clean.match(entry[0]))
+                        : clean.replace(entry[0], entry[1]);
                     return true;
                 }
                 return false;
@@ -36,6 +42,9 @@
             ["placeholder", "aria-label", "title"].forEach(function (name) {
                 if (element.hasAttribute(name)) element.setAttribute(name, translated(element.getAttribute(name)));
             });
+            if (element.matches('input[type="search"][value]')) {
+                element.value = translated(element.value);
+            }
         });
         var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
         var node;
@@ -56,4 +65,10 @@
             });
         });
     }).observe(document.body, {childList: true, subtree: true});
+
+    document.addEventListener("submit", function (event) {
+        event.target.querySelectorAll('input[type="search"]').forEach(function (input) {
+            input.value = sourceByVietnamese[input.value.trim()] || input.value;
+        });
+    }, true);
 }());

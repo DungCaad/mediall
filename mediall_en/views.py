@@ -2065,6 +2065,9 @@ def build_home_context(request):
     ]
 
     if is_vi:
+        # Nhóm nút chuyển đến danh sách chủ đề sức khỏe trên trang tiếng Việt
+        for action in answer_ctas:
+            action["label"] = "Tìm câu trả lời"
         carousel_conditions = [
             {"img": item["img"], "title_lines": [title], "specialty": item["specialty"]}
             for item, title in zip(carousel_conditions, [

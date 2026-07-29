@@ -32,7 +32,11 @@
                 {% endfor %}
             </div>
 
-            <a class="btn" href="{% url 'appointment' %}" style="width: fit-content;">Tìm bác sĩ</a>
+            {% for action in answer_ctas %}
+            {% if action.location == "hero" %}
+            <a class="btn" href="#{{ action.target_id }}" style="width: fit-content;">{{ action.label }}</a>
+            {% endif %}
+            {% endfor %}
         </div>
     </section>
 

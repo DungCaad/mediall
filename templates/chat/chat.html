@@ -1,0 +1,148 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chat | Mediall</title>
+    <link rel="icon" href="{% static 'images/favicon.ico' %}">
+    <link rel="stylesheet" href="{% static 'css/chat.css' %}?v=20260729-10">
+</head>
+<body>
+<main class="chat-app" data-chat-app data-active-conversation="{% if selected_conversation %}{{ selected_conversation.id }}{% endif %}">
+    <aside class="chat-sidebar" data-chat-sidebar>
+        <div class="sidebar-heading">
+            <a class="chat-brand" href="{% url 'home' %}" aria-label="Back to Mediall home">
+                <img src="{% static 'images/logo.ico' %}" alt="Mediall">
+            </a>
+            <div class="sidebar-heading-actions">
+                <button type="button" class="round-button" aria-label="Options">•••</button>
+                <button type="button" class="round-button" aria-label="New conversation" data-open-compose>✎</button>
+            </div>
+        </div>
+
+        <label class="chat-search">
+            <span aria-hidden="true">⌕</span>
+            <input type="search" placeholder="Search conversations" data-chat-search>
+        </label>
+
+        <nav class="chat-filters" aria-label="Conversation filters">
+            {% for filter in chat_filters %}
+            <button
+                type="button"
+                class="filter-button{% if filter.active %} active{% endif %}"
+                data-filter="{{ filter.id }}"
+                aria-pressed="{% if filter.active %}true{% else %}false{% endif %}">
+                {{ filter.label }}
+            </button>
+            {% endfor %}
+        </nav>
+
+        <div class="conversation-list" data-conversation-list>
+            {% for conversation in conversations %}
+            <article
+                class="conversation-card{% if conversation.active %} active{% endif %}"
+                data-conversation-card
+                data-search-text="{{ conversation.title|lower }} {{ conversation.preview|lower }}"
+                data-unread="{% if conversation.unread %}true{% else %}false{% endif %}"
+                data-group="{% if conversation.is_group %}true{% else %}false{% endif %}">
+                <a class="avatar avatar-large avatar-profile-link" href="{{ conversation.profile_url }}" aria-label="View {{ conversation.title }}'s profile">
+                    {% if conversation.avatar_url %}<img src="{{ conversation.avatar_url }}" alt="">{% else %}{{ conversation.initial }}{% endif %}
+                </a>
+                <a class="conversation-copy" href="{% url 'chat' %}?conversation={{ conversation.id }}">
+                    <strong>{{ conversation.title }}</strong>
+                    <span>{{ conversation.preview|truncatechars:42 }}{% if conversation.time %} · {{ conversation.time }}{% endif %}</span>
+                </a>
+                {% if conversation.unread %}<span class="unread-dot" title="{{ conversation.unread }} unread messages"></span>{% endif %}
+            </article>
+            {% empty %}
+            <div class="conversation-empty">
+                <span>💬</span>
+                <p>No conversations yet.</p>
+                <button type="button" data-open-compose>Start a conversation</button>
+            </div>
+            {% endfor %}
+        </div>
+    </aside>
+
+    <section class="chat-panel{% if not selected_conversation %} is-empty{% endif %}">
+        {% if selected_conversation %}
+        <header class="conversation-header">
+            <button type="button" class="mobile-back" aria-label="Back to conversation list" data-mobile-back>‹</button>
+            <a class="avatar avatar-profile-link" href="{{ selected_conversation.profile_url }}" aria-label="View {{ selected_conversation.title }}'s profile">
+                {% if selected_conversation.avatar_url %}<img src="{{ selected_conversation.avatar_url }}" alt="">{% else %}{{ selected_conversation.initial }}{% endif %}
+            </a>
+            <div class="conversation-title">
+                <strong>{{ selected_conversation.title }}</strong>
+                <span>Active now</span>
+            </div>
+        </header>
+
+        <div class="message-stage" data-message-stage>
+            <div class="loading-messages" data-message-loading>Loading messages…</div>
+            <button type="button" class="load-older" data-load-older hidden>Load older messages</button>
+            <div class="message-list" data-message-list aria-live="polite"></div>
+            <button type="button" class="new-message-jump" data-new-message-jump hidden>New messages ↓</button>
+        </div>
+
+        <form class="message-composer" data-message-form>
+            <div class="message-input-wrap">
+                <textarea rows="1" maxlength="5000" placeholder="Aa" aria-label="Message" data-message-input></textarea>
+                <div class="composer-attachment">
+                    <button class="composer-add-button" type="button" aria-label="Add attachment" aria-expanded="false" data-toggle-attachments>+</button>
+                    <div class="attachment-menu" role="menu" data-attachment-menu hidden>
+                        {% for option in composer_attachment_options %}
+                        <button type="button" role="menuitem" data-attachment-option data-accept="{{ option.accept }}">
+                            <span class="attachment-option-icon attachment-option-icon-{{ option.icon }}" aria-hidden="true">
+                                {% if option.icon == "document" %}
+                                <svg viewBox="0 0 24 24" focusable="false"><path d="M6 2h8l5 5v15H6z"/><path class="icon-detail" d="M14 2v6h5M9 12h6M9 16h6"/></svg>
+                                {% elif option.icon == "media" %}
+                                <svg viewBox="0 0 24 24" focusable="false"><path class="icon-back" d="M3 7v12h14"/><rect x="6" y="3" width="15" height="15" rx="2"/><circle class="icon-cutout" cx="10" cy="7" r="1.5"/><path class="icon-cutout" d="m8 16 4-4 2.5 2.5 2-2 3 3.5z"/></svg>
+                                {% endif %}
+                            </span>
+                            <span>{{ option.label }}</span>
+                        </button>
+                        {% endfor %}
+                    </div>
+                    <input type="file" data-attachment-input hidden>
+                </div>
+            </div>
+            <button class="send-button" type="submit" aria-label="Send message">➤</button>
+        </form>
+        {% else %}
+        <div class="chat-welcome">
+            <span>💬</span>
+            <h2>Your messages</h2>
+            <p>Select a conversation or start a new one.</p>
+            <button type="button" data-open-compose>Start a conversation</button>
+        </div>
+        {% endif %}
+    </section>
+
+    <div class="compose-modal" data-compose-modal hidden>
+        <div class="compose-dialog" role="dialog" aria-modal="true" aria-labelledby="compose-title">
+            <div class="compose-heading">
+                <button type="button" aria-label="Close" data-close-compose>×</button>
+                <h2 id="compose-title">New message</h2>
+                <span></span>
+            </div>
+            <label class="member-search">
+                <span>To:</span>
+                <input type="search" placeholder="Enter a member name" data-member-search autofocus>
+            </label>
+            <div class="member-list" data-member-list>
+                {% for user in available_users %}
+                <button type="button" class="member-option" data-user-id="{{ user.id }}" data-user-name="{{ user.name|lower }}">
+                    <span class="avatar">{% if user.avatar_url %}<img src="{{ user.avatar_url }}" alt="">{% else %}{{ user.initial }}{% endif %}</span>
+                    <strong>{{ user.name }}</strong>
+                </button>
+                {% empty %}
+                <p>No members available.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</main>
+<script src="{% static 'js/chat.js' %}?v=20260729-7" defer></script>
+</body>
+</html>

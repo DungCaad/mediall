@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Find doctors | Mediall</title>
     <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260722-24">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260729-1">
 </head>
 <body class="search-page">
     {% include 'includes/header.html' %}
@@ -79,7 +79,7 @@
                                         <input type="hidden" name="doctor_id" value="{{ doctor.pk }}">
                                         <input type="hidden" name="specialty" value="{{ specialty }}">
                                         <button class="{{ action.class_name }}" type="submit"{% if doctor.is_recommended_by_viewer or doctor.is_viewer %} disabled{% endif %}>
-                                            {% if doctor.is_viewer %}Hồ sơ của bạn{% elif doctor.is_recommended_by_viewer %}Đã thêm giới thiệu{% else %}{{ action.label }}{% endif %}
+                                            {% if doctor.is_viewer %}Your profile{% elif doctor.is_recommended_by_viewer %}Added to recommendations{% else %}{{ action.label }}{% endif %}
                                         </button>
                                     </form>
                                     {% else %}

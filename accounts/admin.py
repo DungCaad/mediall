@@ -50,8 +50,8 @@ class AppointmentAttachmentInline(admin.TabularInline):
 
 @admin.register(DoctorAppointment)
 class DoctorAppointmentAdmin(admin.ModelAdmin):
-    list_display = ("patient", "doctor", "appointment_date", "time_slot", "service_type", "consultation_fee", "moderation_badge", "appointment_badge", "payment_badge", "referred_doctor")
-    list_filter = ("moderation_status", "status", "payment_status", "appointment_date")
+    list_display = ("patient", "doctor", "appointment_date", "time_slot", "service_type", "consultation_fee", "moderation_badge", "appointment_badge", "payment_badge", "completion_status", "referred_doctor")
+    list_filter = ("moderation_status", "status", "payment_status", "completion_status", "appointment_date")
     search_fields = (
         "patient__full_name",
         "patient__account__user__email",
@@ -146,7 +146,7 @@ class MedicalRecordAdmin(admin.ModelAdmin):
 
 @admin.register(DoctorReview)
 class DoctorReviewAdmin(admin.ModelAdmin):
-    list_display = ("patient", "doctor", "rating", "updated_at")
+    list_display = ("appointment", "patient", "doctor", "rating", "updated_at")
     list_filter = ("rating",)
     search_fields = ("patient__full_name", "doctor__full_name", "comment")
 

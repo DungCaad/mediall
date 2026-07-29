@@ -21,7 +21,7 @@ if (postEditorForm) {
             var value = button.dataset.editorValue || null;
 
             if (button.dataset.editorPrompt === "true") {
-                value = window.prompt("Nhập địa chỉ liên kết (https://...):", "https://");
+                value = window.prompt("Enter the link address (https://...):", "https://");
                 if (!value) return;
             }
 
@@ -37,7 +37,7 @@ if (postEditorForm) {
         if (!postEditor.textContent.trim()) {
             event.preventDefault();
             postEditor.focus();
-            window.alert("Vui lòng nhập nội dung bài viết.");
+            window.alert("Enter the post content.");
         }
     });
 

@@ -62,7 +62,79 @@ a:hover {
     text-decoration: none;
 }
 
+.compare-options-trigger {
+    background: transparent;
+    border: 0;
+    color: var(--accent-teal);
+    cursor: pointer;
+    display: block;
+    font-size: 14px;
+    margin-bottom: 20px;
+    padding: 0;
+}
+
+.compare-options-trigger:hover { text-decoration: underline; }
+.compare-options-backdrop { padding: 28px 14px; }
+.compare-options-modal {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 24px 70px rgba(0, 31, 37, .35);
+    max-height: min(760px, calc(100vh - 56px));
+    max-width: 760px;
+    overflow-y: auto;
+    position: relative;
+    width: 100%;
+}
+.compare-options-close { align-items: center; background: #edf3f2; border: 0; border-radius: 50%; color: #214249; cursor: pointer; display: flex; font-size: 25px; height: 38px; justify-content: center; line-height: 1; position: absolute; right: 14px; top: 14px; width: 38px; z-index: 2; }
+.compare-options-close:hover { background: #dcebe8; }
+.compare-options-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding-top: 28px; }
+.compare-option-column { color: #263746; padding: 24px 30px 28px; }
+.compare-option-membership { background: #f5f2ed; }
+.compare-option-pay-per-visit { background: #f1f8f5; }
+.compare-option-column h3 { font-size: 22px; margin: 0 0 12px; }
+.compare-option-column > strong { display: block; font-size: 14px; margin-bottom: 10px; }
+.compare-option-column ul { list-style: none; margin: 0; padding: 0; }
+.compare-option-column li { font-size: 14px; font-weight: 600; line-height: 1.55; margin-bottom: 14px; padding-left: 12px; position: relative; }
+.compare-option-column li::before { content: "•"; left: 0; position: absolute; }
+.compare-options-footnote { color: #263746; font-size: 13px; font-style: italic; font-weight: 750; margin: 0; padding: 20px 30px 24px; }
+
+.insurance-section { background: #f1f8f5; padding: 50px 0 64px; }
+.insurance-section-content { align-items: flex-start; display: grid; gap: 24px; grid-template-columns: 54px minmax(0, 1fr); margin: 0 auto; max-width: 1020px; }
+.insurance-section-icon { color: #002f36; margin-top: 4px; }
+.insurance-section-icon svg { fill: none; height: 48px; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; width: 48px; }
+.insurance-section-icon circle { fill: #14b8a6; stroke: #14b8a6; }
+.insurance-section-icon .insurance-check { stroke: #fff; stroke-width: 2.5; }
+.insurance-section-content h2 { color: #172f3d; font-size: 28px; line-height: 1.25; margin: 0 0 4px; }
+.insurance-section-content p { color: #172f3d; font-size: 15px; font-weight: 650; line-height: 1.5; margin: 0 0 14px; max-width: 900px; }
+.insurance-section-content a { color: #007784; font-size: 14px; font-weight: 750; }
+
+.membership-benefits-banner { background: #fff; border-bottom: 1px solid #edf0f0; border-top: 1px solid #edf0f0; padding: 18px 0; }
+.membership-benefits-banner p { color: #172f3d; font-size: 13px; font-weight: 600; margin: 0; text-align: center; }
+.membership-benefits-banner a { color: #007784; font-weight: 800; white-space: nowrap; }
+.membership-benefits-banner a:hover { text-decoration: underline; }
+
+@media (max-width: 620px) {
+    .compare-options-backdrop { align-items: flex-start; padding: 12px 8px; }
+    .compare-options-modal { max-height: calc(100vh - 24px); }
+    .compare-options-grid { grid-template-columns: 1fr 1fr; }
+    .compare-option-column { padding: 20px 14px; }
+    .compare-option-column h3 { font-size: 18px; }
+    .compare-option-column li { font-size: 12px; padding-left: 10px; }
+    .compare-options-footnote { padding: 18px; }
+    .insurance-section { padding: 36px 0 44px; }
+    .insurance-section-content { gap: 14px; grid-template-columns: 40px minmax(0, 1fr); }
+    .insurance-section-icon svg { height: 38px; width: 38px; }
+    .insurance-section-content h2 { font-size: 21px; }
+    .insurance-section-content p { font-size: 13px; }
+    .membership-benefits-banner { padding: 15px 0; }
+    .membership-benefits-banner p { font-size: 12px; line-height: 1.55; }
+}
+
 #health-topics {
+    scroll-margin-top: 20px;
+}
+
+#membership-options {
     scroll-margin-top: 20px;
 }
 
@@ -162,12 +234,60 @@ header {
 
 .notification-toggle:hover,
 .consultation-cart-toggle:hover,
+.header-chat-toggle:hover,
 .notification-menu.active .notification-toggle {
     background: #e7f5f2;
     border-color: #b8ddd5;
 }
 
 .consultation-cart-toggle { text-decoration: none; }
+.header-chat-toggle { text-decoration: none; }
+.header-chat-menu { position: relative; }
+.header-chat-menu.active .header-chat-toggle { background: #d1eae5; border-color: #b8ddd5; color: #007784; }
+.header-chat-count { background: #e63b43; }
+.header-chat-panel {
+    background: #fff;
+    border: 1px solid #d5d9d9;
+    border-radius: 14px;
+    box-shadow: 0 18px 48px rgba(0, 47, 54, .2);
+    display: none;
+    overflow: hidden;
+    position: absolute;
+    right: -92px;
+    top: calc(100% + 12px);
+    width: min(410px, calc(100vw - 20px));
+    z-index: 40;
+}
+.header-chat-menu.active .header-chat-panel { display: block; }
+.header-chat-heading { align-items: center; display: flex; justify-content: space-between; padding: 18px 18px 10px; }
+.header-chat-heading strong { color: #002f36; font-size: 24px; line-height: 1.15; }
+.header-chat-heading a { align-items: center; background: #f4f7f7; border-radius: 50%; color: #007784; display: flex; font-size: 20px; height: 34px; justify-content: center; text-decoration: none; width: 34px; }
+.header-chat-heading a:hover { background: #e1f4f0; }
+.header-chat-search { align-items: center; background: #f4f7f7; border-radius: 22px; display: flex; gap: 8px; margin: 0 14px 10px; padding: 0 13px; }
+.header-chat-search span { color: #4f6d71; font-size: 23px; transform: rotate(-15deg); }
+.header-chat-search input { background: transparent; border: 0; color: #002f36; height: 40px; min-width: 0; outline: 0; width: 100%; }
+.header-chat-search input::placeholder { color: #688185; }
+.header-chat-filters { display: flex; gap: 6px; padding: 0 14px 9px; }
+.header-chat-filters button { background: transparent; border: 0; border-radius: 18px; color: #002f36; cursor: pointer; font-size: 13px; font-weight: 700; padding: 8px 12px; }
+.header-chat-filters button:hover { background: #eef7f5; }
+.header-chat-filters button.active { background: #d1eae5; color: #006d78; }
+.header-chat-list { max-height: min(460px, calc(100vh - 250px)); overflow-y: auto; padding: 0 8px 8px; scrollbar-color: #a8b8ba transparent; scrollbar-width: thin; }
+.header-chat-item { align-items: center; border-radius: 9px; color: #002f36; display: grid; gap: 11px; grid-template-columns: auto minmax(0, 1fr) auto; min-height: 70px; padding: 7px; text-decoration: none; }
+.header-chat-item:hover { background: #eef7f5; text-decoration: none; }
+.header-chat-avatar { align-items: center; background: linear-gradient(135deg, #008296, #56b5a5); border-radius: 50%; color: #fff; display: flex; font-size: 17px; font-weight: 800; height: 52px; justify-content: center; overflow: hidden; width: 52px; }
+.header-chat-avatar img { height: 100%; object-fit: cover; width: 100%; }
+.header-chat-copy { display: flex; flex-direction: column; min-width: 0; }
+.header-chat-copy strong, .header-chat-copy span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.header-chat-copy strong { color: #002f36; font-size: 14px; margin-bottom: 4px; }
+.header-chat-copy span { color: #4f6d71; font-size: 12px; }
+.header-chat-unread { background: #008296; border-radius: 50%; height: 10px; width: 10px; }
+.header-chat-empty { color: #4f6d71; margin: 0; padding: 36px 16px; text-align: center; }
+.header-chat-footer { border-top: 1px solid #e2e7e7; color: #007784; display: block; font-size: 14px; font-weight: 700; padding: 12px; text-align: center; text-decoration: none; }
+.header-chat-footer:hover { background: #f4f7f7; text-decoration: none; }
+
+@media (max-width: 600px) {
+    .header-chat-panel { position: fixed; right: 8px; top: 62px; width: calc(100vw - 16px); }
+}
 .consultation-cart-count { background: #007f8c; }
 
 .notification-toggle svg {
@@ -1905,7 +2025,8 @@ header {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 6px;
     color: var(--primary-text);
     user-select: none;
 }
@@ -1920,7 +2041,7 @@ header {
     width: 66px;
     height: 66px;
     border-radius: 50%;
-    margin-bottom: 10px;
+    margin-bottom: 0;
     object-fit: cover;
 }
 
@@ -3744,7 +3865,8 @@ button.doctor-cta {
     margin-bottom: 14px;
 }
 
-.doctor-review-comment textarea {
+.doctor-review-comment textarea,
+.doctor-review-comment select {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     display: block;
@@ -3753,6 +3875,11 @@ button.doctor-cta {
     padding: 11px;
     resize: vertical;
     width: 100%;
+}
+
+.doctor-review-comment select {
+    background: #fff;
+    cursor: pointer;
 }
 
 .doctor-review-form-card .btn {

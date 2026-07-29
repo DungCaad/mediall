@@ -41,8 +41,8 @@
         {% elif calendar_mode == 'busy' %}
         <button class="public-booking-day{% if day.busy %} busy{% endif %}{% if day.today %} today{% endif %}" type="button" data-calendar-date="{{ day.date }}" data-busy-slots="{{ day.busy_slots }}"{% if day.weekend_off %} disabled{% endif %}>
             <strong>{{ day.day }}</strong>
-            <small>{% if day.weekend_off %}Nghỉ cuối tuần{% elif day.busy_count %}Bận {{ day.busy_count }} ca{% else %}Có thể thiết lập{% endif %}</small>
-            {% if day.appointment_count %}<em>{{ day.appointment_count }} lịch hẹn</em>{% endif %}
+            <small>{% if day.weekend_off %}Weekend closed{% elif day.busy_count %}{{ day.busy_count }} unavailable slots{% else %}Available to configure{% endif %}</small>
+            {% if day.appointment_count %}<em>{{ day.appointment_count }} appointments</em>{% endif %}
         </button>
         {% else %}
         <button class="public-booking-day{% if day.today %} today{% endif %}" type="button" data-booking-date="{{ day.value }}" data-unavailable-slots="{{ day.unavailable_slots }}"{% if not day.selectable %} disabled{% endif %}>

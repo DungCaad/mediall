@@ -31,6 +31,7 @@ from django.utils.html import strip_tags
 from django.views.decorators.http import require_POST
 
 from accounts.models import AccountProfile, AppointmentAttachment, BlogPost, DoctorAppointment, DoctorBusyDate, DoctorProfile, DoctorReview, FeaturedPostGroup, MedicalRecord, PatientProfile, PatientProfileAccessRequest
+from chat.models import ConversationMember, Message
 
 
 STANDARD_PATIENT_PRICE_MULTIPLIER = Decimal("2.05")
@@ -302,6 +303,14 @@ def build_admin_order_actions():
             "type": "submit",
             "class_name": "admin-order-action confirm-payment",
         },
+        # Button that confirms the paid consultation has been completed
+        {
+            "id": "complete",
+            "label": "Mark completed",
+            "completed_label": "Completed",
+            "type": "submit",
+            "class_name": "admin-order-action complete",
+        },
         # Button that opens all order information, images, and videos
         {
             "id": "details",
@@ -332,6 +341,15 @@ def can_confirm_admin_order_payment(appointment):
         appointment.moderation_status == DoctorAppointment.MODERATION_APPROVED
         and appointment.payment_status == DoctorAppointment.PAYMENT_AWAITING
         and appointment.payment_submitted_at is not None
+    )
+
+
+def can_complete_admin_order(appointment):
+    return (
+        appointment.moderation_status == DoctorAppointment.MODERATION_APPROVED
+        and appointment.payment_status == DoctorAppointment.PAYMENT_PAID
+        and appointment.status != DoctorAppointment.STATUS_REJECTED
+        and appointment.completion_status == DoctorAppointment.COMPLETION_PENDING
     )
 
 
@@ -366,6 +384,20 @@ def admin_orders(request):
                 appointment.payment_status = DoctorAppointment.PAYMENT_PAID
                 appointment.save(update_fields=["payment_status", "updated_at"])
                 messages.success(request, f"Payment for consultation request #{appointment.pk} was confirmed.")
+        elif order_action == "complete":
+            if not can_complete_admin_order(appointment):
+                messages.error(request, "Only paid, unfinished consultation orders can be marked completed.")
+            else:
+                appointment.completion_status = DoctorAppointment.COMPLETION_COMPLETED
+                appointment.completed_at = timezone.now()
+                appointment.completed_by = request.user
+                appointment.save(update_fields=[
+                    "completion_status",
+                    "completed_at",
+                    "completed_by",
+                    "updated_at",
+                ])
+                messages.success(request, f"Consultation request #{appointment.pk} was completed. The patient can now submit a review.")
         else:
             messages.error(request, "Invalid order action.")
         return redirect("admin_orders")
@@ -379,6 +411,7 @@ def admin_orders(request):
     for order in orders:
         order.can_cleanup = can_cleanup_admin_order(order)
         order.can_confirm_payment = can_confirm_admin_order_payment(order)
+        order.can_complete = can_complete_admin_order(order)
     orders.sort(key=lambda order: order.moderation_status != DoctorAppointment.MODERATION_PENDING)
 
     unpaid_orders = [
@@ -395,22 +428,22 @@ def admin_orders(request):
         # Nút hiển thị các đơn chưa thanh toán
         {
             "id": "unpaid",
-            "label": "Chưa thanh toán",
+            "label": "Unpaid",
             "active": True,
             "orders": unpaid_orders,
             "count": len(unpaid_orders),
-            "empty_title": "Không có đơn chưa thanh toán",
-            "empty_description": "Tất cả đơn hiện tại đã được thanh toán.",
+            "empty_title": "No unpaid orders",
+            "empty_description": "All current orders have been paid.",
         },
         # Nút hiển thị các đơn đã thanh toán
         {
             "id": "paid",
-            "label": "Đã thanh toán",
+            "label": "Paid",
             "active": False,
             "orders": paid_orders,
             "count": len(paid_orders),
-            "empty_title": "Chưa có đơn đã thanh toán",
-            "empty_description": "Các đơn được xác nhận thanh toán sẽ xuất hiện tại đây.",
+            "empty_title": "No paid orders yet",
+            "empty_description": "Orders with confirmed payments will appear here.",
         },
     ]
 
@@ -467,25 +500,25 @@ def build_post_editor_toolbar():
     # Dãy nút định dạng nội dung trong trình soạn thảo bài viết
     return [
         # Nút in đậm
-        {"id": "bold", "label": "B", "title": "In đậm", "command": "bold", "class_name": "bold"},
+        {"id": "bold", "label": "B", "title": "Bold", "command": "bold", "class_name": "bold"},
         # Nút in nghiêng
-        {"id": "italic", "label": "I", "title": "In nghiêng", "command": "italic", "class_name": "italic"},
+        {"id": "italic", "label": "I", "title": "Italic", "command": "italic", "class_name": "italic"},
         # Nút gạch chân
-        {"id": "underline", "label": "U", "title": "Gạch chân", "command": "underline", "class_name": "underline"},
+        {"id": "underline", "label": "U", "title": "Underline", "command": "underline", "class_name": "underline"},
         # Nút tiêu đề cấp hai
-        {"id": "heading", "label": "H2", "title": "Tiêu đề", "command": "formatBlock", "value": "h2"},
+        {"id": "heading", "label": "H2", "title": "Heading", "command": "formatBlock", "value": "h2"},
         # Nút đoạn văn
-        {"id": "paragraph", "label": "¶", "title": "Đoạn văn", "command": "formatBlock", "value": "p"},
+        {"id": "paragraph", "label": "¶", "title": "Paragraph", "command": "formatBlock", "value": "p"},
         # Nút danh sách dấu chấm
-        {"id": "unordered-list", "label": "• List", "title": "Danh sách dấu chấm", "command": "insertUnorderedList"},
+        {"id": "unordered-list", "label": "• List", "title": "Bulleted list", "command": "insertUnorderedList"},
         # Nút danh sách đánh số
-        {"id": "ordered-list", "label": "1. List", "title": "Danh sách đánh số", "command": "insertOrderedList"},
+        {"id": "ordered-list", "label": "1. List", "title": "Numbered list", "command": "insertOrderedList"},
         # Nút trích dẫn
-        {"id": "quote", "label": "❝", "title": "Trích dẫn", "command": "formatBlock", "value": "blockquote"},
+        {"id": "quote", "label": "❝", "title": "Quote", "command": "formatBlock", "value": "blockquote"},
         # Nút chèn liên kết
-        {"id": "link", "label": "🔗", "title": "Chèn liên kết", "command": "createLink", "prompt": True},
+        {"id": "link", "label": "🔗", "title": "Insert link", "command": "createLink", "prompt": True},
         # Nút xóa định dạng
-        {"id": "clear", "label": "Tx", "title": "Xóa định dạng", "command": "removeFormat"},
+        {"id": "clear", "label": "Tx", "title": "Clear formatting", "command": "removeFormat"},
     ]
 
 
@@ -497,7 +530,7 @@ def build_admin_post_actions(post):
             "type": "submit",
             "name": "toggle_featured",
             "value": post.pk,
-            "label": "Bỏ nổi bật" if post.is_featured else "Đặt nổi bật",
+            "label": "Remove featured" if post.is_featured else "Mark as featured",
             "class_name": "featured" if post.is_featured else "",
         },
         # Nút lưu nhóm bài viết
@@ -505,13 +538,13 @@ def build_admin_post_actions(post):
             "type": "submit",
             "name": "assign_group",
             "value": post.pk,
-            "label": "Lưu nhóm",
+            "label": "Save group",
             "class_name": "group",
         },
         # Nút xem bài viết
         {
             "type": "link",
-            "label": "Xem bài",
+            "label": "View post",
             "url": reverse("post_detail", args=[post.pk]),
             "class_name": "secondary",
         },
@@ -537,7 +570,7 @@ def get_featured_footer_groups():
         featured_group__isnull=True,
     ).only("id", "title").order_by("-created_at"))
     if ungrouped_posts:
-        footer_groups.append({"name": "Bài viết nổi bật", "posts": ungrouped_posts})
+        footer_groups.append({"name": "Featured posts", "posts": ungrouped_posts})
 
     return footer_groups
 
@@ -566,11 +599,11 @@ def admin_create_post(request):
         plain_content = strip_tags(sanitized_content).strip()
 
         if not form_values["title"]:
-            errors.append("Vui lòng nhập tiêu đề bài viết.")
+            errors.append("Enter a post title.")
         if not plain_content:
-            errors.append("Vui lòng nhập nội dung bài viết.")
+            errors.append("Enter the post content.")
         if len(form_values["seo_description"]) > 160:
-            errors.append("Mô tả SEO không được vượt quá 160 ký tự.")
+            errors.append("The SEO description cannot exceed 160 characters.")
 
         normalized_tags = []
         normalized_tag_keys = set()
@@ -589,11 +622,11 @@ def admin_create_post(request):
                 author=request.user,
                 is_published=form_values["is_published"],
             )
-            messages.success(request, f'Đã tạo bài viết “{post.title}”.')
+            messages.success(request, f'Post “{post.title}” was created.')
             return redirect("admin_posts")
 
     return render(request, "admin/post.html", {
-        "title": "Tạo bài viết",
+        "title": "Create post",
         "editor_toolbar": build_post_editor_toolbar(),
         "form_values": form_values,
         "form_errors": errors,
@@ -607,15 +640,15 @@ def admin_posts(request):
         if "create_group" in request.POST:
             group_name = request.POST.get("group_name", "").strip()
             if not group_name:
-                messages.error(request, "Vui lòng nhập tên nhóm.")
+                messages.error(request, "Enter a group name.")
             elif FeaturedPostGroup.objects.filter(name__iexact=group_name).exists():
-                messages.error(request, "Tên nhóm này đã tồn tại.")
+                messages.error(request, "This group name already exists.")
             else:
                 FeaturedPostGroup.objects.create(
                     name=group_name,
                     position=FeaturedPostGroup.objects.count(),
                 )
-                messages.success(request, f'Đã tạo nhóm “{group_name}”.')
+                messages.success(request, f'Group “{group_name}” was created.')
         elif "assign_group" in request.POST:
             post_id = request.POST.get("assign_group", "").strip()
             post = get_object_or_404(BlogPost, pk=post_id)
@@ -626,15 +659,15 @@ def admin_posts(request):
             )
             post.is_featured = True
             post.save(update_fields=["featured_group", "is_featured", "updated_at"])
-            group_label = post.featured_group.name if post.featured_group else "Bài viết nổi bật"
-            messages.success(request, f'Đã đưa “{post.title}” vào nhóm “{group_label}”.')
+            group_label = post.featured_group.name if post.featured_group else "Featured posts"
+            messages.success(request, f'“{post.title}” was added to “{group_label}”.')
         else:
             post_id = request.POST.get("toggle_featured", "").strip()
             post = get_object_or_404(BlogPost, pk=post_id)
             post.is_featured = not post.is_featured
             post.save(update_fields=["is_featured", "updated_at"])
-            state = "bài viết nổi bật" if post.is_featured else "bài viết thường"
-            messages.success(request, f'Đã chuyển “{post.title}” thành {state}.')
+            state = "a featured post" if post.is_featured else "a regular post"
+            messages.success(request, f'“{post.title}” is now {state}.')
         return redirect("admin_posts")
 
     posts = list(BlogPost.objects.select_related("author"))
@@ -642,7 +675,7 @@ def admin_posts(request):
         post.admin_actions = build_admin_post_actions(post)
 
     return render(request, "admin/posts.html", {
-        "title": "Quản lý bài viết",
+        "title": "Manage posts",
         "posts": posts,
         "featured_count": sum(post.is_featured for post in posts),
         "featured_groups": FeaturedPostGroup.objects.all(),
@@ -975,6 +1008,8 @@ def build_header_context(language="en", guest_modal=False, request=None):
     header_is_member = False
     header_is_patient = False
     header_notifications = []
+    header_chat_conversations = []
+    header_chat_unread_count = 0
     consultation_request_count = 0
     if request is not None and request.user.is_authenticated:
         header_display_name = request.user.email or request.user.username
@@ -984,8 +1019,7 @@ def build_header_context(language="en", guest_modal=False, request=None):
                 role_profile = account_profile.doctor_details
             else:
                 role_profile = account_profile.patient_details
-            if role_profile.avatar:
-                header_avatar_url = role_profile.avatar.url
+            header_avatar_url = role_profile.avatar_url
             if role_profile.full_name:
                 header_display_name = role_profile.full_name
             if account_profile.role == AccountProfile.ROLE_DOCTOR:
@@ -1016,12 +1050,20 @@ def build_header_context(language="en", guest_modal=False, request=None):
                         message = f"The 24-hour payment deadline for {appointment_time} has passed. This appointment is no longer being held."
                         notification_type = "rejected"
                     elif appointment.status == DoctorAppointment.STATUS_REJECTED:
-                        title = "Yêu cầu đặt khám đã bị từ chối"
-                        message = f"Bác sĩ {doctor_name} không thể nhận lịch {appointment_time}."
+                        title = "Appointment request rejected"
+                        message = f"Dr. {doctor_name} cannot accept the appointment at {appointment_time}."
                         notification_type = "rejected"
+                    elif appointment.completion_status == DoctorAppointment.COMPLETION_COMPLETED:
+                        if hasattr(appointment, "review"):
+                            title = "Consultation completed"
+                            message = f"Your consultation with Dr. {doctor_name} has been completed."
+                        else:
+                            title = "Review your completed consultation"
+                            message = f"Your consultation with Dr. {doctor_name} is complete. Share your experience now."
+                        notification_type = "paid"
                     elif appointment.payment_status == DoctorAppointment.PAYMENT_PAID:
-                        title = "Thanh toán thành công"
-                        message = f"Giờ khám của bạn với bác sĩ {doctor_name} là {appointment_time}."
+                        title = "Payment successful"
+                        message = f"Your appointment with Dr. {doctor_name} is scheduled for {appointment_time}."
                         notification_type = "paid"
                     elif appointment.moderation_status == DoctorAppointment.MODERATION_APPROVED:
                         service_label = appointment.get_service_type_display() if appointment.service_type else "consultation"
@@ -1033,8 +1075,8 @@ def build_header_context(language="en", guest_modal=False, request=None):
                             message = f"Your {service_label.lower()} request was verified by the admin. Please pay {fee_label}."
                         notification_type = "payment"
                     else:
-                        title = "Đã gửi yêu cầu lịch khám"
-                        message = f"Bạn đã gửi yêu cầu lịch khám {appointment_time} cho bác sĩ {doctor_name}."
+                        title = "Appointment request sent"
+                        message = f"You sent an appointment request for {appointment_time} to Dr. {doctor_name}."
                         notification_type = "pending"
 
                     header_notifications.append({
@@ -1043,7 +1085,12 @@ def build_header_context(language="en", guest_modal=False, request=None):
                         "message": message,
                         "type": notification_type,
                         "created_at": appointment.updated_at,
-                        "href": f"/profile?tab=consultation-requests#consultation-request-{appointment.pk}",
+                        "href": (
+                            f"{reverse('doctor_profile_detail', args=[appointment.doctor_id])}#doctor-reviews"
+                            if appointment.completion_status == DoctorAppointment.COMPLETION_COMPLETED
+                            and not hasattr(appointment, "review")
+                            else f"/profile?tab=consultation-requests#consultation-request-{appointment.pk}"
+                        ),
                     })
 
                 access_requests = role_profile.profile_access_requests.filter(
@@ -1056,8 +1103,8 @@ def build_header_context(language="en", guest_modal=False, request=None):
                     )
                     header_notifications.append({
                         "id": f"profile-access-{access_request.pk}",
-                        "title": "Yêu cầu xem hồ sơ mới",
-                        "message": f"{requester_name} muốn xem hồ sơ của bạn. Hãy đồng ý hoặc từ chối yêu cầu.",
+                        "title": "New profile access request",
+                        "message": f"{requester_name} wants to view your profile. Approve or reject the request.",
                         "type": "pending",
                         "created_at": access_request.updated_at,
                         "href": "/profile?tab=access-requests",
@@ -1072,16 +1119,16 @@ def build_header_context(language="en", guest_modal=False, request=None):
                     patient_name = appointment.patient.full_name or appointment.patient.account.user.email
                     appointment_time = f"{appointment.time_slot}, {appointment.appointment_date.strftime('%d/%m/%Y')}"
                     if appointment.status == DoctorAppointment.STATUS_PENDING:
-                        title = "Yêu cầu đặt khám mới"
-                        message = f"{patient_name} muốn đặt lịch vào {appointment_time}."
+                        title = "New appointment request"
+                        message = f"{patient_name} requested an appointment at {appointment_time}."
                         notification_type = "pending"
                     elif appointment.status == DoctorAppointment.STATUS_ACCEPTED:
-                        title = "Đã chấp nhận lịch khám"
-                        message = f"Lịch của {patient_name} vào {appointment_time} đang chờ hoàn tất."
+                        title = "Appointment accepted"
+                        message = f"The appointment with {patient_name} at {appointment_time} is awaiting completion."
                         notification_type = "accepted"
                     else:
-                        title = "Đã từ chối lịch khám"
-                        message = f"Yêu cầu của {patient_name} vào {appointment_time} đã bị từ chối."
+                        title = "Appointment rejected"
+                        message = f"The request from {patient_name} for {appointment_time} was rejected."
                         notification_type = "rejected"
                     header_notifications.append({
                         "id": appointment.pk,
@@ -1094,6 +1141,57 @@ def build_header_context(language="en", guest_modal=False, request=None):
         except ObjectDoesNotExist:
             pass
 
+        chat_memberships = (
+            ConversationMember.objects.filter(user=request.user)
+            .select_related("conversation")
+            .prefetch_related("conversation__members__user")
+            .order_by("-conversation__updated_at")[:10]
+        )
+        for membership in chat_memberships:
+            conversation = membership.conversation
+            other_users = [
+                member.user
+                for member in conversation.members.all()
+                if member.user_id != request.user.id
+            ]
+            peer = other_users[0] if other_users else request.user
+            peer_name = peer.get_full_name().strip() or peer.username
+            peer_avatar_url = ""
+            try:
+                peer_account = peer.profile
+                peer_role_profile = (
+                    getattr(peer_account, "doctor_details", None)
+                    or getattr(peer_account, "patient_details", None)
+                )
+                if peer_role_profile:
+                    peer_name = peer_role_profile.full_name.strip() or peer_name
+                    peer_avatar_url = peer_role_profile.avatar_url
+            except ObjectDoesNotExist:
+                pass
+
+            visible_messages = conversation.messages.filter(
+                Q(moderation_status=Message.STATUS_APPROVED) | Q(sender=request.user)
+            )
+            last_message = visible_messages.select_related("sender").order_by("-id").first()
+            unread_messages = visible_messages.filter(
+                moderation_status=Message.STATUS_APPROVED,
+            ).exclude(sender=request.user)
+            if membership.last_read_message_id:
+                unread_messages = unread_messages.filter(id__gt=membership.last_read_message_id)
+            unread_count = unread_messages.count()
+            header_chat_unread_count += unread_count
+            header_chat_conversations.append({
+                "id": conversation.id,
+                "title": conversation.title or peer_name,
+                "avatar_url": peer_avatar_url,
+                "initial": peer_name[:1].upper(),
+                "preview": last_message.content if last_message else "No messages yet",
+                "preview_is_mine": bool(last_message and last_message.sender_id == request.user.id),
+                "updated_at": last_message.created_at if last_message else conversation.updated_at,
+                "unread": unread_count,
+                "is_group": conversation.members.count() > 2,
+            })
+
     header_notifications.sort(key=lambda item: item["created_at"], reverse=True)
     header_notifications = header_notifications[:8]
 
@@ -1102,7 +1200,7 @@ def build_header_context(language="en", guest_modal=False, request=None):
         # Nút chuông mở danh sách thông báo
         {
             "id": "notifications",
-            "label": "Mở thông báo",
+            "label": "Open notifications",
             "kind": "notification-menu",
             "count": len(header_notifications),
             "patient_only": False,
@@ -1116,6 +1214,25 @@ def build_header_context(language="en", guest_modal=False, request=None):
             "count": consultation_request_count,
             "patient_only": True,
         },
+        # Nút chat mở bảng xem nhanh các cuộc trò chuyện
+        {
+            "id": "chat",
+            "label": "Messages",
+            "kind": "chat-menu",
+            "href": "/chat/",
+            "count": header_chat_unread_count,
+            "patient_only": False,
+        },
+    ]
+
+    # Nhóm bộ lọc trong bảng chat trên header
+    header_chat_filters = [
+        # Nút hiển thị tất cả cuộc trò chuyện
+        {"id": "all", "label": "All", "active": True},
+        # Nút hiển thị cuộc trò chuyện chưa đọc
+        {"id": "unread", "label": "Unread", "active": False},
+        # Nút hiển thị cuộc trò chuyện nhóm
+        {"id": "group", "label": "Groups", "active": False},
     ]
 
     return {
@@ -1132,6 +1249,9 @@ def build_header_context(language="en", guest_modal=False, request=None):
         "header_notifications": header_notifications,
         "header_notification_count": len(header_notifications),
         "header_quick_actions": header_quick_actions,
+        "header_chat_conversations": header_chat_conversations,
+        "header_chat_unread_count": header_chat_unread_count,
+        "header_chat_filters": header_chat_filters,
     }
 
 
@@ -1271,7 +1391,7 @@ def build_doctor_schedule(doctor_profile, month_value=""):
 
     return {
         "month_value": month_start.strftime("%Y-%m"),
-        "month_label": f"Tháng {month_start.month}, {month_start.year}",
+        "month_label": month_start.strftime("%B %Y"),
         "month_actions": month_actions,
         "weekdays": weekdays,
         "weeks": weeks,
@@ -1279,11 +1399,11 @@ def build_doctor_schedule(doctor_profile, month_value=""):
         # Dãy nút chọn kiểu lịch làm việc của bác sĩ
         "work_schedule_options": [
             # Nút chọn lịch giờ hành chính
-            {"id": DoctorProfile.WORK_SCHEDULE_OFFICE, "label": "Giờ hành chính", "description": "08:00–12:00 và 13:00–17:00", "active": doctor_profile.work_schedule_type == DoctorProfile.WORK_SCHEDULE_OFFICE},
+            {"id": DoctorProfile.WORK_SCHEDULE_OFFICE, "label": "Office hours", "description": "08:00–12:00 and 13:00–17:00", "active": doctor_profile.work_schedule_type == DoctorProfile.WORK_SCHEDULE_OFFICE},
             # Nút chọn lịch làm ca đêm
-            {"id": DoctorProfile.WORK_SCHEDULE_NIGHT, "label": "Làm ca đêm", "description": "18:00–23:00", "active": doctor_profile.work_schedule_type == DoctorProfile.WORK_SCHEDULE_NIGHT},
+            {"id": DoctorProfile.WORK_SCHEDULE_NIGHT, "label": "Night shift", "description": "18:00–23:00", "active": doctor_profile.work_schedule_type == DoctorProfile.WORK_SCHEDULE_NIGHT},
             # Nút chọn lịch tùy chỉnh
-            {"id": DoctorProfile.WORK_SCHEDULE_CUSTOM, "label": "Tùy chỉnh", "description": "Tự chọn giờ bắt đầu và kết thúc", "active": doctor_profile.work_schedule_type == DoctorProfile.WORK_SCHEDULE_CUSTOM},
+            {"id": DoctorProfile.WORK_SCHEDULE_CUSTOM, "label": "Custom", "description": "Choose your own start and end times", "active": doctor_profile.work_schedule_type == DoctorProfile.WORK_SCHEDULE_CUSTOM},
         ],
         "custom_work_start": doctor_profile.custom_work_start.strftime("%H:%M") if doctor_profile.custom_work_start else "",
         "custom_work_end": doctor_profile.custom_work_end.strftime("%H:%M") if doctor_profile.custom_work_end else "",
@@ -1292,32 +1412,32 @@ def build_doctor_schedule(doctor_profile, month_value=""):
         # Dãy nút thao tác trong cửa sổ ca bận
         "busy_shift_actions": [
             # Nút quay lại lịch để chọn ngày khác
-            {"id": "back", "label": "Quay lại lịch", "icon_path": "images/back.ico", "type": "button", "class_name": "calendar-back-circle"},
+            {"id": "back", "label": "Back to calendar", "icon_path": "images/back.ico", "type": "button", "class_name": "calendar-back-circle"},
             # Nút lưu các ca bận của ngày đang chọn
-            {"id": "save", "label": "Lưu lịch bận", "type": "submit", "class_name": "btn"},
+            {"id": "save", "label": "Save unavailable times", "type": "submit", "class_name": "btn"},
         ],
         "appointments": appointments,
         # Dãy nút xử lý yêu cầu đặt khám
         "appointment_actions": [
             # Nút chấp nhận yêu cầu
-            {"id": "accept", "label": "Chấp nhận", "class_name": "appointment-action accept", "opens_modal": False},
+            {"id": "accept", "label": "Accept", "class_name": "appointment-action accept", "opens_modal": False},
             # Nút từ chối và mở modal giới thiệu bác sĩ khác
-            {"id": "reject", "label": "Từ chối", "class_name": "appointment-action reject", "opens_modal": True},
+            {"id": "reject", "label": "Reject", "class_name": "appointment-action reject", "opens_modal": True},
         ],
         # Dãy nút xác nhận trong modal từ chối
         "referral_actions": [
             # Nút từ chối và gửi giới thiệu đã chọn
-            {"id": "reject-with-referral", "label": "Từ chối và giới thiệu", "class_name": "btn referral-confirm", "use_referral": True},
+            {"id": "reject-with-referral", "label": "Reject and refer", "class_name": "btn referral-confirm", "use_referral": True},
             # Nút từ chối nhưng bỏ qua giới thiệu
-            {"id": "reject-without-referral", "label": "Bỏ qua giới thiệu", "class_name": "referral-skip", "use_referral": False},
+            {"id": "reject-without-referral", "label": "Skip referral", "class_name": "referral-skip", "use_referral": False},
         ],
         "referral_doctors": [
             {
                 "id": candidate.pk,
                 "name": candidate.full_name or candidate.account.user.email,
-                "specialties": candidate.specialties or "Chưa cập nhật chuyên khoa",
-                "workplace": candidate.workplace or "Chưa cập nhật nơi công tác",
-                "avatar_url": candidate.avatar.url if candidate.avatar else "",
+                "specialties": candidate.specialties or "Specialty not provided",
+                "workplace": candidate.workplace or "Workplace not provided",
+                "avatar_url": candidate.avatar_url,
             }
             for candidate in DoctorProfile.objects.exclude(pk=doctor_profile.pk)
             .select_related("account__user")[:8]
@@ -1329,11 +1449,11 @@ def build_profile_context(request, profile_form, profile_type, active_tab="perso
     # Dãy tab điều hướng trên trang hồ sơ
     profile_tabs = [
         # Tab Thông tin cá nhân
-        {"id": "personal", "label": "Thông tin cá nhân"},
+        {"id": "personal", "label": "Personal information"},
         # Tab Bảo mật
-        {"id": "security", "label": "Bảo mật"},
+        {"id": "security", "label": "Security"},
         # Tab Thông tin
-        {"id": "information", "label": "Thông tin"},
+        {"id": "information", "label": "Information"},
     ]
     doctor_schedule = None
     recommended_doctors = []
@@ -1342,17 +1462,17 @@ def build_profile_context(request, profile_form, profile_type, active_tab="perso
     profile_access_requests = []
     if isinstance(profile_form.instance, DoctorProfile):
         # Tab Lịch đặt khám chỉ dành cho bác sĩ
-        profile_tabs.append({"id": "schedule", "label": "Lịch đặt khám"})
+        profile_tabs.append({"id": "schedule", "label": "Appointment schedule"})
         selected_month = request.POST.get("schedule_month") or request.GET.get("month", "")
         doctor_schedule = build_doctor_schedule(profile_form.instance, selected_month)
         recommended_doctors = profile_form.instance.recommended_doctors.select_related("account__user").order_by("full_name")
     else:
         # Tab lịch sử khám dành cho tài khoản bệnh nhân
-        profile_tabs.append({"id": "medical-history", "label": "Lịch sử khám"})
+        profile_tabs.append({"id": "medical-history", "label": "Medical history"})
         # Tab danh sách yêu cầu tư vấn dành cho tài khoản bệnh nhân
         profile_tabs.append({"id": "consultation-requests", "label": "Consultation requests"})
         # Tab yêu cầu xem hồ sơ dành cho tài khoản bệnh nhân
-        profile_tabs.append({"id": "access-requests", "label": "Yêu cầu xem hồ sơ"})
+        profile_tabs.append({"id": "access-requests", "label": "Profile access requests"})
         consultation_requests = profile_form.instance.appointments.select_related(
             "doctor__account__user",
         ).prefetch_related("attachments").order_by("-created_at")
@@ -1370,9 +1490,9 @@ def build_profile_context(request, profile_form, profile_type, active_tab="perso
     # Dãy nút phản hồi yêu cầu xem hồ sơ bệnh nhân
     profile_access_actions = [
         # Nút đồng ý cho xem hồ sơ
-        {"id": "approve", "label": "Đồng ý", "class_name": "btn profile-access-approve"},
+        {"id": "approve", "label": "Approve", "class_name": "btn profile-access-approve"},
         # Nút từ chối cho xem hồ sơ
-        {"id": "reject", "label": "Từ chối", "approved_label": "Thu hồi quyền", "class_name": "profile-access-reject"},
+        {"id": "reject", "label": "Reject", "approved_label": "Revoke access", "class_name": "profile-access-reject"},
     ]
 
     # Dãy nút thao tác của biểu mẫu hồ sơ
@@ -1388,14 +1508,14 @@ def build_profile_context(request, profile_form, profile_type, active_tab="perso
         # Nút đóng giao diện thanh toán mà không gửi dữ liệu
         {
             "id": "cancel",
-            "label": "Hủy",
+            "label": "Cancel",
             "type": "button",
             "class_name": "payment-modal-action cancel",
         },
         # Nút xác nhận đã thực hiện thanh toán
         {
             "id": "submit",
-            "label": "Xác nhận thanh toán",
+            "label": "Confirm payment",
             "type": "submit",
             "class_name": "payment-modal-action submit",
         },
@@ -1417,27 +1537,26 @@ def build_profile_context(request, profile_form, profile_type, active_tab="perso
     ]
 
     profile_avatar_url = ""
-    if profile_form.instance.avatar:
-        profile_avatar_url = profile_form.instance.avatar.url
+    profile_avatar_url = profile_form.instance.avatar_url
 
     # Dãy trường nhập trong mục Bảo mật
     security_fields = [
         # Ô nhập mật khẩu hiện tại
-        {"name": "current_password", "label": "Mật khẩu hiện tại", "input": "password", "autocomplete": "current-password"},
+        {"name": "current_password", "label": "Current password", "input": "password", "autocomplete": "current-password"},
         # Ô nhập mật khẩu mới
-        {"name": "new_password", "label": "Mật khẩu mới", "input": "password", "autocomplete": "new-password"},
+        {"name": "new_password", "label": "New password", "input": "password", "autocomplete": "new-password"},
         # Ô xác nhận mật khẩu mới
-        {"name": "confirm_password", "label": "Xác nhận mật khẩu mới", "input": "password", "autocomplete": "new-password"},
+        {"name": "confirm_password", "label": "Confirm new password", "input": "password", "autocomplete": "new-password"},
     ]
 
     # Dãy thông tin tài khoản chỉ đọc
     account_information = [
         # Thông tin Email
-        {"label": "Email", "value": request.user.email or "Chưa cập nhật"},
+        {"label": "Email", "value": request.user.email or "Not provided"},
         # Thông tin Phone number
-        {"label": "Số điện thoại", "value": request.user.profile.phone},
+        {"label": "Phone number", "value": request.user.profile.phone},
         # Thông tin Account type
-        {"label": "Loại tài khoản", "value": profile_type},
+        {"label": "Account type", "value": profile_type},
     ]
 
     context = {
@@ -1495,15 +1614,39 @@ def build_home_context(request):
         if fee is not None
     ]
     minimum_member_fee = min(available_member_fees) if available_member_fees else None
+    minimum_standard_message_fee = calculate_patient_consultation_fee(
+        minimum_doctor_fees["message"],
+        is_member=False,
+    )
+    minimum_standard_video_fee = calculate_patient_consultation_fee(
+        minimum_doctor_fees["video"],
+        is_member=False,
+    )
+    available_standard_fees = [
+        fee for fee in (minimum_standard_message_fee, minimum_standard_video_fee)
+        if fee is not None
+    ]
+    minimum_standard_fee = min(available_standard_fees) if available_standard_fees else None
 
     def display_home_fee(fee):
         if fee is None:
             return "Not available"
-        return f"${fee:.2f}".rstrip("0").rstrip(".")
+        rounded_fee = fee.quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+        return f"${rounded_fee:.1f}"
 
     home_message_price = display_home_fee(minimum_member_message_fee)
     home_video_price = display_home_fee(minimum_member_video_fee)
     home_lowest_member_price = display_home_fee(minimum_member_fee)
+    home_one_time_price = (
+        f"from {display_home_fee(minimum_standard_fee)}"
+        if minimum_standard_fee is not None
+        else "Not available"
+    )
+    home_video_one_time_price = (
+        f"from {display_home_fee(minimum_standard_video_fee)}"
+        if minimum_standard_video_fee is not None
+        else "Not available"
+    )
 
     # Dãy câu hỏi và nút accordion trong phần FAQ
     faq_items = [
@@ -1529,7 +1672,7 @@ def build_home_context(request):
             "paragraphs": [
                 "Mediall One Medical gives people two ways to get medical care: Membership and On-Demand Care.",
                 "Membership provides a differentiated primary care experience with support for ongoing healthcare needs. Members can schedule appointments, connect with care teams, and receive help coordinating their care.",
-                "On-Demand Care provides pay-per-visit support for common health conditions through secure messaging or video visits. It can be a good option for people who need help with a specific concern without an ongoing membership.",
+                "On-Demand Care provides pay-per-session support for common health conditions through secure messaging or video visits. It can be a good option for people who need help with a specific concern without an ongoing membership.",
             ],
             "note": "Direct Message Care availability and prices may vary.",
         },
@@ -1585,12 +1728,12 @@ def build_home_context(request):
             "title": "Membership",
             "description": "24/7 Health Information & Educational Guidance",
             "price": "$39",
-            "price_details": ["1/yr with Prime", "Cancel at any time"],
-            "panel_title": "Membership is best for",
+            "price_details": ["1/yr Up to 40% savings with Prime", "Cancel at any time"],
+            "panel_title": "Prime | Educational support is best for",
             "features": [
-                "Self-pay treatment – insurance not accepted or needed",
-                "Quick treatment of common conditions",
-                "Fast care by direct message or video",
+                "Fees are for educational support services. This does not constitute clinical care or treatment for any medical condition.",
+                "Initiate educational consultations regarding health information, accessible anytime, anywhere.",
+                "Member rate: Single-session health education from",
                 "FSA/HSA eligible",
             ],
             "care_prices": [
@@ -1608,19 +1751,49 @@ def build_home_context(request):
             "id": "one-time",
             "title": "One-time guidance",
             "description": "Single-session information for common health queries.",
-            "price": "from $11.6",
+            "price": home_one_time_price,
             "price_details": [
                 " /consult",
                 "Fees vary by consultation type and health topic",
             ],
             "panel_title": "One-time guidance",
             "features": [],
-            "care_prices": [],
+            "care_prices": [
+                {"price": home_one_time_price, "label": "/Direct Message Care"},
+                {"price": home_video_one_time_price, "label": "/Video Care"},
+            ],
             "disclaimer": "",
             "button_text": "",
             "button_url": "#",
-            "link_text": "",
+            "link_text": "Learn more about on-demand educational support",
             "link_url": "#",
+        },
+    ]
+
+    # Comparison columns shown in the Compare options modal
+    comparison_options = [
+        # Membership comparison column
+        {
+            "id": "membership",
+            "title": "Membership",
+            "subtitle": "Best for",
+            "features": [
+                "Booking same- or next-day appointments* at offices near you with the app",
+                "Booking primary care visits* for mental health, preventive care, chronic conditions, and more in states where we have offices",
+                "24/7 on-demand virtual care for quick treatment of common conditions anywhere in the U.S. at no extra cost",
+                "Major insurance accepted for in-office and remote visits*",
+            ],
+        },
+        # Pay-per-visit comparison column
+        {
+            "id": "pay-per-visit",
+            "title": "Pay-per-visit",
+            "subtitle": "Best for",
+            "features": [
+                "Quick guidance on common conditions",
+                "Self-pay visits — no insurance accepted or needed",
+                "FSA/HSA eligible",
+            ],
         },
     ]
 
@@ -1656,64 +1829,77 @@ def build_home_context(request):
             "name": "Most popular",
             "active": True,
             "conditions": [
-                "Anti-aging skin care", "Anxiety, stress, and depression", "Birth control",
-                "Cold and flu", "COVID-19", "Erectile dysfunction",
-                "Male-pattern hair loss", "Pink eye", "Sinus infection",
-                "Urgent virtual care", "Pain & Fever Relief", "Weight loss",
-                "Vaginal yeast infection",
+                "Anti-aging skin care education",
+                "Cold and flu info",
+                "COVID-19 information",
+                "Hair loss education",
+                "Pink eye info",
+                "Sinus infection info",
+                "General virtual wellness guidance",
+                "Weight management education",
+                "Yeast infection info",
             ],
         },
         {
-            "name": "Men's health",
+            "name": "Men's health education",
             "conditions": [
-                "Erectile dysfunction", "Male-pattern hair loss", "Premature ejaculation",
+                "Male-pattern hair loss",
+                "Premature ejaculation",
             ],
         },
         {
-            "name": "Women's health",
+            "name": "Women's health education",
             "conditions": [
-                "Anxiety, stress, and depression", "Birth control", "Emergency contraception",
-                "Menopause", "Period cramps", "Positive pregnancy test",
-                "Pain & Fever Relief", "Vaginal dryness", "Vaginal yeast infection",
+                "Birth control information",
+                "Menopause wellness guidance",
+                "Period cramps information",
+                "Vaginal dryness education",
+                "Yeast infection education",
             ],
         },
         {
-            "name": "General health",
+            "name": "General health education",
             "conditions": [
-                "Acid reflux", "Anxiety", "Asthma",
-                "Blood pressure", "Cholesterol", "Cold and flu",
-                "Cold sores", "COVID-19", "Depression",
-                "Hair & Scalp Care", "Gout attack", "Hypothyroidism",
-                "Mental health", "Motion sickness", "Pink eye",
-                "Quit smoking", "Seasonal allergies", "Sinus infection",
-                "Skin issue", "Urgent virtual care", "Weight loss",
+                "Acid reflux education",
+                "Anxiety wellness guidance",
+                "Cold and flu info",
+                "Cold sore education",
+                "COVID-19 information",
+                "Depression support guidance",
+                "Gout attack education",
+                "Mental health wellness guidance",
+                "Motion sickness information",
+                "Pink eye info",
+                "Smoking cessation support",
+                "Seasonal allergy education",
+                "Sinus infection info",
+                "Skin care education",
+                "Weight management education",
             ],
         },
         {
-            "name": "Sexual health",
+            "name": "Sexual health education",
             "conditions": [
-                "Anxiety, stress, and depression", "Birth control", "Emergency contraception",
-                "Erectile dysfunction", "Genital herpes", "Genital warts",
-                "Premature ejaculation", "PrEP", "STI testing",
-                "Vaginal dryness",
+                "Emergency contraception education",
+                "Vaginal dryness education",
             ],
         },
         {
-            "name": "Skin and hair",
+            "name": "Skin and hair education",
             "conditions": [
-                "Acne", "Anti-aging skin care", "Athlete's foot",
-                "Dandruff", "Dark spots & melasma", "Diaper rash",
-                "Eczema", "Eyelash growth", "Head lice",
-                "Male-pattern hair loss", "Rosacea", "Skin issue",
-                "Toenail fungus",
-            ],
-        },
-        {
-            "name": "Prescription renewal",
-            "conditions": [
-                "Anxiety", "Asthma", "Blood pressure",
-                "Cholesterol", "Depression", "Epinephrine & EpiPens",
-                "Hypothyroidism", "Other medications",
+                "Acne education",
+                "Anti-aging skin care information",
+                "Athlete's foot education",
+                "Dandruff education",
+                "Dark spot and melasma education",
+                "Diaper rash education",
+                "Eczema education",
+                "Eyelash growth information",
+                "Head lice education",
+                "Male-pattern hair loss education",
+                "Rosacea education",
+                "Skin care education",
+                "Toenail fungus education",
             ],
         },
     ]
@@ -1754,6 +1940,7 @@ def build_home_context(request):
         'faq_items': faq_items,
         'answer_ctas': answer_ctas,
         'care_options': care_options,
+        'comparison_options': comparison_options,
         'carousel_conditions': carousel_conditions,
         'condition_tabs': condition_tabs,
         'how_it_works': how_it_works,
@@ -1940,7 +2127,7 @@ def profile_page(request):
             DoctorProfile.WORK_SCHEDULE_CUSTOM,
         }
         if schedule_type not in valid_schedule_types:
-            messages.error(request, "Kiểu lịch làm việc không hợp lệ.")
+            messages.error(request, "Invalid work schedule type.")
             return redirect("/profile?tab=schedule")
 
         custom_start = None
@@ -1950,10 +2137,10 @@ def profile_page(request):
                 custom_start = datetime.strptime(request.POST.get("custom_work_start", ""), "%H:%M").time()
                 custom_end = datetime.strptime(request.POST.get("custom_work_end", ""), "%H:%M").time()
             except ValueError:
-                messages.error(request, "Vui lòng nhập đầy đủ giờ bắt đầu và giờ kết thúc.")
+                messages.error(request, "Enter both the start and end times.")
                 return redirect("/profile?tab=schedule")
             if custom_start >= custom_end:
-                messages.error(request, "Giờ kết thúc phải muộn hơn giờ bắt đầu.")
+                messages.error(request, "The end time must be later than the start time.")
                 return redirect("/profile?tab=schedule")
 
         role_profile.work_schedule_type = schedule_type
@@ -1961,7 +2148,7 @@ def profile_page(request):
         role_profile.custom_work_end = custom_end
         role_profile.weekend_off = request.POST.get("weekend_off") == "on"
         role_profile.save(update_fields=["work_schedule_type", "custom_work_start", "custom_work_end", "weekend_off", "updated_at"])
-        messages.success(request, "Lịch làm việc mặc định đã được cập nhật.")
+        messages.success(request, "The default work schedule was updated.")
         return redirect("/profile?tab=schedule")
 
     if request.method == "POST" and request.POST.get("profile_action") == "appointment_decision" and profile_type == "Doctor":
@@ -1973,12 +2160,12 @@ def profile_page(request):
         decision = request.POST.get("decision", "")
 
         if not appointment or appointment.status != DoctorAppointment.STATUS_PENDING:
-            messages.error(request, "Yêu cầu đặt khám không tồn tại hoặc đã được xử lý.")
+            messages.error(request, "The appointment request does not exist or has already been processed.")
         elif decision == "accept":
             appointment.status = DoctorAppointment.STATUS_ACCEPTED
             appointment.referred_doctor = None
             appointment.save(update_fields=["status", "referred_doctor", "updated_at"])
-            messages.success(request, "Đã chấp nhận lịch hẹn của bệnh nhân.")
+            messages.success(request, "The patient's appointment was accepted.")
         elif decision == "reject":
             referral_doctor = DoctorProfile.objects.filter(
                 pk=request.POST.get("referral_doctor_id"),
@@ -1987,11 +2174,11 @@ def profile_page(request):
             appointment.referred_doctor = referral_doctor
             appointment.save(update_fields=["status", "referred_doctor", "updated_at"])
             if referral_doctor:
-                messages.success(request, "Đã từ chối lịch hẹn và ghi nhận bác sĩ được giới thiệu.")
+                messages.success(request, "The appointment was rejected and the referred doctor was recorded.")
             else:
-                messages.success(request, "Đã từ chối lịch hẹn và bỏ qua phần giới thiệu.")
+                messages.success(request, "The appointment was rejected without a referral.")
         else:
-            messages.error(request, "Thao tác xử lý lịch hẹn không hợp lệ.")
+            messages.error(request, "Invalid appointment action.")
 
         appointment_month = (
             appointment.appointment_date.strftime("%Y-%m")
@@ -2023,9 +2210,9 @@ def profile_page(request):
                     for time_slot in sorted(selected_time_slots)
                 ])
 
-            messages.success(request, "Lịch bận của ngày đã được cập nhật.")
+            messages.success(request, "Unavailable times for the selected date were updated.")
         else:
-            messages.error(request, "Vui lòng chọn một ngày hợp lệ.")
+            messages.error(request, "Select a valid date.")
 
         return redirect(
             f"/profile?tab=schedule&month={month_start.strftime('%Y-%m')}"
@@ -2038,16 +2225,16 @@ def profile_page(request):
         security_errors = []
 
         if not request.user.check_password(current_password):
-            security_errors.append("Mật khẩu hiện tại không đúng.")
+            security_errors.append("The current password is incorrect.")
         if new_password != confirm_password:
-            security_errors.append("Mật khẩu xác nhận không khớp.")
+            security_errors.append("The password confirmation does not match.")
         if new_password:
             try:
                 validate_password(new_password, request.user)
             except ValidationError as validation_error:
                 security_errors.extend(validation_error.messages)
         else:
-            security_errors.append("Vui lòng nhập mật khẩu mới.")
+            security_errors.append("Enter a new password.")
 
         if security_errors:
             profile_form = RoleProfileForm(instance=role_profile)
@@ -2067,7 +2254,7 @@ def profile_page(request):
         request.user.set_password(new_password)
         request.user.save(update_fields=["password"])
         update_session_auth_hash(request, request.user)
-        messages.success(request, "Mật khẩu đã được cập nhật.")
+        messages.success(request, "Your password was updated.")
         return redirect("/profile?tab=security")
 
     if request.method == "POST" and request.POST.get("profile_action") == "profile_access_decision" and profile_type == "Patient":
@@ -2077,17 +2264,17 @@ def profile_page(request):
         ).first()
         decision = request.POST.get("decision")
         if access_request is None:
-            messages.error(request, "Yêu cầu xem hồ sơ không tồn tại.")
+            messages.error(request, "The profile access request does not exist.")
         elif decision == "approve":
             access_request.status = PatientProfileAccessRequest.STATUS_APPROVED
             access_request.save(update_fields=["status", "updated_at"])
-            messages.success(request, "Bạn đã đồng ý cho tài khoản này xem hồ sơ.")
+            messages.success(request, "This account can now view your profile.")
         elif decision == "reject":
             access_request.status = PatientProfileAccessRequest.STATUS_REJECTED
             access_request.save(update_fields=["status", "updated_at"])
-            messages.success(request, "Bạn đã từ chối yêu cầu xem hồ sơ.")
+            messages.success(request, "The profile access request was rejected.")
         else:
-            messages.error(request, "Phản hồi yêu cầu không hợp lệ.")
+            messages.error(request, "Invalid request response.")
         return redirect("/profile?tab=access-requests")
 
     if request.method == "POST":
@@ -2140,7 +2327,7 @@ def doctor_search(request):
         recommended_doctor = DoctorProfile.objects.filter(pk=request.POST.get("doctor_id")).exclude(pk=viewer_doctor.pk).first()
         if recommended_doctor:
             viewer_doctor.recommended_doctors.add(recommended_doctor)
-            messages.success(request, f"Đã thêm {recommended_doctor.display_name} vào danh sách bác sĩ được giới thiệu.")
+            messages.success(request, f"{recommended_doctor.display_name} was added to your recommended doctors.")
         return redirect(f"/dat-kham/search?specialty={parse.quote(specialty)}")
 
     doctors = DoctorProfile.objects.select_related("account__user").order_by("full_name")
@@ -2167,9 +2354,9 @@ def doctor_search(request):
     # Dãy nút thao tác trên mỗi kết quả bác sĩ
     doctor_result_actions = [
         # Nút thêm bác sĩ vào phần giới thiệu của tài khoản bác sĩ
-        {"id": "recommend", "label": "Thêm vào giới thiệu", "type": "form", "class_name": "doctor-cta recommend", "doctor_only": True},
+        {"id": "recommend", "label": "Add to recommendations", "type": "form", "class_name": "doctor-cta recommend", "doctor_only": True},
         # Nút xem hồ sơ dành cho tài khoản bác sĩ
-        {"id": "view", "label": "Xem hồ sơ", "type": "link", "class_name": "doctor-cta secondary", "doctor_only": True},
+        {"id": "view", "label": "View profile", "type": "link", "class_name": "doctor-cta secondary", "doctor_only": True},
         # Nút đặt khám dành cho bệnh nhân và khách
         {"id": "book", "label": "Book appointment", "type": "link", "class_name": "doctor-cta primary", "hide_for_doctor": True},
     ]
@@ -2326,7 +2513,7 @@ def build_public_booking_options(doctor, month_value=""):
 
     return {
         "month_value": month_start.strftime("%Y-%m"),
-        "month_label": f"Tháng {month_start.month}, {month_start.year}",
+        "month_label": month_start.strftime("%B %Y"),
         "month_actions": month_actions,
         "weekdays": weekdays,
         "weeks": weeks,
@@ -2379,11 +2566,16 @@ def doctor_profile_detail(request, doctor_id):
         {"value": 5, "label": "5 stars"},
     ]
 
-    current_review = (
-        DoctorReview.objects.filter(doctor=doctor, patient=patient_profile).first()
-        if patient_profile
-        else None
-    )
+    eligible_review_orders = []
+    if patient_profile:
+        eligible_review_orders = list(
+            doctor.appointments.filter(
+                patient=patient_profile,
+                payment_status=DoctorAppointment.PAYMENT_PAID,
+                completion_status=DoctorAppointment.COMPLETION_COMPLETED,
+                review__isnull=True,
+            ).order_by("-payment_submitted_at", "-id")
+        )
     review_errors = []
     booking_errors = []
     # Dãy thẻ loại dịch vụ và mức phí tư vấn của bác sĩ
@@ -2517,26 +2709,42 @@ def doctor_profile_detail(request, doctor_id):
         if not patient_profile:
             review_errors.append("Only signed-in patient accounts can review doctors.")
         else:
+            appointment = next(
+                (
+                    order
+                    for order in eligible_review_orders
+                    if str(order.id) == request.POST.get("appointment_id", "")
+                ),
+                None,
+            )
             try:
                 rating = int(request.POST.get("rating", ""))
             except (TypeError, ValueError):
                 rating = 0
             comment = request.POST.get("comment", "").strip()
+            if appointment is None:
+                review_errors.append("Choose a paid order that has not been reviewed yet.")
             if rating not in {option["value"] for option in review_rating_options}:
                 review_errors.append("Please choose a rating from 1 to 5 stars.")
             if len(comment) > 2000:
                 review_errors.append("The review cannot exceed 2,000 characters.")
 
             if not review_errors:
-                DoctorReview.objects.update_or_create(
-                    doctor=doctor,
-                    patient=patient_profile,
-                    defaults={"rating": rating, "comment": comment},
-                )
-                messages.success(request, "Đánh giá của bạn đã được lưu.")
-                return redirect("doctor_profile_detail", doctor_id=doctor.pk)
+                try:
+                    DoctorReview.objects.create(
+                        appointment=appointment,
+                        doctor=doctor,
+                        patient=patient_profile,
+                        rating=rating,
+                        comment=comment,
+                    )
+                except IntegrityError:
+                    review_errors.append("This order has already been reviewed.")
+                else:
+                    messages.success(request, "Your review was submitted for this order.")
+                    return redirect("doctor_profile_detail", doctor_id=doctor.pk)
 
-    reviews = doctor.reviews.select_related("patient__account__user")
+    reviews = doctor.reviews.select_related("patient__account__user", "appointment")
     review_summary = reviews.aggregate(average=Avg("rating"))
     context = {
         "doctor": doctor,
@@ -2546,9 +2754,10 @@ def doctor_profile_detail(request, doctor_id):
         "review_count": reviews.count(),
         "average_rating": round(review_summary["average"] or 0, 1),
         "review_rating_options": review_rating_options,
-        "current_review": current_review,
+        "eligible_review_orders": eligible_review_orders,
         "review_errors": review_errors,
-        "can_review": patient_profile is not None,
+        "can_review": bool(eligible_review_orders),
+        "is_patient_viewer": patient_profile is not None,
         "booking_options": booking_options,
         "booking_errors": booking_errors,
         "can_book": patient_profile is not None,

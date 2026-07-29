@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit profile | Mediall</title>
     <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260723-01">
-    <script src="{% static 'js/profile.js' %}?v=20260723-01" defer></script>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260729-1">
+    <script src="{% static 'js/profile.js' %}?v=20260729-1" defer></script>
 </head>
 <body class="profile-page">
     {% include 'includes/header.html' %}
@@ -55,7 +55,7 @@
             </div>
 
             <section class="profile-panel{% if active_profile_tab == 'personal' %} active{% endif %}" id="profile-panel-personal" role="tabpanel" data-profile-panel="personal">
-                <h2>Thông tin cá nhân</h2>
+                <h2>Personal information</h2>
                 <form id="personal-profile-form" class="profile-form" action="{% url 'profile' %}" method="post" enctype="multipart/form-data">
                     {% csrf_token %}
                     <input type="hidden" name="profile_action" value="personal">
@@ -96,8 +96,8 @@
             </section>
 
             <section class="profile-panel{% if active_profile_tab == 'security' %} active{% endif %}" id="profile-panel-security" role="tabpanel" data-profile-panel="security">
-                <h2>Bảo mật</h2>
-                <p class="profile-panel-description">Thay đổi mật khẩu đăng nhập của bạn.</p>
+                <h2>Security</h2>
+                <p class="profile-panel-description">Change your sign-in password.</p>
 
                 {% if security_errors %}
                 <div class="form-alert error">
@@ -117,13 +117,13 @@
                         {% endfor %}
                     </div>
                     <div class="profile-actions">
-                        <button class="btn" type="submit">Cập nhật mật khẩu</button>
+                        <button class="btn" type="submit">Update password</button>
                     </div>
                 </form>
             </section>
 
             <section class="profile-panel{% if active_profile_tab == 'information' %} active{% endif %}" id="profile-panel-information" role="tabpanel" data-profile-panel="information">
-                <h2>Thông tin</h2>
+                <h2>Information</h2>
                 <div class="account-information">
                     {% for item in account_information %}
                     <div class="account-information-item">
@@ -137,10 +137,10 @@
                 <section class="profile-recommended-doctors">
                     <div class="profile-recommended-heading">
                         <div>
-                            <h3>Bác sĩ được giới thiệu</h3>
-                            <p>Những bác sĩ bạn muốn giới thiệu cho bệnh nhân.</p>
+                            <h3>Recommended doctors</h3>
+                            <p>Doctors you would like to recommend to patients.</p>
                         </div>
-                        <a class="btn" href="{% url 'doctor_search' %}">Thêm bác sĩ</a>
+                        <a class="btn" href="{% url 'doctor_search' %}">Add doctor</a>
                     </div>
                     <div class="profile-recommended-list">
                         {% for doctor in recommended_doctors %}
@@ -150,11 +150,11 @@
                             </span>
                             <span>
                                 <strong>{{ doctor.display_name }}</strong>
-                                <small>{{ doctor.specialties|default:"Chưa cập nhật chuyên khoa" }}</small>
+                                <small>{{ doctor.specialties|default:"Specialty not provided" }}</small>
                             </span>
                         </a>
                         {% empty %}
-                        <p class="appointment-request-empty">Bạn chưa thêm bác sĩ nào vào phần giới thiệu.</p>
+                        <p class="appointment-request-empty">You have not added any recommended doctors.</p>
                         {% endfor %}
                     </div>
                 </section>
@@ -163,8 +163,8 @@
 
             {% if profile_type == "Patient" %}
             <section class="profile-panel{% if active_profile_tab == 'medical-history' %} active{% endif %}" id="profile-panel-medical-history" role="tabpanel" data-profile-panel="medical-history">
-                <h2>Lịch sử khám</h2>
-                <p class="profile-panel-description">Tất cả thông tin chẩn đoán, điều trị, đơn thuốc và lịch tái khám từ những lần khám trước.</p>
+                <h2>Medical history</h2>
+                <p class="profile-panel-description">Diagnoses, treatments, prescriptions, and follow-up appointments from previous visits.</p>
 
                 <div class="medical-record-list">
                     {% for appointment in medical_history %}
@@ -196,9 +196,9 @@
                     </article>
                     {% empty %}
                     <section class="medical-record-empty">
-                        <h2>Chưa có lịch sử khám</h2>
-                        <p>Các cuộc hẹn đã hoàn thành và thông tin bệnh án sẽ xuất hiện tại đây.</p>
-                        <a class="btn" href="{% url 'doctor_search' %}">Tìm bác sĩ</a>
+                        <h2>No medical history yet</h2>
+                        <p>Completed appointments and medical records will appear here.</p>
+                        <a class="btn" href="{% url 'doctor_search' %}">Find a doctor</a>
                     </section>
                     {% endfor %}
                 </div>
@@ -210,7 +210,7 @@
                 <div class="consultation-list-heading">
                     <div>
                         <h2>Consultation requests</h2>
-                        <p class="profile-panel-description">Theo dõi bước kiểm duyệt và phản hồi của bác sĩ cho từng yêu cầu tư vấn.</p>
+                        <p class="profile-panel-description">Track admin review and doctor responses for each consultation request.</p>
                     </div>
                     <strong>{{ consultation_requests|length }} requests</strong>
                 </div>
@@ -219,7 +219,7 @@
                     {% for consultation in consultation_requests %}
                     <article class="consultation-cart-card" id="consultation-request-{{ consultation.pk }}">
                         <a class="consultation-doctor-avatar" href="{% url 'doctor_profile_detail' consultation.doctor.pk %}">
-                            {% if consultation.doctor.avatar %}<img src="{{ consultation.doctor.avatar.url }}" alt="">{% else %}{{ consultation.doctor.display_name|first|upper }}{% endif %}
+                            {% if consultation.doctor.avatar_url %}<img src="{{ consultation.doctor.avatar_url }}" alt="">{% else %}{{ consultation.doctor.display_name|first|upper }}{% endif %}
                         </a>
                         <div class="consultation-cart-content">
                             <div class="consultation-cart-title">
@@ -256,7 +256,7 @@
                             </div>
                             {% elif consultation.payment_status == 'paid' %}
                             <div class="consultation-payment-deadline paid">
-                                <strong>Đã thanh toán</strong>
+                                <strong>Paid</strong>
                             </div>
                             {% elif consultation.moderation_status == 'approved' and consultation.payment_due_at %}
                             <div class="consultation-payment-deadline awaiting">
@@ -269,7 +269,7 @@
                                     type="button"
                                     data-open-payment-modal="payment-modal-{{ consultation.pk }}"
                                     {% if consultation.payment_submitted_at %}disabled{% endif %}
-                                >{% if consultation.payment_submitted_at %}Đang chờ xác nhận{% else %}Thanh toán ngay{% endif %}</button>
+                                >{% if consultation.payment_submitted_at %}Awaiting confirmation{% else %}Pay now{% endif %}</button>
                             </div>
 
                             {% if not consultation.payment_submitted_at %}
@@ -277,16 +277,16 @@
                                 <section class="payment-modal" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title-{{ consultation.pk }}">
                                     <header class="payment-modal-header">
                                         <div>
-                                            <span>Thanh toán tư vấn</span>
+                                            <span>Consultation payment</span>
                                             <h3 id="payment-modal-title-{{ consultation.pk }}">{{ consultation.doctor.display_name }}</h3>
                                         </div>
                                         <strong>${{ consultation.consultation_fee|floatformat:2 }}</strong>
                                     </header>
 
                                     <div class="payment-order-summary">
-                                        <div><span>Dịch vụ</span><strong>{{ consultation.get_service_type_display }}</strong></div>
-                                        <div><span>Lịch khám</span><strong>{{ consultation.appointment_date|date:"d/m/Y" }} · {{ consultation.time_slot }}</strong></div>
-                                        <div><span>Mã đơn</span><strong>#{{ consultation.pk }}</strong></div>
+                                        <div><span>Service</span><strong>{{ consultation.get_service_type_display }}</strong></div>
+                                        <div><span>Appointment</span><strong>{{ consultation.appointment_date|date:"d/m/Y" }} · {{ consultation.time_slot }}</strong></div>
+                                        <div><span>Order ID</span><strong>#{{ consultation.pk }}</strong></div>
                                     </div>
 
                                     <form method="post" action="{% url 'submit_appointment_payment' consultation.pk %}" data-payment-form>
@@ -299,15 +299,15 @@
 
                                         <div class="payment-form-fields">
                                             <label class="payment-field-wide">
-                                                Tên chủ thẻ
+                                                Cardholder name
                                                 <input type="text" autocomplete="cc-name" placeholder="NGUYEN VAN A" required>
                                             </label>
                                             <label class="payment-field-wide">
-                                                Số thẻ
+                                                Card number
                                                 <input type="text" inputmode="numeric" autocomplete="cc-number" maxlength="19" placeholder="0000 0000 0000 0000" data-payment-card-number required>
                                             </label>
                                             <label>
-                                                Ngày hết hạn
+                                                Expiry date
                                                 <input type="text" inputmode="numeric" autocomplete="cc-exp" maxlength="5" placeholder="MM/YY" data-payment-expiry required>
                                             </label>
                                             <label>
@@ -316,7 +316,7 @@
                                             </label>
                                         </div>
 
-                                        <p class="payment-security-note">Thông tin thẻ chỉ được dùng để mô phỏng giao diện và không được lưu trên hệ thống.</p>
+                                        <p class="payment-security-note">Card details are used only for this interface simulation and are not stored.</p>
 
                                         <div class="payment-modal-actions">
                                             {% for action in payment_modal_actions %}
@@ -356,8 +356,8 @@
 
             {% if profile_type == "Patient" %}
             <section class="profile-panel{% if active_profile_tab == 'access-requests' %} active{% endif %}" id="profile-panel-access-requests" role="tabpanel" data-profile-panel="access-requests">
-                <h2>Yêu cầu xem hồ sơ</h2>
-                <p class="profile-panel-description">Chỉ những người được bạn đồng ý mới có thể xem thông tin hồ sơ cá nhân.</p>
+                <h2>Profile access requests</h2>
+                <p class="profile-panel-description">Only people you approve can view your personal profile information.</p>
 
                 <div class="profile-access-request-list">
                     {% for access_request in profile_access_requests %}
@@ -365,7 +365,7 @@
                         <div class="profile-access-request-avatar">{{ access_request.requester.email|default:access_request.requester.username|first|upper }}</div>
                         <div class="profile-access-request-info">
                             <strong>{% if access_request.requester.get_full_name %}{{ access_request.requester.get_full_name }}{% else %}{{ access_request.requester.email|default:access_request.requester.username }}{% endif %}</strong>
-                            <small>Gửi yêu cầu {{ access_request.updated_at|date:"d/m/Y H:i" }}</small>
+                            <small>Requested {{ access_request.updated_at|date:"d/m/Y H:i" }}</small>
                             <span class="profile-access-status {{ access_request.status }}">{{ access_request.get_status_display }}</span>
                         </div>
                         {% if access_request.status == 'pending' or access_request.status == 'approved' %}
@@ -382,7 +382,7 @@
                         {% endif %}
                     </article>
                     {% empty %}
-                    <div class="appointment-request-empty">Chưa có ai yêu cầu xem hồ sơ của bạn.</div>
+                    <div class="appointment-request-empty">No one has requested access to your profile.</div>
                     {% endfor %}
                 </div>
             </section>
@@ -390,16 +390,16 @@
 
             {% if doctor_schedule %}
             <section class="profile-panel{% if active_profile_tab == 'schedule' %} active{% endif %}" id="profile-panel-schedule" role="tabpanel" data-profile-panel="schedule">
-                <h2>Lịch đặt khám</h2>
-                <p class="profile-panel-description">Chọn một ngày, đánh dấu các khung giờ bận rồi nhấn lưu.</p>
+                <h2>Appointment schedule</h2>
+                <p class="profile-panel-description">Choose a date, mark unavailable time slots, and save.</p>
 
                 <form class="work-schedule-setup" action="{% url 'profile' %}" method="post" data-work-schedule-form>
                     {% csrf_token %}
                     <input type="hidden" name="profile_action" value="work_schedule">
                     <div class="work-schedule-heading">
                         <div>
-                            <h3>Thiết lập lịch làm việc</h3>
-                            <p>Chọn khung giờ mặc định được hiển thị cho bệnh nhân đặt khám.</p>
+                            <h3>Work schedule settings</h3>
+                            <p>Choose the default time slots shown to patients.</p>
                         </div>
                     </div>
 
@@ -415,11 +415,11 @@
 
                     <div class="custom-work-hours" data-custom-work-hours{% if not doctor_schedule.custom_schedule_active %} hidden{% endif %}>
                         <label>
-                            Từ giờ
+                            Start time
                             <input type="time" name="custom_work_start" value="{{ doctor_schedule.custom_work_start }}">
                         </label>
                         <label>
-                            Đến giờ
+                            End time
                             <input type="time" name="custom_work_end" value="{{ doctor_schedule.custom_work_end }}">
                         </label>
                     </div>
@@ -427,12 +427,12 @@
                     <label class="weekend-off-option">
                         <input type="checkbox" name="weekend_off"{% if doctor_schedule.weekend_off %} checked{% endif %}>
                         <span>
-                            <strong>Nghỉ Thứ 7 và Chủ nhật</strong>
-                            <small>Không cho bệnh nhân chọn lịch vào hai ngày cuối tuần.</small>
+                            <strong>Closed on Saturdays and Sundays</strong>
+                            <small>Patients cannot select appointments on weekends.</small>
                         </span>
                     </label>
 
-                    <button class="btn work-schedule-save" type="submit">Lưu lịch làm việc</button>
+                    <button class="btn work-schedule-save" type="submit">Save work schedule</button>
                 </form>
 
                 <form class="busy-schedule-form" action="{% url 'profile' %}" method="post" data-busy-schedule-form>
@@ -450,11 +450,11 @@
                                 {% endif %}
                                 {% endfor %}
                                 <div>
-                                <span>Đang thiết lập lịch bận</span>
+                                <span>Setting unavailable times</span>
                                 <strong data-selected-date-label></strong>
                                 </div>
                             </div>
-                            <small>Chọn một hoặc nhiều khung giờ bên dưới</small>
+                            <small>Select one or more time slots below</small>
                         </div>
 
                         <div class="busy-time-groups">
@@ -484,24 +484,24 @@
 
                     {% include "includes/month_calendar.html" with calendar=doctor_schedule calendar_mode="busy" %}
 
-                    <div class="calendar-legend"><span></span> Ngày có khung giờ bận</div>
+                    <div class="calendar-legend"><span></span> Date with unavailable time slots</div>
                 </form>
 
                 <section class="doctor-appointment-requests">
                     <div class="appointment-request-heading">
                         <div>
-                            <h3>Yêu cầu đặt khám trong tháng</h3>
-                            <p>Chấp nhận lịch phù hợp hoặc giới thiệu bệnh nhân sang một bác sĩ khác khi từ chối.</p>
+                            <h3>Appointment requests this month</h3>
+                            <p>Accept suitable requests or refer the patient to another doctor when rejecting.</p>
                         </div>
-                        <strong>{{ doctor_schedule.appointments|length }} yêu cầu</strong>
+                        <strong>{{ doctor_schedule.appointments|length }} requests</strong>
                     </div>
 
                     <div class="appointment-request-list">
                         {% for appointment in doctor_schedule.appointments %}
                         <article class="appointment-request-card">
                             <div class="appointment-patient-avatar">
-                                {% if appointment.patient.avatar %}
-                                <img src="{{ appointment.patient.avatar.url }}" alt="">
+                                {% if appointment.patient.avatar_url %}
+                                <img src="{{ appointment.patient.avatar_url }}" alt="">
                                 {% else %}
                                 {{ appointment.patient.full_name|default:appointment.patient.account.user.email|first|upper }}
                                 {% endif %}
@@ -524,7 +524,7 @@
                                 </div>
                                 {% endif %}
                                 {% if appointment.referred_doctor %}
-                                <p class="appointment-referral">Đã giới thiệu: <strong>{% if appointment.referred_doctor.full_name %}{{ appointment.referred_doctor.full_name }}{% else %}{{ appointment.referred_doctor.account.user.email }}{% endif %}</strong></p>
+                                <p class="appointment-referral">Referred to: <strong>{% if appointment.referred_doctor.full_name %}{{ appointment.referred_doctor.full_name }}{% else %}{{ appointment.referred_doctor.account.user.email }}{% endif %}</strong></p>
                                 {% endif %}
                             </div>
 
@@ -547,16 +547,16 @@
                             {% endif %}
                         </article>
                         {% empty %}
-                        <div class="appointment-request-empty">Chưa có bệnh nhân đặt lịch trong tháng này.</div>
+                        <div class="appointment-request-empty">There are no appointment requests this month.</div>
                         {% endfor %}
                     </div>
                 </section>
 
                 <div class="referral-modal-backdrop" data-referral-modal hidden>
                     <div class="referral-modal" role="dialog" aria-modal="true" aria-labelledby="referral-modal-title">
-                        <button class="referral-modal-close" type="button" aria-label="Đóng" data-close-referral-modal>&times;</button>
-                        <h3 id="referral-modal-title">Giới thiệu bác sĩ khác</h3>
-                        <p>Bạn đang từ chối lịch của <strong data-referral-patient-name></strong>. Có thể chọn một bác sĩ phù hợp bên dưới hoặc bỏ qua.</p>
+                        <button class="referral-modal-close" type="button" aria-label="Close" data-close-referral-modal>&times;</button>
+                        <h3 id="referral-modal-title">Refer another doctor</h3>
+                        <p>You are rejecting the appointment for <strong data-referral-patient-name></strong>. Select a suitable doctor below or skip the referral.</p>
 
                         <form action="{% url 'profile' %}" method="post" data-referral-form>
                             {% csrf_token %}
@@ -578,7 +578,7 @@
                                     </span>
                                 </label>
                                 {% empty %}
-                                <p class="appointment-request-empty">Hiện chưa có bác sĩ khác để giới thiệu.</p>
+                                <p class="appointment-request-empty">No other doctors are currently available for referral.</p>
                                 {% endfor %}
                             </div>
 

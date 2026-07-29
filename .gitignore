@@ -8,3 +8,4 @@ venv/
 staticfiles/
 media/
 django-*.log
+*_deploy.tar.gz

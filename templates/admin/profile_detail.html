@@ -10,7 +10,7 @@
 {% block content %}
 <div class="admin-readonly-profile-heading">
     <div class="admin-readonly-profile-avatar">
-        {% if role_profile.avatar %}<img src="{{ role_profile.avatar.url }}" alt="">{% else %}<img src="{% static 'images/no-profile.png' %}" alt="">{% endif %}
+        {% if role_profile.avatar_url %}<img src="{{ role_profile.avatar_url }}" alt="">{% else %}<img src="{% static 'images/no-profile.png' %}" alt="">{% endif %}
     </div>
     <div>
         <span>{{ profile_title }}</span>

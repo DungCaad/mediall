@@ -20,7 +20,7 @@
 <ul class="messagelist">{% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}</ul>
 {% endif %}
 
-<div class="admin-order-payment-tabs" role="tablist" aria-label="Nhóm trạng thái thanh toán">
+<div class="admin-order-payment-tabs" role="tablist" aria-label="Payment status groups">
     {% for group in order_payment_groups %}
     <button
         class="admin-order-payment-tab{% if group.active %} active{% endif %}"
@@ -61,6 +61,7 @@
             <small>{% if order.service_type %}{{ order.get_service_type_display }} · ${{ order.consultation_fee|floatformat:-2 }} /visit{% else %}Service not selected{% endif %}</small>
         </div>
         <div class="admin-order-review-status {{ order.moderation_status }}">{{ order.get_moderation_status_display }}</div>
+        <div class="admin-order-review-status {% if order.completion_status == 'completed' %}approved{% else %}pending{% endif %}">{{ order.get_completion_status_display }}</div>
         <div class="admin-order-actions">
             {% for action in order_actions %}
                 {% if action.id == 'verify' %}
@@ -76,6 +77,13 @@
                     <input type="hidden" name="order_action" value="{{ action.id }}">
                     <input type="hidden" name="appointment_id" value="{{ order.pk }}">
                     <button class="{{ action.class_name }}" type="{{ action.type }}"{% if not order.can_confirm_payment %} disabled{% endif %}>{% if order.payment_status == 'paid' %}{{ action.confirmed_label }}{% else %}{{ action.label }}{% endif %}</button>
+                </form>
+                {% elif action.id == 'complete' %}
+                <form method="post" action="{% url 'admin_orders' %}" onsubmit="return confirm('Confirm that this consultation order has been completed? The patient will be invited to review it.')">
+                    {% csrf_token %}
+                    <input type="hidden" name="order_action" value="{{ action.id }}">
+                    <input type="hidden" name="appointment_id" value="{{ order.pk }}">
+                    <button class="{{ action.class_name }}" type="{{ action.type }}"{% if not order.can_complete %} disabled{% endif %}>{% if order.completion_status == 'completed' %}{{ action.completed_label }}{% else %}{{ action.label }}{% endif %}</button>
                 </form>
                 {% elif action.id == 'details' %}
                 <a class="{{ action.class_name }}" href="{% url 'admin_order_detail' order.pk %}">{{ action.label }}</a>

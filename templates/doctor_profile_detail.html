@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ doctor.display_name }} | Mediall</title>
     <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260722-33">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260729-2">
 </head>
 <body class="doctor-public-page">
     {% include 'includes/header.html' %}
@@ -76,7 +76,7 @@
                     <h2>Quick appointment</h2>
                     <p>Choose an available date and time. The doctor will confirm your request.</p>
                 </div>
-                <button class="booking-now-button" type="button" data-open-booking-entry{% if not can_book %} disabled{% endif %}>Đặt lịch khám ngay</button>
+                <button class="booking-now-button" type="button" data-open-booking-entry{% if not can_book %} disabled{% endif %}>Book an appointment now</button>
             </div>
 
             {% if booking_errors %}
@@ -261,6 +261,7 @@
                                 <div>
                                     <strong>{% if review.patient.full_name %}{{ review.patient.full_name }}{% else %}{{ review.patient.account.user.email }}{% endif %}</strong>
                                     <small>{{ review.updated_at|date:"d/m/Y" }}</small>
+                                    {% if review.appointment %}<small>Order #{{ review.appointment.id }}</small>{% endif %}
                                 </div>
                                 <b>★ {{ review.rating }}/5</b>
                             </div>
@@ -283,11 +284,19 @@
                 <form action="{% url 'doctor_profile_detail' doctor.pk %}" method="post">
                     {% csrf_token %}
                     <input type="hidden" name="profile_action" value="review">
+                    <label class="doctor-review-comment">
+                        Completed order
+                        <select name="appointment_id" required>
+                            {% for order in eligible_review_orders %}
+                            <option value="{{ order.id }}">Order #{{ order.id }} · {{ order.appointment_date|date:"d/m/Y" }} · {{ order.get_service_type_display }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
                     <fieldset class="doctor-rating-options">
                         <legend>Select a rating</legend>
                         {% for option in review_rating_options %}
                         <label>
-                            <input type="radio" name="rating" value="{{ option.value }}"{% if current_review.rating == option.value %} checked{% endif %} required>
+                            <input type="radio" name="rating" value="{{ option.value }}" required>
                             <span>★</span>
                             <small>{{ option.label }}</small>
                         </label>
@@ -295,10 +304,12 @@
                     </fieldset>
                     <label class="doctor-review-comment">
                         Comment
-                        <textarea name="comment" maxlength="2000" rows="5" placeholder="Share your experience...">{% if current_review %}{{ current_review.comment }}{% endif %}</textarea>
+                        <textarea name="comment" maxlength="2000" rows="5" placeholder="Share your experience..."></textarea>
                     </label>
-                    <button class="btn" type="submit">{% if current_review %}Update review{% else %}Submit review{% endif %}</button>
+                    <button class="btn" type="submit">Submit review</button>
                 </form>
+                {% elif is_patient_viewer %}
+                <p class="doctor-public-empty">You can submit one review after admin confirms an order is completed. There are no completed orders awaiting your review for this doctor.</p>
                 {% elif request.user.is_authenticated %}
                 <p class="doctor-public-empty">Only patient accounts can submit reviews.</p>
                 {% else %}

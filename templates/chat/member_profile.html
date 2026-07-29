@@ -1,0 +1,28 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ member.name }} | Mediall</title>
+    <link rel="icon" href="{% static 'images/favicon.ico' %}">
+    <link rel="stylesheet" href="{% static 'css/chat.css' %}?v=20260729-10">
+</head>
+<body class="member-profile-page">
+    <main class="member-profile-card">
+        <span class="avatar member-profile-avatar">
+            {% if member.avatar_url %}<img src="{{ member.avatar_url }}" alt="{{ member.name }}">{% else %}{{ member.initial }}{% endif %}
+        </span>
+        <h1>{{ member.name }}</h1>
+        <p class="member-profile-role">{{ member_role }}</p>
+        {% if member_details %}
+        <dl class="member-profile-details">
+            {% for detail in member_details %}
+            <div><dt>{{ detail.label }}</dt><dd>{{ detail.value }}</dd></div>
+            {% endfor %}
+        </dl>
+        {% endif %}
+        <a class="member-profile-back" href="{{ back_url }}">Back to chat</a>
+    </main>
+</body>
+</html>

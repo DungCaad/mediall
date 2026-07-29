@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mediall One Medical</title>
     <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260722-24">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260729-5">
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
@@ -134,15 +134,15 @@
         </div>
     </section>
 
-    <section class="two-options">
+    <section class="two-options" id="membership-options">
         <div class="container">
             <div class="two-options-grid">
                 <div>
                     <img src="{% static 'images/image_1.jpeg' %}" alt="Doctor smiling">
                 </div>
                 <div>
-                    <h2 class="section-title">Two options to get care</h2>
-                    <a href="#" style="display:block; margin-bottom: 20px; font-size:14px;">Compare options</a>
+                    <h2 class="section-title">Two options for health education support</h2>
+                    <button class="compare-options-trigger" type="button" data-open-compare-options>Compare options</button>
 
                     <div class="toggle-cards">
                         {% for option in care_options %}
@@ -199,6 +199,25 @@
         </div>
     </section>
 
+    <div class="modal-backdrop compare-options-backdrop" data-compare-options-modal>
+        <section class="compare-options-modal" role="dialog" aria-modal="true" aria-label="Membership option comparison">
+            <button class="compare-options-close" type="button" aria-label="Close comparison" data-close-compare-options>&times;</button>
+            <div class="compare-options-grid">
+                {% for option in comparison_options %}
+                <article class="compare-option-column compare-option-{{ option.id }}">
+                    <h3>{{ option.title }}</h3>
+                    <strong>{{ option.subtitle }}</strong>
+                    <ul>
+                        {% for feature in option.features %}
+                        <li>{{ feature }}</li>
+                        {% endfor %}
+                    </ul>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+
     <section class="conditions-section" id="health-topics">
         <div class="container">
             <h2 class="section-title">What would you like help with?</h2>
@@ -230,10 +249,10 @@
                 {% endfor %}
             </div>
 
-            <div style="margin-top: 30px;">
+            {% comment %} <div style="margin-top: 30px;">
                 <h4 style="margin-bottom: 10px;">More ways we can help you</h4>
                 <p style="font-size: 14px;">Looking for primary care, pediatrics, chronic condition care, or mental health support? <a href="#">See additional One Medical services</a></p>
-            </div>
+            </div> {% endcomment %}
         </div>
     </section>
 
@@ -242,8 +261,8 @@
             <div class="split-grid">
                 <div>
                     <img src="{% static 'images/logo.ico' %}" width="131" height="23" alt="Mediall" style="margin-bottom: 10px;">
-                    <h2 class="section-title" style="font-size:36px; margin: 15px 0;">Get trusted care for<br><span style="color: var(--accent-teal);">your child</span></h2>
-                    <p>Connect with family care providers for secure telehealth treatment for children ages 2-17.* No waiting rooms, no hassle.</p>
+                    <h2 class="section-title" style="font-size:36px; margin: 15px 0;">Instant Guidance<br><span style="color: var(--accent-teal);">No Waiting Until Tomorrow</span></h2>
+                    <p>No Long Waiting Times: Skip the days or weeks of waiting for a traditional doctor's appointment.<br>Instant, On-Demand Access: Our international health education services are available right now, exactly when you need it most.<br>Available Worldwide: We proudly provide immediate, virtual informational guidance to users globally.<br>Strictly Educational: All on-demand sessions focus exclusively on wellness education and general health information.</p>
 
                     <div class="pill-container">
                         <div class="pill">Pink eye</div>
@@ -262,30 +281,50 @@
         </div>
     </section>
 
+    <aside class="membership-benefits-banner" aria-label="One Medical membership benefits">
+        <div class="container">
+            <p>
+                Already purchased One Medical membership on Amazon?
+                <a href="#membership-options">See membership benefits ›</a>
+            </p>
+        </div>
+    </aside>
+
     <section class="split-section bg-white">
         <div class="container">
             <div class="split-grid" style="grid-template-columns: 1fr 1.2fr;">
                 <div>
-                    <span class="badge">WHY CHOOSE MEMBERSHIP?</span>
-                    <h2 class="section-title">Get ongoing support for your healthcare needs</h2>
+                    <span class="badge">Our Scope of Service</span>
+                    <h2 class="section-title">We focus exclusively on providing wellness education and informational guidance for minor, everyday ailments (such as common colds, mild allergies, or general health questions), as well as routine skincare and haircare education (such as managing mild acne, dry skin, or general hair health).This includes helping you understand safe, Over-the-Counter (OTC) products, topical solutions, and non-prescription options available in your country to manage your mild symptoms effectively.</h2>
                     <ul class="features-list">
                         <li>Fees are for educational support services. This does not constitute clinical care or treatment for any medical condition</li>
                         <li>Initiate educational consultations regarding health information, accessible anytime, anywhere.</li>
                         <li>Member rate: Single-session health education from</li>
                     </ul>
                     <a href="#" style="font-size: 14px; font-weight: bold; display: block; margin-bottom: 30px;">See locations and appointment availability</a>
-
-                    <h4 style="margin-bottom: 5px; display: flex; align-items:center; gap: 10px;">
-                        <span style="font-size:24px;">💳</span> One Medical accepts insurance like a typical doctor's office
-                    </h4>
-                    <div class="price-breakdown">
-                        {{ home_message_price }} <span style="font-size:14px; font-weight:normal;">/Direct Message Care &nbsp;|&nbsp; </span>
-                        {{ home_video_price }} <span style="font-size:14px; font-weight:normal;">/Video Care</span>
-                    </div>
-                    <a href="#" style="font-size: 14px; font-weight: bold;">See accepted insurance plans</a>
                 </div>
                 <div class="split-image" style="text-align: center;">
                     <img src="{% static 'images/image_3.jpeg' %}" alt="Nurse and patient">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="insurance-section">
+        <div class="container">
+            <div class="insurance-section-content">
+                <div class="insurance-section-icon" aria-hidden="true">
+                    <svg viewBox="0 0 48 48">
+                        <rect x="7" y="10" width="29" height="23" rx="2"></rect>
+                        <path d="M12 17h19M15 22v7M11.5 25.5h7"></path>
+                        <circle cx="35" cy="34" r="9"></circle>
+                        <path class="insurance-check" d="m31 34 3 3 6-7"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h2>One Medical accepts insurance like a typical doctor’s office</h2>
+                    <p>With your membership, educational consultations via text/images or video call are billed per session at our exclusive member rate</p>
+                    <a href="#">See accepted insurance plans</a>
                 </div>
             </div>
         </div>
@@ -306,15 +345,13 @@
                         {{ home_message_price }} <span style="font-size:14px; font-weight:normal;">/Direct Message Care &nbsp;|&nbsp; </span>
                         {{ home_video_price }} <span style="font-size:14px; font-weight:normal;">/Video Care</span>
                     </div>
-                    <p class="price-disclaimer">Prices vary by condition. Prices subject to change. Direct Message Care availability varies by state.</p>
+                    <p class="price-disclaimer">Educational support fees vary by topic. Fees are subject to change. Direct messaging availability varies by state and country.</p>
 
                     <ul class="features-list">
-                        <li>Quick treatment of common conditions</li>
-                        <li>Fast care by direct message or video</li>
-                        <li>Self-pay treatment - insurance not accepted or needed</li>
-                        <li>FSA/HSA eligible</li>
+                        <li>Quick guidance on common conditions</li>
+                        <li>Fast educational messaging or video support</li>
                     </ul>
-                    <button class="btn">Request a treatment</button>
+                    <button class="btn">Request information</button>
                 </div>
             </div>
         </div>
@@ -362,14 +399,14 @@
             <a class="faq-all-link" href="#">See all Mediall One Medical FAQs</a>
 
             <div class="testimonial">
-                <h2 class="section-title">Why people love One Medical</h2>
+                <h2 class="section-title">Global Legal Notice & Disclaimer</h2>
                 <div class="split-image">
                     <img src="{% static 'images/video_1.jpeg' %}" alt="Man on bench">
                 </div>
-                <div class="quote-icon">“</div>
-                <p style="font-weight: bold; margin-bottom: 15px;">What members are saying</p>
-                <p class="quote-text">"I love One Medical so much. It's one of the services that has improved my life the most. They make getting care so so easy when it was always difficult and prevented me from being proactive in the past."</p>
-                <p class="quote-author">- Member at Austin, TX</p>
+                {% comment %} <div class="quote-icon">“</div> {% endcomment %}
+                {% comment %} <p style="font-weight: bold; margin-bottom: 15px;">What members are saying</p> {% endcomment %}
+                <p class="quote-text">"As a physician licensed outside your local jurisdiction, please be advised that this on-demand service is strictly for educational and informational purposes. These sessions do not constitute the practice of medicine. We do not provide local clinical diagnoses, write medical prescriptions, dispense medications, or manage prescription drug therapies under your country's laws. This service does not replace formal medical care or the professional judgment of a local healthcare provider in your area. If you are experiencing a medical emergency, severe allergic reactions, acute skin conditions, or severe symptoms, please contact your local emergency services immediately."</p>
+                {% comment %} <p class="quote-author">- Member at Austin, TX</p> {% endcomment %}
             </div>
         </div>
     </section>
@@ -463,6 +500,23 @@
 
         setupModal("[data-login-modal]", "[data-open-modal='login']", "[data-close-login]");
         setupModal("[data-register-modal]", "[data-open-modal='register']", "[data-close-register]");
+        setupModal("[data-compare-options-modal]", "[data-open-compare-options]", "[data-close-compare-options]");
+
+        document.querySelectorAll(".modal-backdrop").forEach(function (backdrop) {
+            backdrop.addEventListener("click", function (event) {
+                if (event.target !== backdrop) return;
+                backdrop.classList.remove("active");
+                if (!document.querySelector(".modal-backdrop.active")) document.body.classList.remove("modal-open");
+            });
+        });
+
+        document.addEventListener("keydown", function (event) {
+            if (event.key !== "Escape") return;
+            document.querySelectorAll(".modal-backdrop.active").forEach(function (modal) {
+                modal.classList.remove("active");
+            });
+            document.body.classList.remove("modal-open");
+        });
 
         document.querySelectorAll(".conditions-carousel").forEach(function (carousel) {
             var isDragging = false;

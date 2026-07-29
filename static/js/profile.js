@@ -192,7 +192,7 @@ if (referralModal) {
     referralForm.querySelector("[data-require-referral]").addEventListener("click", function (event) {
         if (!referralForm.querySelector("input[name='referral_doctor_id']:checked")) {
             event.preventDefault();
-            window.alert("Vui lòng chọn một bác sĩ để giới thiệu hoặc nhấn Bỏ qua giới thiệu.");
+            window.alert("Select a doctor for the referral or choose Skip referral.");
         }
     });
 }

@@ -1,10 +1,10 @@
 {% extends "admin/base_site.html" %}
 {% load static %}
 
-{% block title %}Tạo bài viết | Mediall Admin{% endblock %}
+{% block title %}Create post | Mediall Admin{% endblock %}
 
 {% block breadcrumbs %}
-<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Tạo bài viết</div>
+<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Create post</div>
 {% endblock %}
 
 {% block content_title %}{% endblock %}
@@ -12,10 +12,10 @@
 {% block content %}
 <div class="admin-post-heading">
     <div>
-        <h1>Tạo bài viết</h1>
-        <p>Soạn và xuất bản nội dung sức khỏe trên Mediall.</p>
+        <h1>Create post</h1>
+        <p>Write and publish health content on Mediall.</p>
     </div>
-    <a class="admin-post-create-link" href="{% url 'admin_posts' %}">Quản lý bài viết</a>
+    <a class="admin-post-create-link" href="{% url 'admin_posts' %}">Manage posts</a>
 </div>
 
 {% if messages %}
@@ -30,18 +30,18 @@
     <form class="admin-post-form" method="post" data-post-editor-form>
         {% csrf_token %}
         <section class="admin-post-card">
-            <h2>Tạo bài viết mới</h2>
+            <h2>Create a new post</h2>
 
             <label>
-                Tiêu đề <span aria-hidden="true">*</span>
+                Title <span aria-hidden="true">*</span>
                 <input type="text" name="title" maxlength="200" value="{{ form_values.title }}" required>
             </label>
 
             <label>
-                Nội dung <span aria-hidden="true">*</span>
+                Content <span aria-hidden="true">*</span>
             </label>
             <div class="post-editor-shell">
-                <div class="post-editor-toolbar" role="toolbar" aria-label="Công cụ định dạng nội dung">
+                <div class="post-editor-toolbar" role="toolbar" aria-label="Content formatting tools">
                     {% for tool in editor_toolbar %}
                     <button
                         class="post-editor-tool{% if tool.class_name %} {{ tool.class_name }}{% endif %}"
@@ -60,47 +60,47 @@
                     role="textbox"
                     aria-multiline="true"
                     data-post-editor
-                    data-placeholder="Nhập nội dung bài viết..."
+                    data-placeholder="Enter post content..."
                 >{{ form_values.content_html|safe }}</div>
                 <textarea name="content_html" data-post-editor-input hidden required></textarea>
             </div>
 
             <label>
-                Mô tả SEO
-                <textarea name="seo_description" maxlength="160" rows="3" placeholder="Mô tả ngắn gọn về bài viết (tối đa 160 ký tự)" data-seo-description>{{ form_values.seo_description }}</textarea>
-                <small>Mô tả này sẽ hiển thị trên kết quả tìm kiếm · <span data-seo-count>0</span>/160</small>
+                SEO description
+                <textarea name="seo_description" maxlength="160" rows="3" placeholder="A brief description of the post (maximum 160 characters)" data-seo-description>{{ form_values.seo_description }}</textarea>
+                <small>This description appears in search results · <span data-seo-count>0</span>/160</small>
             </label>
 
             <label>
                 Tags
-                <input type="text" name="tags" value="{{ form_values.tags }}" placeholder="Sức khỏe, dinh dưỡng, tư vấn">
-                <small>Phân tách các tags bằng dấu phẩy.</small>
+                <input type="text" name="tags" value="{{ form_values.tags }}" placeholder="Health, nutrition, guidance">
+                <small>Separate tags with commas.</small>
             </label>
 
             <label class="admin-post-publish-toggle">
                 <input type="checkbox" name="is_published"{% if form_values.is_published %} checked{% endif %}>
-                Xuất bản ngay
+                Publish now
             </label>
 
-            <button class="admin-post-submit" type="submit">Lưu bài viết</button>
+            <button class="admin-post-submit" type="submit">Save post</button>
         </section>
     </form>
 
     <aside class="admin-post-recent">
-        <h2>Bài viết gần đây</h2>
+        <h2>Recent posts</h2>
         {% for item in recent_posts %}
         <article>
             <div>
                 <strong>{{ item.title }}</strong>
-                <span>{{ item.created_at|date:"d/m/Y H:i" }} · {{ item.view_count }} lượt xem</span>
+                <span>{{ item.created_at|date:"d/m/Y H:i" }} · {{ item.view_count }} views</span>
             </div>
-            <a href="{% url 'post_detail' item.pk %}" target="_blank" rel="noopener">Xem bài</a>
+            <a href="{% url 'post_detail' item.pk %}" target="_blank" rel="noopener">View post</a>
         </article>
         {% empty %}
-        <p>Chưa có bài viết nào.</p>
+        <p>No posts yet.</p>
         {% endfor %}
     </aside>
 </div>
 
-<script src="{% static 'js/admin_post.js' %}?v=20260723-01" defer></script>
+<script src="{% static 'js/admin_post.js' %}?v=20260729-1" defer></script>
 {% endblock %}

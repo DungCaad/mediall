@@ -3,7 +3,7 @@
 {% block breadcrumbs %}
 <div class="breadcrumbs">
     <a href="{% url 'admin:index' %}">Home</a>
-    &rsaquo; Quản lý bài viết
+    &rsaquo; Manage posts
 </div>
 {% endblock %}
 
@@ -12,22 +12,22 @@
 {% block content %}
 <div class="admin-post-list-heading">
     <div>
-        <h1>Quản lý bài viết</h1>
-        <p>Chọn bài viết nổi bật để hiển thị tại chân trang.</p>
+        <h1>Manage posts</h1>
+        <p>Select featured posts to display in the footer.</p>
     </div>
     <div class="admin-post-heading-actions">
         <details class="admin-post-group-create">
-            <summary>Tạo nhóm</summary>
+            <summary>Create group</summary>
             <form method="post">
                 {% csrf_token %}
                 <label>
-                    Tên nhóm
-                    <input type="text" name="group_name" maxlength="100" placeholder="Ví dụ: Sức khỏe" required>
+                    Group name
+                    <input type="text" name="group_name" maxlength="100" placeholder="Example: Health" required>
                 </label>
-                <button type="submit" name="create_group" value="1">Lưu nhóm</button>
+                <button type="submit" name="create_group" value="1">Save group</button>
             </form>
         </details>
-        <a class="admin-post-create-link" href="{% url 'admin_create_post' %}">Tạo bài viết mới</a>
+        <a class="admin-post-create-link" href="{% url 'admin_create_post' %}">Create new post</a>
     </div>
 </div>
 
@@ -37,7 +37,7 @@
 
 <div class="admin-post-list-summary">
     <strong>{{ featured_count }}</strong>
-    <span>bài viết đang nổi bật</span>
+    <span>featured posts</span>
 </div>
 
 <form method="post">
@@ -47,20 +47,20 @@
         <article class="admin-post-list-item{% if item.is_featured %} is-featured{% endif %}">
             <div class="admin-post-list-main">
                 <div class="admin-post-list-state">
-                    {% if item.is_featured %}★ Nổi bật{% else %}Bài viết thường{% endif %}
+                    {% if item.is_featured %}★ Featured{% else %}Regular post{% endif %}
                 </div>
                 <h2>{{ item.title }}</h2>
                 <p>
                     {{ item.created_at|date:"d/m/Y H:i" }}
-                    · {{ item.view_count }} lượt xem
-                    · {% if item.is_published %}Đã xuất bản{% else %}Bản nháp{% endif %}
+                    · {{ item.view_count }} views
+                    · {% if item.is_published %}Published{% else %}Draft{% endif %}
                 </p>
             </div>
             <div class="admin-post-list-actions">
                 <label class="admin-post-group-select">
-                    <span>Nhóm hiển thị</span>
+                    <span>Display group</span>
                     <select name="group_{{ item.pk }}">
-                        <option value="">Bài viết nổi bật</option>
+                        <option value="">Featured posts</option>
                         {% for group in featured_groups %}
                         <option value="{{ group.pk }}"{% if item.featured_group_id == group.pk %} selected{% endif %}>{{ group.name }}</option>
                         {% endfor %}
@@ -85,8 +85,8 @@
         </article>
         {% empty %}
         <div class="admin-post-list-empty">
-            <p>Chưa có bài viết nào.</p>
-            <a href="{% url 'admin_create_post' %}">Tạo bài viết đầu tiên</a>
+            <p>No posts yet.</p>
+            <a href="{% url 'admin_create_post' %}">Create the first post</a>
         </div>
         {% endfor %}
     </div>

@@ -1,0 +1,67 @@
+{% extends "admin/base_site.html" %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    #nav-sidebar, .toggle-nav-sidebar { display: none !important; }
+    .main > #nav-sidebar + .content, .main.shifted > #nav-sidebar + .content { max-width: 100%; }
+    .chat-history-header { align-items: center; display: flex; gap: 16px; justify-content: space-between; margin-bottom: 22px; }
+    .chat-history-header h1 { margin: 0 0 5px; }
+    .chat-history-header p { color: #4f6d71; margin: 0; }
+    .chat-history-back { background: #eef7f5; border: 1px solid #b8ddd5; border-radius: 7px; color: #006d78 !important; font-weight: 700; padding: 9px 14px; text-decoration: none; }
+    .chat-history { background: #e1f4f0; border: 1px solid #c8e4df; border-radius: 14px; display: flex; flex-direction: column; gap: 12px; min-height: 420px; padding: 24px; }
+    .chat-history-message { align-self: flex-start; max-width: min(680px, 82%); }
+    .chat-history-message p { background: #fff; border: 1px solid #d5d9d9; border-radius: 16px; color: #002f36; margin: 4px 0; padding: 10px 14px; white-space: pre-wrap; }
+    .chat-history-attachment { background: #fff; border: 1px solid #d5d9d9; border-radius: 16px; display: block; margin: 4px 0; overflow: hidden; padding: 5px; }
+    .chat-history-attachment img, .chat-history-attachment video { border-radius: 12px; display: block; max-height: 360px; max-width: 100%; }
+    .chat-history-document { color: #006d78; display: block; font-weight: 700; padding: 9px; }
+    .chat-history-meta { color: #4f6d71; font-size: 12px; }
+    .chat-history-status { border-radius: 999px; display: inline-block; font-size: 11px; font-weight: 700; margin-left: 5px; padding: 2px 7px; }
+    .chat-history-status.pending { background: #fff3cd; color: #765a00; }
+    .chat-history-status.approved { background: #d1eae5; color: #006d78; }
+    .chat-history-status.rejected { background: #fde2e1; color: #a61b1b; }
+    .chat-history-empty { color: #4f6d71; margin: auto; }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; <a href="{{ review_list_url }}">Review messages</a> &rsaquo; Chat history</div>
+{% endblock %}
+
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div class="chat-history-header">
+    <div>
+        <h1>Chat history</h1>
+        <p>{{ member_names|join:" ↔ " }}</p>
+    </div>
+    <a class="chat-history-back" href="{{ review_list_url }}">← Back to review list</a>
+</div>
+
+<div class="chat-history">
+    {% for message in history %}
+    <article class="chat-history-message">
+        <div class="chat-history-meta">
+            <strong>{{ message.sender.get_full_name|default:message.sender.username }}</strong>
+            · {{ message.created_at|date:"d/m/Y H:i" }}
+            <span class="chat-history-status {{ message.moderation_status }}">{{ message.get_moderation_status_display }}</span>
+        </div>
+        {% if message.attachment %}
+        <div class="chat-history-attachment">
+            {% if message.attachment_type == "image" %}
+            <img src="{% url 'chat_message_attachment' message.id %}" alt="{{ message.attachment_name }}">
+            {% elif message.attachment_type == "video" %}
+            <video src="{% url 'chat_message_attachment' message.id %}" controls preload="metadata"></video>
+            {% else %}
+            <a class="chat-history-document" href="{% url 'chat_message_attachment' message.id %}">{{ message.attachment_name }}</a>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% if message.content %}<p>{{ message.content }}</p>{% endif %}
+    </article>
+    {% empty %}
+    <p class="chat-history-empty">This conversation has no messages.</p>
+    {% endfor %}
+</div>
+{% endblock %}

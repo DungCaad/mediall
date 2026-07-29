@@ -43,6 +43,17 @@ class BaseRoleProfile(models.Model):
     class Meta:
         abstract = True
 
+    @property
+    def avatar_url(self):
+        if not self.avatar:
+            return ""
+        try:
+            if self.avatar.storage.exists(self.avatar.name):
+                return self.avatar.url
+        except (OSError, ValueError):
+            pass
+        return ""
+
 
 class PatientProfile(BaseRoleProfile):
     account = models.OneToOneField(AccountProfile, on_delete=models.CASCADE, related_name="patient_details")
@@ -95,9 +106,9 @@ class DoctorProfile(BaseRoleProfile):
     WORK_SCHEDULE_NIGHT = "night"
     WORK_SCHEDULE_CUSTOM = "custom"
     WORK_SCHEDULE_CHOICES = [
-        (WORK_SCHEDULE_OFFICE, "Giờ hành chính"),
-        (WORK_SCHEDULE_NIGHT, "Ca đêm"),
-        (WORK_SCHEDULE_CUSTOM, "Tùy chỉnh"),
+        (WORK_SCHEDULE_OFFICE, "Office hours"),
+        (WORK_SCHEDULE_NIGHT, "Night shift"),
+        (WORK_SCHEDULE_CUSTOM, "Custom"),
     ]
 
     account = models.OneToOneField(AccountProfile, on_delete=models.CASCADE, related_name="doctor_details")
@@ -125,9 +136,9 @@ class DoctorProfile(BaseRoleProfile):
         validators=[MinValueValidator(0)],
     )
     work_schedule_type = models.CharField(max_length=20, choices=WORK_SCHEDULE_CHOICES, default=WORK_SCHEDULE_OFFICE)
-    custom_work_start = models.TimeField("Giờ bắt đầu tùy chỉnh", blank=True, null=True)
-    custom_work_end = models.TimeField("Giờ kết thúc tùy chỉnh", blank=True, null=True)
-    weekend_off = models.BooleanField("Nghỉ Thứ 7 và Chủ nhật", default=False)
+    custom_work_start = models.TimeField("Custom start time", blank=True, null=True)
+    custom_work_end = models.TimeField("Custom end time", blank=True, null=True)
+    weekend_off = models.BooleanField("Closed on Saturdays and Sundays", default=False)
     recommended_doctors = models.ManyToManyField(
         "self",
         symmetrical=False,
@@ -145,11 +156,6 @@ class DoctorProfile(BaseRoleProfile):
     @property
     def specialty_list(self):
         return [item.strip() for item in re.split(r"[|,]", self.specialties) if item.strip()]
-
-    @property
-    def avatar_url(self):
-        return self.avatar.url if self.avatar else ""
-
 
 class DoctorBusyDate(models.Model):
     doctor = models.ForeignKey(DoctorProfile, on_delete=models.CASCADE, related_name="busy_dates")
@@ -181,16 +187,16 @@ class DoctorAppointment(models.Model):
     STATUS_ACCEPTED = "accepted"
     STATUS_REJECTED = "rejected"
     STATUS_CHOICES = [
-        (STATUS_PENDING, "Chờ xác nhận"),
-        (STATUS_ACCEPTED, "Đã chấp nhận"),
-        (STATUS_REJECTED, "Đã từ chối"),
+        (STATUS_PENDING, "Pending confirmation"),
+        (STATUS_ACCEPTED, "Accepted"),
+        (STATUS_REJECTED, "Rejected"),
     ]
     PAYMENT_AWAITING = "awaiting"
     PAYMENT_PAID = "paid"
     PAYMENT_EXPIRED = "expired"
     PAYMENT_STATUS_CHOICES = [
-        (PAYMENT_AWAITING, "Chờ thanh toán"),
-        (PAYMENT_PAID, "Đã thanh toán"),
+        (PAYMENT_AWAITING, "Awaiting payment"),
+        (PAYMENT_PAID, "Paid"),
         (PAYMENT_EXPIRED, "Payment expired"),
     ]
     MODERATION_PENDING = "pending"
@@ -200,6 +206,12 @@ class DoctorAppointment(models.Model):
         (MODERATION_PENDING, "Pending admin review"),
         (MODERATION_APPROVED, "Approved by admin"),
         (MODERATION_REJECTED, "Rejected by admin"),
+    ]
+    COMPLETION_PENDING = "pending"
+    COMPLETION_COMPLETED = "completed"
+    COMPLETION_STATUS_CHOICES = [
+        (COMPLETION_PENDING, "Completion pending"),
+        (COMPLETION_COMPLETED, "Completed"),
     ]
 
     patient = models.ForeignKey(PatientProfile, on_delete=models.CASCADE, related_name="appointments")
@@ -225,6 +237,22 @@ class DoctorAppointment(models.Model):
     )
     payment_due_at = models.DateTimeField("Payment deadline", blank=True, null=True, editable=False)
     payment_submitted_at = models.DateTimeField("Payment submitted at", blank=True, null=True, editable=False)
+    completion_status = models.CharField(
+        "Completion status",
+        max_length=20,
+        choices=COMPLETION_STATUS_CHOICES,
+        default=COMPLETION_PENDING,
+        db_index=True,
+    )
+    completed_at = models.DateTimeField("Completed at", blank=True, null=True, editable=False)
+    completed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="completed_consultation_orders",
+        blank=True,
+        null=True,
+        editable=False,
+    )
     moderation_status = models.CharField(
         max_length=20,
         choices=MODERATION_STATUS_CHOICES,
@@ -294,6 +322,13 @@ class MedicalRecord(models.Model):
 
 
 class DoctorReview(models.Model):
+    appointment = models.OneToOneField(
+        DoctorAppointment,
+        on_delete=models.CASCADE,
+        related_name="review",
+        blank=True,
+        null=True,
+    )
     patient = models.ForeignKey(PatientProfile, on_delete=models.CASCADE, related_name="doctor_reviews")
     doctor = models.ForeignKey(DoctorProfile, on_delete=models.CASCADE, related_name="reviews")
     rating = models.PositiveSmallIntegerField("Rating")
@@ -304,7 +339,6 @@ class DoctorReview(models.Model):
     class Meta:
         ordering = ["-updated_at"]
         constraints = [
-            models.UniqueConstraint(fields=["patient", "doctor"], name="unique_patient_doctor_review"),
             models.CheckConstraint(condition=models.Q(rating__gte=1, rating__lte=5), name="doctor_review_rating_1_to_5"),
         ]
 

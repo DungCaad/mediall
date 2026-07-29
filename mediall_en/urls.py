@@ -18,10 +18,11 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
 from . import views
 
 urlpatterns = [
+    path("chat/", include("chat.urls")),
     path("admin/creat", views.admin_create_post, name="admin_create_post"),
     path("admin/posts", views.admin_posts, name="admin_posts"),
     path("admin/orders", views.admin_orders, name="admin_orders"),

@@ -15,14 +15,14 @@
             {% if not action.patient_only or header_is_patient %}
             {% if action.kind == 'notification-menu' %}
             <div class="notification-menu" data-notification-menu>
-                <button class="notification-toggle" type="button" aria-label="Mở thông báo" aria-expanded="false" data-notification-toggle>
+                <button class="notification-toggle" type="button" aria-label="Open notifications" aria-expanded="false" data-notification-toggle>
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
                     {% if action.count %}<span class="notification-count">{{ action.count }}</span>{% endif %}
                 </button>
                 <div class="notification-panel" data-notification-panel>
                     <div class="notification-panel-heading">
-                        <strong>Thông báo</strong>
-                        {% if header_notification_count %}<span>{{ header_notification_count }} thông báo</span>{% endif %}
+                        <strong>Notifications</strong>
+                        {% if header_notification_count %}<span>{{ header_notification_count }} notifications</span>{% endif %}
                     </div>
                     <div class="notification-list">
                         {% for notification in header_notifications %}
@@ -31,18 +31,61 @@
                             <div>
                                 <strong>{{ notification.title }}</strong>
                                 <p>{{ notification.message }}</p>
-                                <time datetime="{{ notification.created_at|date:'c' }}">{{ notification.created_at|timesince }} trước</time>
+                                <time datetime="{{ notification.created_at|date:'c' }}">{{ notification.created_at|timesince }} ago</time>
                             </div>
                         </a>
                         {% empty %}
-                        <p class="notification-empty">Bạn chưa có thông báo nào.</p>
+                        <p class="notification-empty">You have no notifications.</p>
                         {% endfor %}
                     </div>
                 </div>
             </div>
+            {% elif action.kind == 'chat-menu' %}
+            <div class="header-chat-menu" data-header-chat-menu>
+                <button class="notification-toggle header-chat-toggle" type="button" aria-label="{{ action.label }}" aria-expanded="false" data-header-chat-toggle>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15a3 3 0 0 1-3 3H9l-5 3v-5.5A3 3 0 0 1 3 13V7a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3z"/></svg>
+                    {% if action.count %}<span class="notification-count header-chat-count">{{ action.count }}</span>{% endif %}
+                </button>
+                <div class="header-chat-panel" data-header-chat-panel>
+                    <div class="header-chat-heading">
+                        <strong>Chats</strong>
+                        <a href="{% url 'chat' %}" aria-label="Open chat page" title="Open chat page">↗</a>
+                    </div>
+                    <label class="header-chat-search">
+                        <span aria-hidden="true">⌕</span>
+                        <input type="search" placeholder="Search conversations" data-header-chat-search>
+                    </label>
+                    <div class="header-chat-filters">
+                        {% for filter in header_chat_filters %}
+                        <button type="button" class="{% if filter.active %}active{% endif %}" data-header-chat-filter="{{ filter.id }}" aria-pressed="{% if filter.active %}true{% else %}false{% endif %}">{{ filter.label }}</button>
+                        {% endfor %}
+                    </div>
+                    <div class="header-chat-list" data-header-chat-list>
+                        {% for conversation in header_chat_conversations %}
+                        <a class="header-chat-item" href="{% url 'chat' %}?conversation={{ conversation.id }}" data-header-chat-item data-search-text="{{ conversation.title|lower }} {{ conversation.preview|lower }}" data-unread="{% if conversation.unread %}true{% else %}false{% endif %}" data-group="{% if conversation.is_group %}true{% else %}false{% endif %}">
+                            <span class="header-chat-avatar">
+                                {% if conversation.avatar_url %}<img src="{{ conversation.avatar_url }}" alt="">{% else %}{{ conversation.initial }}{% endif %}
+                            </span>
+                            <span class="header-chat-copy">
+                                <strong>{{ conversation.title }}</strong>
+                                <span>{% if conversation.preview_is_mine %}You: {% endif %}{{ conversation.preview|truncatechars:38 }} · {{ conversation.updated_at|timesince }}</span>
+                            </span>
+                            {% if conversation.unread %}<span class="header-chat-unread" aria-label="{{ conversation.unread }} unread messages"></span>{% endif %}
+                        </a>
+                        {% empty %}
+                        <p class="header-chat-empty">No conversations yet.</p>
+                        {% endfor %}
+                    </div>
+                    <a class="header-chat-footer" href="{% url 'chat' %}">See all in Chat</a>
+                </div>
+            </div>
             {% else %}
-            <a class="notification-toggle consultation-cart-toggle" href="{{ action.href }}" aria-label="{{ action.label }}" title="{{ action.label }}">
+            <a class="notification-toggle{% if action.kind == 'chat-link' %} header-chat-toggle{% else %} consultation-cart-toggle{% endif %}" href="{{ action.href }}" aria-label="{{ action.label }}" title="{{ action.label }}">
+                {% if action.kind == 'chat-link' %}
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15a3 3 0 0 1-3 3H9l-5 3v-5.5A3 3 0 0 1 3 13V7a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3z"/></svg>
+                {% else %}
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L21 7H7M10 20h.01M18 20h.01"/></svg>
+                {% endif %}
                 {% if action.count %}<span class="notification-count consultation-cart-count">{{ action.count }}</span>{% endif %}
             </a>
             {% endif %}
@@ -86,4 +129,4 @@
         </div>
     </div>
 </header>
-<script src="{% static 'js/header.js' %}?v=20260722-3" defer></script>
+<script src="{% static 'js/header.js' %}?v=20260729-1" defer></script>

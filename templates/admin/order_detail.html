@@ -26,6 +26,8 @@
             <div><dt>Service</dt><dd>{{ order.get_service_type_display|default:"Not selected" }}</dd></div>
             <div><dt>Consultation fee</dt><dd>{% if order.consultation_fee is not None %}${{ order.consultation_fee|floatformat:-2 }} /visit{% else %}Not provided{% endif %}</dd></div>
             <div><dt>Payment status</dt><dd>{{ order.get_payment_status_display }}</dd></div>
+            <div><dt>Completion status</dt><dd>{{ order.get_completion_status_display }}</dd></div>
+            {% if order.completed_at %}<div><dt>Completed at</dt><dd>{{ order.completed_at|date:"d/m/Y H:i" }}</dd></div>{% endif %}
             <div><dt>Payment deadline</dt><dd>{% if order.payment_due_at %}{{ order.payment_due_at|date:"d M Y, H:i" }}{% else %}Not started{% endif %}</dd></div>
             <div><dt>Reason for visit</dt><dd>{{ order.reason|default:"No reason provided."|linebreaksbr }}</dd></div>
         </dl>

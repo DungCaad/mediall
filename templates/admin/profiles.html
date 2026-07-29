@@ -26,7 +26,7 @@
     {% for profile in profile_rows %}
     <a class="admin-profile-row" href="{% url detail_url_name profile.profile_id %}">
         <span class="admin-profile-row-avatar">
-            {% if profile.avatar %}<img src="{{ profile.avatar.url }}" alt="">{% else %}<img src="{% static 'images/no-profile.png' %}" alt="">{% endif %}
+            {% if profile.avatar_url %}<img src="{{ profile.avatar_url }}" alt="">{% else %}<img src="{% static 'images/no-profile.png' %}" alt="">{% endif %}
         </span>
         <span class="admin-profile-row-primary">
             <strong>{{ profile.name }}</strong>

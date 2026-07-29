@@ -255,6 +255,8 @@ button,
 .admin-order-action.verify { background: #007f8c; color: #fff; }
 .admin-order-action.confirm-payment { background: #16a765; color: #fff; }
 .admin-order-action.confirm-payment:hover:not(:disabled) { background: #118552; }
+.admin-order-action.complete { background: #7657ff; color: #fff; }
+.admin-order-action.complete:hover:not(:disabled) { background: #6243e8; }
 .admin-order-action.details { background: #ffd814; color: #173b41; }
 .admin-order-action.details:hover { background: #f0c800; color: #102f34; text-decoration: none; }
 .admin-order-action.cleanup { background: #ffe2e2; color: #a32929; }

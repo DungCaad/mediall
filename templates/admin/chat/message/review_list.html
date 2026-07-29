@@ -1,0 +1,93 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    #nav-sidebar, .toggle-nav-sidebar { display: none !important; }
+    .main > #nav-sidebar + .content, .main.shifted > #nav-sidebar + .content { max-width: 100%; }
+    .message-review-heading { align-items: flex-end; display: flex; gap: 18px; justify-content: space-between; margin-bottom: 22px; }
+    .message-review-heading h1 { margin: 0 0 5px; }
+    .message-review-heading p { color: #4f6d71; margin: 0; }
+    .message-review-count { background: #d1eae5; border-radius: 999px; color: #002f36; font-size: 13px; font-weight: 700; padding: 7px 13px; white-space: nowrap; }
+    .message-review-list { display: grid; gap: 12px; }
+    .message-review-card { background: #fff; border: 1px solid #d5d9d9; border-radius: 12px; display: grid; gap: 18px; grid-template-columns: minmax(180px, .8fr) minmax(260px, 2fr) auto; padding: 18px; }
+    .message-review-people { color: #4f6d71; font-size: 13px; }
+    .message-review-people strong { color: #002f36; display: block; font-size: 15px; margin-bottom: 5px; }
+    .message-review-content { color: #002f36; }
+    .message-review-content p { font-size: 15px; margin: 0 0 7px; white-space: pre-wrap; }
+    .message-review-attachment { display: block; margin: 0 0 9px; }
+    .message-review-attachment img, .message-review-attachment video { border-radius: 9px; display: block; max-height: 260px; max-width: min(420px, 100%); }
+    .message-review-document { color: #006d78; font-weight: 700; }
+    .message-review-content time { color: #607d80; font-size: 12px; }
+    .message-review-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    .message-review-actions form { margin: 0; }
+    .message-review-actions button, .message-review-actions a { border: 0; border-radius: 7px; box-sizing: border-box; cursor: pointer; display: inline-flex; font-size: 13px; font-weight: 700; justify-content: center; line-height: 1.2; padding: 10px 14px; text-decoration: none; }
+    .message-review-approve { background: #008296; color: #fff; }
+    .message-review-approve:hover { background: #006d78; }
+    .message-review-history { background: #eef7f5; border: 1px solid #b8ddd5 !important; color: #006d78 !important; }
+    .message-review-empty { background: #fff; border: 1px dashed #b7c7c9; border-radius: 12px; color: #4f6d71; padding: 50px 20px; text-align: center; }
+    @media (max-width: 900px) {
+        .message-review-card { grid-template-columns: 1fr; }
+        .message-review-actions { justify-content: flex-start; }
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Review messages</div>
+{% endblock %}
+
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div class="message-review-heading">
+    <div>
+        <h1>Review messages</h1>
+        <p>Only approved messages are delivered to the recipient.</p>
+    </div>
+    <span class="message-review-count">{{ pending_count }} pending</span>
+</div>
+
+<div class="message-review-list">
+    {% for row in rows %}
+    <article class="message-review-card">
+        <div class="message-review-people">
+            <strong>{{ row.sender_name }}</strong>
+            <span>To: {{ row.recipient_names }}</span>
+        </div>
+        <div class="message-review-content">
+            {% if row.message.attachment %}
+            <div class="message-review-attachment">
+                {% if row.message.attachment_type == "image" %}
+                <img src="{% url 'chat_message_attachment' row.message.id %}" alt="{{ row.message.attachment_name }}">
+                {% elif row.message.attachment_type == "video" %}
+                <video src="{% url 'chat_message_attachment' row.message.id %}" controls preload="metadata"></video>
+                {% else %}
+                <a class="message-review-document" href="{% url 'chat_message_attachment' row.message.id %}">{{ row.message.attachment_name }}</a>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% if row.message.content %}
+            <p>{{ row.message.content }}</p>
+            {% endif %}
+            <time datetime="{{ row.message.created_at|date:'c' }}">{{ row.message.created_at|date:"d/m/Y H:i" }}</time>
+        </div>
+        <div class="message-review-actions">
+            {% for action in row.actions %}
+                {% if action.kind == "submit" %}
+                <form method="post" action="{{ action.url }}">
+                    {% csrf_token %}
+                    <button class="{{ action.class_name }}" type="submit">{{ action.label }}</button>
+                </form>
+                {% else %}
+                <a class="{{ action.class_name }}" href="{{ action.url }}">{{ action.label }}</a>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </article>
+    {% empty %}
+    <div class="message-review-empty">There are no messages awaiting review.</div>
+    {% endfor %}
+</div>
+{% endblock %}

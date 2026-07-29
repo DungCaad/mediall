@@ -47,6 +47,7 @@ RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY", "")
 INSTALLED_APPS = [
     "accounts",
     "doctors",
+    "chat",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -97,7 +98,9 @@ DATABASES = {
         "PASSWORD": os.environ.get("APP_DB_PASSWORD", os.environ.get("DB_PASSWORD", "")),
         "HOST": os.environ.get("APP_DB_HOST", os.environ.get("DB_HOST", "")),
         "PORT": int(os.environ.get("APP_DB_PORT", os.environ.get("DB_PORT", "3306"))),
-        "CONN_MAX_AGE": int(os.environ.get("DB_CONN_MAX_AGE", "60")),
+        # The database account is limited to 20 connections. Closing each
+        # request connection prevents threaded polling from exhausting them.
+        "CONN_MAX_AGE": int(os.environ.get("DB_CONN_MAX_AGE", "0")),
         "CONN_HEALTH_CHECKS": True,
         "OPTIONS": {
             "charset": "utf8mb4",

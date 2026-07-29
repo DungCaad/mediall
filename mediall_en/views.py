@@ -939,6 +939,8 @@ def is_vietnamese_host(request):
 
 def build_header_context(language="en", guest_modal=False, request=None):
     expire_overdue_appointment_payments()
+    if request is not None and is_vietnamese_host(request):
+        language = "vi"
     # Dãy mục điều hướng dùng chung trên header
     if language == "vi":
         # Dãy mục điều hướng tiếng Việt
@@ -1236,6 +1238,8 @@ def build_header_context(language="en", guest_modal=False, request=None):
     ]
 
     return {
+        "page_language": language,
+        "is_vi": language == "vi",
         "header_nav_items": header_nav_items,
         "authenticated_account_actions": authenticated_account_actions,
         "guest_account_actions": guest_account_actions,

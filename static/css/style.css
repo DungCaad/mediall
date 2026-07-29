@@ -4109,6 +4109,21 @@ button.doctor-cta {
     font-size: 12px;
 }
 
+.appointment-doctor-card > .doctor-avatar-fallback {
+    align-items: center;
+    align-self: start;
+    background: #f3f5f7;
+    border: 1px solid #edf0f4;
+    color: #173f4c;
+    display: flex;
+    font-size: 22px;
+    font-weight: 700;
+    height: 68px;
+    justify-content: center;
+    line-height: 1;
+    width: 68px;
+}
+
 .appointment-doctor-card a {
     align-self: end;
     color: var(--accent-teal);

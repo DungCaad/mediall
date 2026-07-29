@@ -34,7 +34,57 @@
         </div>
     </section>
 
-    <section class="conditions-section">
+    <section class="two-options" id="membership-options">
+        <div class="container">
+            <div class="two-options-grid">
+                <div><img src="{% static 'images/image_1.jpeg' %}" alt="Đội ngũ bác sĩ Mediall"></div>
+                <div>
+                    <h2 class="section-title">Hai lựa chọn hỗ trợ sức khỏe</h2>
+                    <p class="price-disclaimer">Giá trên trang tiếng Việt được quy đổi theo tỷ giá 1 USD = {{ usd_to_vnd_rate }}.</p>
+                    <button class="compare-options-trigger" type="button" data-open-compare-options>So sánh các lựa chọn</button>
+                    <div class="toggle-cards">
+                        {% for option in care_options %}
+                        <button class="toggle-card{% if option.active %} active{% endif %}" type="button" data-care-option="{{ option.id }}">
+                            <h4>{{ option.title }}</h4>
+                            <p>{{ option.description }}</p>
+                            <div class="price">{{ option.price }}</div>
+                            <p style="margin:0;">{% for detail in option.price_details %}{{ detail }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</p>
+                        </button>
+                        {% if not forloop.last %}<div style="font-size:12px; font-weight:bold;">hoặc</div>{% endif %}
+                        {% endfor %}
+                    </div>
+                    {% for option in care_options %}
+                    <div class="care-option-panel{% if option.active %} active{% endif %}" data-care-panel="{{ option.id }}">
+                        <h3 style="margin-bottom:15px;">{{ option.panel_title }}</h3>
+                        <ul class="features-list">{% for feature in option.features %}<li>{{ feature }}</li>{% endfor %}</ul>
+                        <div class="price-breakdown">
+                            {% for care_price in option.care_prices %}{{ care_price.price }} <span style="font-size:14px; font-weight:normal;">{{ care_price.label }}</span>{% if not forloop.last %} &nbsp; {% endif %}{% endfor %}
+                        </div>
+                        <p class="price-disclaimer">{{ option.disclaimer }}</p>
+                        {% if option.button_text %}<a class="btn" href="{{ option.button_url }}" style="margin-right:15px;">{{ option.button_text }}</a>{% endif %}
+                        {% if option.link_text %}<a href="{{ option.link_url }}" style="font-size:14px; font-weight:bold;">{{ option.link_text }}</a>{% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="modal-backdrop compare-options-backdrop" data-compare-options-modal id="compare-options">
+        <section class="compare-options-modal" role="dialog" aria-modal="true" aria-label="So sánh hình thức tư vấn">
+            <button class="compare-options-close" type="button" aria-label="Đóng bảng so sánh" data-close-compare-options>&times;</button>
+            <div class="compare-options-grid">
+                {% for option in comparison_options %}
+                <article class="compare-option-column compare-option-{{ option.id }}">
+                    <h3>{{ option.title }}</h3><strong>{{ option.subtitle }}</strong>
+                    <ul>{% for feature in option.features %}<li>{{ feature }}</li>{% endfor %}</ul>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+
+    <section class="conditions-section" id="health-topics">
         <div class="container">
             <h2 class="section-title">Bạn cần hỗ trợ vấn đề gì?</h2>
 
@@ -67,7 +117,54 @@
         </div>
     </section>
 
-    <section class="how-it-works">
+    <section class="split-section bg-mint">
+        <div class="container"><div class="split-grid">
+            <div>
+                <span class="badge">Hỗ trợ trực tuyến</span>
+                <h2 class="section-title" style="font-size:36px; margin:15px 0;">Nhận hướng dẫn nhanh<br><span style="color:var(--accent-teal);">không phải chờ đến ngày mai</span></h2>
+                <p>Kết nối với bác sĩ để nhận thông tin và hướng dẫn sức khỏe từ xa bằng tin nhắn hoặc video. Dịch vụ hoạt động trực tuyến, phù hợp với những vấn đề phổ biến và không thay thế cấp cứu hay khám trực tiếp.</p>
+                <div class="pill-container"><div class="pill">Cảm lạnh</div><div class="pill">Dị ứng</div><div class="pill">Chăm sóc da</div><div class="pill">Sức khỏe tóc</div><div class="pill">Sức khỏe tổng quát</div></div>
+            </div>
+            <div class="split-image"><img src="{% static 'images/image_2.jpeg' %}" alt="Tư vấn sức khỏe trực tuyến"></div>
+        </div></div>
+    </section>
+
+    <section class="split-section bg-white">
+        <div class="container"><div class="split-grid" style="grid-template-columns:1fr 1.2fr;">
+            <div>
+                <span class="badge">Phạm vi dịch vụ</span>
+                <h2 class="section-title">Hướng dẫn sức khỏe và chăm sóc cá nhân cho các vấn đề thường gặp</h2>
+                <p>Mediall hỗ trợ cung cấp thông tin về sức khỏe tổng quát, chăm sóc da và tóc, sản phẩm không kê đơn và các lựa chọn chăm sóc phù hợp. Dịch vụ không thay thế chẩn đoán, đơn thuốc hoặc điều trị tại cơ sở y tế.</p>
+                <ul class="features-list"><li>Trao đổi bằng tin nhắn, hình ảnh hoặc video.</li><li>Đặt lịch theo thời gian phù hợp.</li><li>Chi phí được hiển thị trước khi xác nhận.</li></ul>
+                <a href="{% url 'doctor_search' %}" style="font-size:14px; font-weight:bold;">Xem bác sĩ và lịch trống</a>
+            </div>
+            <div class="split-image" style="text-align:center;"><img src="{% static 'images/image_3.jpeg' %}" alt="Bác sĩ tư vấn cho người dùng"></div>
+        </div></div>
+    </section>
+
+    <section class="insurance-section">
+        <div class="container"><div class="insurance-section-content">
+            <div class="insurance-section-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="7" y="10" width="29" height="23" rx="2"></rect><path d="M12 17h19M15 22v7M11.5 25.5h7"></path><circle cx="35" cy="34" r="9"></circle><path class="insurance-check" d="m31 34 3 3 6-7"></path></svg></div>
+            <div><h2>Chi phí minh bạch theo từng hình thức tư vấn</h2><p>Người dùng có thể chọn gói thành viên hoặc thanh toán từng lần. Giá VNĐ được quy đổi tự động và giá cuối cùng xuất hiện trước khi đặt lịch.</p><a href="#membership-options">Xem bảng giá và quyền lợi</a></div>
+        </div></div>
+    </section>
+
+    <section class="split-section bg-white" style="padding-top:0;">
+        <div class="container"><div class="split-grid">
+            <div class="split-image"><img src="{% static 'images/image_4.jpeg' %}" alt="Tư vấn sức khỏe một lần"></div>
+            <div>
+                <span class="badge" style="background:#EAEAEA;">TƯ VẤN THEO YÊU CẦU</span>
+                <h2 class="section-title">Chỉ cần tư vấn trực tuyến một lần?</h2>
+                <p style="font-size:14px; margin-bottom:20px;">Chọn tư vấn bằng tin nhắn hoặc video cho một vấn đề cụ thể mà không cần đăng ký gói thành viên.</p>
+                <div class="price-breakdown">{{ home_message_price }} <span style="font-size:14px; font-weight:normal;">/Tin nhắn &nbsp;|&nbsp;</span> {{ home_video_price }} <span style="font-size:14px; font-weight:normal;">/Video</span></div>
+                <p class="price-disclaimer">Chi phí có thể thay đổi theo bác sĩ và chủ đề tư vấn.</p>
+                <ul class="features-list"><li>Hướng dẫn nhanh cho vấn đề phổ biến.</li><li>Hỗ trợ bằng tin nhắn, hình ảnh hoặc video.</li></ul>
+                <a class="btn" href="{% url 'doctor_search' %}">Tìm bác sĩ</a>
+            </div>
+        </div></div>
+    </section>
+
+    <section class="how-it-works" id="how-it-works">
         <div class="container">
             <h2 class="section-title" style="text-align: left;">Cách hoạt động</h2>
             <div class="how-grid">
@@ -82,7 +179,46 @@
         </div>
     </section>
 
+    <section class="faq-testimonial">
+        <div class="container">
+            <h2 class="section-title">Câu hỏi thường gặp</h2>
+            <div class="faq-list">
+                {% for faq in faq_items %}
+                <details class="faq-item"{% if faq.open %} open{% endif %}>
+                    <summary id="faq-question-{{ faq.id }}"><span>{{ faq.question }}</span><span class="faq-icons" aria-hidden="true"><img class="faq-icon faq-icon-open" src="{% static faq.open_icon %}" alt=""><img class="faq-icon faq-icon-close" src="{% static faq.close_icon %}" alt=""></span></summary>
+                    <div class="faq-answer" aria-labelledby="faq-question-{{ faq.id }}">{% for paragraph in faq.paragraphs %}<p>{{ paragraph }}</p>{% endfor %}{% if faq.note %}<p class="faq-note">*{{ faq.note }}</p>{% endif %}</div>
+                </details>
+                {% endfor %}
+            </div>
+            <div class="testimonial">
+                <h2 class="section-title">Thông báo và tuyên bố miễn trừ trách nhiệm</h2>
+                <div class="split-image"><img src="{% static 'images/video_1.jpeg' %}" alt="Tư vấn sức khỏe"></div>
+                <p class="quote-text">Dịch vụ Mediall cung cấp nội dung giáo dục và thông tin sức khỏe, không cấu thành chẩn đoán hoặc điều trị y khoa tại địa phương. Nếu có dấu hiệu cấp cứu, phản ứng dị ứng nặng hoặc triệu chứng nghiêm trọng, hãy liên hệ ngay cơ sở y tế hoặc dịch vụ cấp cứu gần nhất.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="bottom-banner"><div class="container"><h2>Nhận hỗ trợ sức khỏe trực tuyến</h2><a class="btn" href="#health-topics">Tìm chủ đề phù hợp</a></div></section>
+
     <script>
+        function setupModal(modalSelector, openSelector, closeSelector) {
+            var modal = document.querySelector(modalSelector);
+            if (!modal) return;
+            document.querySelectorAll(openSelector).forEach(function (button) { button.addEventListener("click", function () { modal.classList.add("active"); document.body.classList.add("modal-open"); }); });
+            var closeButton = modal.querySelector(closeSelector);
+            if (closeButton) closeButton.addEventListener("click", function () { modal.classList.remove("active"); document.body.classList.remove("modal-open"); });
+            modal.addEventListener("click", function (event) { if (event.target === modal) { modal.classList.remove("active"); document.body.classList.remove("modal-open"); } });
+        }
+        setupModal("[data-compare-options-modal]", "[data-open-compare-options]", "[data-close-compare-options]");
+
+        document.querySelectorAll("[data-care-option]").forEach(function (optionButton) {
+            optionButton.addEventListener("click", function () {
+                var option = optionButton.dataset.careOption;
+                document.querySelectorAll("[data-care-option]").forEach(function (button) { button.classList.toggle("active", button === optionButton); });
+                document.querySelectorAll("[data-care-panel]").forEach(function (panel) { panel.classList.toggle("active", panel.dataset.carePanel === option); });
+            });
+        });
+
         document.querySelectorAll("[data-tab-target]").forEach(function (tabButton) {
             tabButton.addEventListener("click", function () {
                 var targetId = tabButton.dataset.tabTarget;

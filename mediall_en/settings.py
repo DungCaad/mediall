@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from decimal import Decimal
 import os
 from dotenv import load_dotenv
 
@@ -40,6 +41,7 @@ ALLOWED_HOSTS = ['mediall.net', 'www.mediall.net', '103.188.82.158', 'localhost'
 
 RECAPTCHA_SITE_KEY = os.getenv("RECAPTCHA_SITE_KEY", "")
 RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY", "")
+USD_TO_VND_RATE = Decimal(os.getenv("USD_TO_VND_RATE", "25000"))
 
 
 # Application definition

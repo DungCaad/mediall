@@ -1597,6 +1597,8 @@ def build_profile_context(request, profile_form, profile_type, active_tab="perso
 
 
 def build_home_context(request):
+    is_vi = is_vietnamese_host(request)
+    usd_to_vnd_rate = settings.USD_TO_VND_RATE
     minimum_doctor_fees = DoctorProfile.objects.aggregate(
         message=Min("message_consultation_fee"),
         video=Min("video_consultation_fee"),
@@ -1630,20 +1632,29 @@ def build_home_context(request):
 
     def display_home_fee(fee):
         if fee is None:
-            return "Not available"
+            return "Chưa có giá" if is_vi else "Not available"
+        if is_vi:
+            amount = (fee * usd_to_vnd_rate).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+            return f"{amount:,.0f} ₫".replace(",", ".")
         rounded_fee = fee.quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
         return f"${rounded_fee:.1f}"
+
+    def display_static_usd(amount):
+        if not is_vi:
+            return f"${amount}"
+        converted = (Decimal(str(amount)) * usd_to_vnd_rate).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        return f"{converted:,.0f} ₫".replace(",", ".")
 
     home_message_price = display_home_fee(minimum_member_message_fee)
     home_video_price = display_home_fee(minimum_member_video_fee)
     home_lowest_member_price = display_home_fee(minimum_member_fee)
     home_one_time_price = (
-        f"from {display_home_fee(minimum_standard_fee)}"
+        f"{'từ' if is_vi else 'from'} {display_home_fee(minimum_standard_fee)}"
         if minimum_standard_fee is not None
         else "Not available"
     )
     home_video_one_time_price = (
-        f"from {display_home_fee(minimum_standard_video_fee)}"
+        f"{'từ' if is_vi else 'from'} {display_home_fee(minimum_standard_video_fee)}"
         if minimum_standard_video_fee is not None
         else "Not available"
     )
@@ -1797,6 +1808,114 @@ def build_home_context(request):
         },
     ]
 
+    if is_vi:
+        care_options = [
+            {
+                "id": "membership",
+                "active": True,
+                "title": "Thành viên",
+                "description": "Hướng dẫn và thông tin sức khỏe 24/7",
+                "price": display_static_usd(39),
+                "price_details": ["/năm · tiết kiệm đến 40%", "Hủy bất cứ lúc nào"],
+                "panel_title": "Gói thành viên phù hợp khi bạn cần",
+                "features": [
+                    "Hỗ trợ giáo dục sức khỏe; không thay thế chẩn đoán hoặc điều trị y khoa.",
+                    "Gửi yêu cầu tư vấn thông tin sức khỏe mọi lúc, mọi nơi.",
+                    "Mức giá ưu đãi cho từng phiên tư vấn của thành viên.",
+                    "Có thể lựa chọn tư vấn bằng tin nhắn hoặc video.",
+                ],
+                "care_prices": [
+                    {"price": home_message_price, "label": "/Tư vấn tin nhắn"},
+                    {"price": home_video_price, "label": "/Tư vấn video"},
+                ],
+                "disclaimer": "Chi phí thay đổi theo chủ đề và bác sĩ. Mức quy đổi dùng tỷ giá cấu hình của hệ thống.",
+                "button_text": "Gửi yêu cầu tư vấn",
+                "button_url": "#health-topics",
+                "link_text": "Xem quyền lợi thành viên",
+                "link_url": "#compare-options",
+            },
+            {
+                "id": "one-time",
+                "title": "Tư vấn một lần",
+                "description": "Một phiên hỗ trợ cho vấn đề sức khỏe cụ thể.",
+                "price": home_one_time_price,
+                "price_details": ["/lần tư vấn", "Chi phí tùy hình thức và chủ đề"],
+                "panel_title": "Tư vấn một lần",
+                "features": [
+                    "Thanh toán theo từng phiên, không cần đăng ký thành viên.",
+                    "Phù hợp với câu hỏi sức khỏe phổ biến cần giải đáp nhanh.",
+                ],
+                "care_prices": [
+                    {"price": home_one_time_price, "label": "/Tư vấn tin nhắn"},
+                    {"price": home_video_one_time_price, "label": "/Tư vấn video"},
+                ],
+                "disclaimer": "Giá cuối cùng được hiển thị trước khi bạn xác nhận đặt lịch.",
+                "button_text": "Tìm bác sĩ",
+                "button_url": reverse("doctor_search"),
+                "link_text": "Xem cách hoạt động",
+                "link_url": "#how-it-works",
+            },
+        ]
+        comparison_options = [
+            {
+                "id": "membership",
+                "title": "Gói thành viên",
+                "subtitle": "Phù hợp nhất cho",
+                "features": [
+                    "Người cần hỗ trợ thông tin sức khỏe thường xuyên.",
+                    "Mức phí ưu đãi cho tư vấn tin nhắn và video.",
+                    "Quản lý lịch hẹn và trao đổi với bác sĩ trên một tài khoản.",
+                    "Có thể hủy gói bất cứ lúc nào.",
+                ],
+            },
+            {
+                "id": "pay-per-visit",
+                "title": "Thanh toán từng lần",
+                "subtitle": "Phù hợp nhất cho",
+                "features": [
+                    "Một câu hỏi hoặc nhu cầu hỗ trợ cụ thể.",
+                    "Không cần đăng ký phí thành viên.",
+                    "Biết giá trước khi xác nhận tư vấn.",
+                ],
+            },
+        ]
+
+        faq_items = [
+            {
+                "id": "what-is-mediall",
+                "question": "Mediall là gì?",
+                "open": False,
+                "open_icon": "images/open.ico",
+                "close_icon": "images/close.ico",
+                "paragraphs": ["Mediall giúp người dùng tìm bác sĩ, đặt lịch và nhận hướng dẫn thông tin sức khỏe trực tuyến theo thời gian phù hợp."],
+            },
+            {
+                "id": "membership-vs-on-demand",
+                "question": "Gói thành viên khác tư vấn một lần như thế nào?",
+                "open": False,
+                "open_icon": "images/open.ico",
+                "close_icon": "images/close.ico",
+                "paragraphs": ["Gói thành viên phù hợp với nhu cầu hỗ trợ thường xuyên và có mức phí ưu đãi. Tư vấn một lần phù hợp khi bạn chỉ cần giải đáp một vấn đề cụ thể."],
+                "note": "Giá và khả năng tiếp nhận phụ thuộc vào bác sĩ và loại tư vấn.",
+            },
+            {
+                "id": "payment",
+                "question": "Mức giá VNĐ được tính như thế nào?",
+                "open": False,
+                "open_icon": "images/open.ico",
+                "close_icon": "images/close.ico",
+                "paragraphs": [f"Giá VNĐ được quy đổi từ mức phí gốc theo tỷ giá hệ thống: 1 USD = {display_static_usd(1)}. Giá cuối cùng luôn được hiển thị trước khi xác nhận."],
+            },
+            {
+                "id": "health-information",
+                "question": "Mediall bảo vệ thông tin sức khỏe ra sao?",
+                "open": False,
+                "open_icon": "images/open.ico",
+                "close_icon": "images/close.ico",
+                "paragraphs": ["Mediall áp dụng các biện pháp kiểm soát truy cập và bảo mật phù hợp để bảo vệ dữ liệu cá nhân và nội dung trao đổi của người dùng."],
+            },
+        ]
+
     # Dãy thẻ bệnh trong carousel, sử dụng ảnh nội bộ trong static/images
     carousel_conditions = [
         # Thẻ Pain & Fever Relief
@@ -1936,6 +2055,42 @@ def build_home_context(request):
         }
     ]
 
+    if is_vi:
+        carousel_conditions = [
+            {"img": item["img"], "title_lines": [title], "specialty": item["specialty"]}
+            for item, title in zip(carousel_conditions, [
+                "Đau và sốt", "Sức khỏe nam", "Mãn kinh", "Sức khỏe phụ nữ",
+                "Cảm lạnh", "Da đầu và tóc", "Chống lão hóa", "Đau mắt đỏ",
+                "Rụng tóc nam", "Lo âu và căng thẳng", "Kế hoạch hóa",
+            ])
+        ]
+        vi_tab_names = [
+            "Phổ biến nhất", "Sức khỏe nam giới", "Sức khỏe phụ nữ",
+            "Sức khỏe tổng quát", "Sức khỏe tình dục", "Da và tóc", "Tất cả chủ đề",
+        ]
+        for tab, translated_name in zip(condition_tabs, vi_tab_names):
+            tab["name"] = translated_name
+        how_it_works = [
+            {
+                "step": 1,
+                "img": how_it_works[0]["img"],
+                "title": "Chọn nhu cầu hỗ trợ",
+                "desc": "Chọn chủ đề, trả lời một số câu hỏi và chọn tư vấn bằng tin nhắn hoặc video.",
+            },
+            {
+                "step": 2,
+                "img": how_it_works[1]["img"],
+                "title": "Kết nối với bác sĩ",
+                "desc": "Bác sĩ xem thông tin bạn cung cấp và trao đổi để đưa ra hướng dẫn phù hợp.",
+            },
+            {
+                "step": 3,
+                "img": how_it_works[2]["img"],
+                "title": "Nhận nội dung tổng kết",
+                "desc": "Theo dõi nội dung trao đổi, lịch hẹn và hướng dẫn sau phiên tư vấn trong tài khoản.",
+            },
+        ]
+
     context = {
         'faq_items': faq_items,
         'answer_ctas': answer_ctas,
@@ -1947,6 +2102,7 @@ def build_home_context(request):
         'home_message_price': home_message_price,
         'home_video_price': home_video_price,
         'home_lowest_member_price': home_lowest_member_price,
+        'usd_to_vnd_rate': display_static_usd(1),
         'recaptcha_site_key': settings.RECAPTCHA_SITE_KEY,
         'featured_footer_groups': get_featured_footer_groups(),
     }

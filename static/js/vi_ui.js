@@ -11,7 +11,7 @@
     }, {});
 
     var patterns = [
-        [/^Found (\d+) results?(?: for "(.+)")?\.$/, function (m) { return "Tìm thấy " + m[1] + " kết quả" + (m[2] ? " cho “" + m[2] + "”" : "") + "."; }],
+        [/^Found (\d+) results?(?: for "(.+)")?\.$/, function (m) { return "Tìm thấy " + m[1] + " kết quả" + (m[2] ? " cho “" + (translations[m[2]] || m[2]) + "”" : "") + "."; }],
         [/^(\d+) views$/, "$1 lượt xem"], [/^(\d+) reviews$/, "$1 đánh giá"], [/^(\d+) notifications$/, "$1 thông báo"],
         [/^(\d+) unread messages$/, "$1 tin nhắn chưa đọc"], [/^(\d+) stars?$/, "$1 sao"],
         [/^Order #(\d+)$/, "Đơn hàng #$1"], [/^Request #(\d+)$/, "Yêu cầu #$1"]

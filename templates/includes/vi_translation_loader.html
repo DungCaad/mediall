@@ -1,0 +1,5 @@
+{% load static %}
+{% if is_vi %}
+{{ ui_translations|json_script:"ui-translations" }}
+<script src="{% static 'js/vi_ui.js' %}?v=20260729-6" defer></script>
+{% endif %}

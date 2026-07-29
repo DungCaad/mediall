@@ -9,6 +9,9 @@
         result[translations[source]] = source;
         return result;
     }, {});
+    var translationSources = Object.keys(translations).sort(function (left, right) {
+        return right.length - left.length;
+    });
 
     var patterns = [
         [/^Found (\d+) results?(?: for "(.+)")?\.$/, function (m) { return "Tìm thấy " + m[1] + " kết quả" + (m[2] ? " cho “" + (translations[m[2]] || m[2]) + "”" : "") + "."; }],
@@ -32,6 +35,13 @@
                 return false;
             });
         }
+        if (!result) {
+            var partial = clean;
+            translationSources.forEach(function (source) {
+                if (partial.includes(source)) partial = partial.split(source).join(translations[source]);
+            });
+            if (partial !== clean) result = partial;
+        }
         return result ? value.replace(clean, result) : value;
     }
 
@@ -50,7 +60,7 @@
         var node;
         while ((node = walker.nextNode())) {
             if (!node.parentElement || /^(SCRIPT|STYLE|TEXTAREA)$/.test(node.parentElement.tagName)) continue;
-            if (node.parentElement.closest(".post-body, .doctor-public-introduction, .doctor-review-comment")) continue;
+            if (node.parentElement.closest(".post-body, .doctor-public-introduction, .doctor-review-comment, .message-text, .conversation-copy")) continue;
             node.nodeValue = translated(node.nodeValue);
         }
     }

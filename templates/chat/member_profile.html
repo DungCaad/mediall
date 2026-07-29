@@ -1,6 +1,6 @@
 {% load static %}
 <!doctype html>
-<html lang="en">
+<html lang="{{ page_language|default:'en' }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -24,5 +24,6 @@
         {% endif %}
         <a class="member-profile-back" href="{{ back_url }}">Back to chat</a>
     </main>
+    {% include 'includes/vi_translation_loader.html' %}
 </body>
 </html>

@@ -1,6 +1,6 @@
 {% load static %}
 <!doctype html>
-<html lang="en">
+<html lang="{{ page_language|default:'en' }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -144,5 +144,6 @@
     </div>
 </main>
 <script src="{% static 'js/chat.js' %}?v=20260729-7" defer></script>
+{% include 'includes/vi_translation_loader.html' %}
 </body>
 </html>

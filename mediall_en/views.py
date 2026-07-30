@@ -1757,7 +1757,6 @@ def build_home_context(request):
                 "Fees are for educational support services. This does not constitute clinical care or treatment for any medical condition.",
                 "Initiate educational consultations regarding health information, accessible anytime, anywhere.",
                 "Member rate: Single-session health education from",
-                "FSA/HSA eligible",
             ],
             "care_prices": [
                 {"price": home_message_price, "label": "/Direct Message Care"},
@@ -1780,13 +1779,16 @@ def build_home_context(request):
                 "Fees vary by consultation type and health topic",
             ],
             "panel_title": "One-time guidance",
-            "features": [],
+            "features": [
+                "Quick guidance on common conditions",
+                "Fast educational messaging or video support",
+            ],
             "care_prices": [
                 {"price": home_one_time_price, "label": "/Direct Message Care"},
                 {"price": home_video_one_time_price, "label": "/Video Care"},
             ],
             "disclaimer": "",
-            "button_text": "",
+            "button_text": "Request a treatment",
             "button_url": "#",
             "link_text": "Learn more about on-demand educational support",
             "link_url": "#",
@@ -1801,10 +1803,9 @@ def build_home_context(request):
             "title": "Membership",
             "subtitle": "Best for",
             "features": [
-                "Booking same- or next-day appointments* at offices near you with the app",
-                "Booking primary care visits* for mental health, preventive care, chronic conditions, and more in states where we have offices",
-                "24/7 on-demand virtual care for quick treatment of common conditions anywhere in the U.S. at no extra cost",
-                "Major insurance accepted for in-office and remote visits*",
+                "Fees are for educational support services. This does not constitute clinical care or treatment for any medical condition.",
+                "Initiate educational consultations regarding health information, accessible anytime, anywhere.",
+                "Member rate: Single-session health education from",
             ],
         },
         # Pay-per-visit comparison column
@@ -1814,8 +1815,7 @@ def build_home_context(request):
             "subtitle": "Best for",
             "features": [
                 "Quick guidance on common conditions",
-                "Self-pay visits — no insurance accepted or needed",
-                "FSA/HSA eligible",
+                "Fast educational messaging or video support",
             ],
         },
     ]

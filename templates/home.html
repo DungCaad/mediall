@@ -260,11 +260,11 @@
         <div class="container">
             <div class="split-grid">
                 <div>
-                    <img src="{% static 'images/logo.ico' %}" width="131" height="23" alt="Mediall" style="margin-bottom: 10px;">
+                    {% comment %} <img src="{% static 'images/logo.ico' %}" width="131" height="23" alt="Mediall" style="margin-bottom: 10px;"> {% endcomment %}
                     <h2 class="section-title" style="font-size:36px; margin: 15px 0;">Instant Guidance<br><span style="color: var(--accent-teal);">No Waiting Until Tomorrow</span></h2>
                     <p>No Long Waiting Times: Skip the days or weeks of waiting for a traditional doctor's appointment.<br>Instant, On-Demand Access: Our international health education services are available right now, exactly when you need it most.<br>Available Worldwide: We proudly provide immediate, virtual informational guidance to users globally.<br>Strictly Educational: All on-demand sessions focus exclusively on wellness education and general health information.</p>
 
-                    <div class="pill-container">
+                    {% comment %} <div class="pill-container">
                         <div class="pill">Pink eye</div>
                         <div class="pill">Eczema</div>
                         <div class="pill">Skin issue</div>
@@ -272,7 +272,7 @@
                         <div class="pill">Asthma Rx renewals</div>
                         <div class="pill">EpiPen Rx renewals</div>
                     </div>
-                    <p style="font-size: 11px; color: var(--secondary-text);">*Care is managed by parents and legal guardians</p>
+                    <p style="font-size: 11px; color: var(--secondary-text);">*Care is managed by parents and legal guardians</p> {% endcomment %}
                 </div>
                 <div class="split-image">
                     <img src="{% static 'images/image_2.jpeg' %}" alt="Mother and child">
@@ -284,13 +284,13 @@
     <aside class="membership-benefits-banner" aria-label="One Medical membership benefits">
         <div class="container">
             <p>
-                Already purchased One Medical membership on Amazon?
+                Already purchased membership on Medi All?
                 <a href="#membership-options">See membership benefits ›</a>
             </p>
         </div>
     </aside>
 
-    <section class="split-section bg-white">
+    {% comment %} <section class="split-section bg-white">
         <div class="container">
             <div class="split-grid" style="grid-template-columns: 1fr 1.2fr;">
                 <div>
@@ -305,12 +305,12 @@
                 </div>
                 <div class="split-image" style="text-align: center;">
                     <img src="{% static 'images/image_3.jpeg' %}" alt="Nurse and patient">
-                </div>
+                </div> 
             </div>
         </div>
-    </section>
+    </section> {% endcomment %}
 
-    <section class="insurance-section">
+    {% comment %} <section class="insurance-section">
         <div class="container">
             <div class="insurance-section-content">
                 <div class="insurance-section-icon" aria-hidden="true">
@@ -328,9 +328,9 @@
                 </div>
             </div>
         </div>
-    </section>
+    </section> {% endcomment %}
 
-    <section class="split-section bg-white" style="padding-top: 0;">
+    <section class="split-section bg-mint" style="padding-top: 100px;">
         <div class="container">
             <div class="split-grid">
                 <div class="split-image">
@@ -405,7 +405,7 @@
                 </div>
                 {% comment %} <div class="quote-icon">“</div> {% endcomment %}
                 {% comment %} <p style="font-weight: bold; margin-bottom: 15px;">What members are saying</p> {% endcomment %}
-                <p class="quote-text">"As a physician licensed outside your local jurisdiction, please be advised that this on-demand service is strictly for educational and informational purposes. These sessions do not constitute the practice of medicine. We do not provide local clinical diagnoses, write medical prescriptions, dispense medications, or manage prescription drug therapies under your country's laws. This service does not replace formal medical care or the professional judgment of a local healthcare provider in your area. If you are experiencing a medical emergency, severe allergic reactions, acute skin conditions, or severe symptoms, please contact your local emergency services immediately."</p>
+                <p class="quote-text" style="padding-top: 30px;">"As a physician licensed outside your local jurisdiction, please be advised that this on-demand service is strictly for educational and informational purposes. These sessions do not constitute the practice of medicine. We do not provide local clinical diagnoses, write medical prescriptions, dispense medications, or manage prescription drug therapies under your country's laws. This service does not replace formal medical care or the professional judgment of a local healthcare provider in your area. If you are experiencing a medical emergency, severe allergic reactions, acute skin conditions, or severe symptoms, please contact your local emergency services immediately."</p>
                 {% comment %} <p class="quote-author">- Member at Austin, TX</p> {% endcomment %}
             </div>
         </div>

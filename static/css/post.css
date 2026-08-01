@@ -14,6 +14,7 @@
 .post-content ul, .post-content ol { margin: 0 0 18px; padding-left: 24px; }
 .post-content blockquote { background: #f3f7f7; border-left: 4px solid #008c98; margin: 20px 0; padding: 14px 18px; }
 .post-content a { color: #007d89; font-weight: 750; text-decoration: underline; }
+.post-content img { border-radius: 10px; display: block; height: auto; margin: 24px auto; max-width: 100%; }
 .post-tags { border-top: 1px solid #e3e8e8; display: flex; flex-wrap: wrap; gap: 7px; margin-top: 30px; padding-top: 18px; }
 .post-tags span { background: #edf4f4; border-radius: 999px; color: #426267; font-size: 11px; padding: 6px 10px; }
 .post-sidebar { display: grid; gap: 20px; height: max-content; }

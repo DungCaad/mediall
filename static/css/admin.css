@@ -301,6 +301,7 @@ button,
 .post-editor-content:empty::before { color: #98a5a7; content: attr(data-placeholder); pointer-events: none; }
 .post-editor-content h2 { font-size: 21px; margin: 18px 0 9px; }
 .post-editor-content blockquote { border-left: 4px solid #008c98; margin: 14px 0; padding: 8px 12px; }
+.post-editor-content img { border-radius: 8px; display: block; height: auto; margin: 16px auto; max-width: 100%; }
 .admin-post-publish-toggle { align-items: center; display: flex; font-size: 11px; font-weight: 800; gap: 8px; margin: 0 0 15px; }
 .admin-post-submit { background: #007f8c; border: 0; border-radius: 7px; color: #fff; cursor: pointer; font-weight: 800; padding: 10px 15px; }
 .admin-post-submit:hover { background: #00636e; }

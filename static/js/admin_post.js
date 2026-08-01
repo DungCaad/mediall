@@ -21,7 +21,10 @@ if (postEditorForm) {
             var value = button.dataset.editorValue || null;
 
             if (button.dataset.editorPrompt === "true") {
-                value = window.prompt("Enter the link address (https://...):", "https://");
+                value = window.prompt(
+                    button.dataset.editorPromptText || "Enter a value:",
+                    button.dataset.editorPromptDefault || ""
+                );
                 if (!value) return;
             }
 

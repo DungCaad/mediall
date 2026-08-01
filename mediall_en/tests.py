@@ -3,6 +3,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from accounts.models import BlogPost, FeaturedPostGroup
+from mediall_en.views import build_post_editor_toolbar, sanitize_post_html
 
 
 class AdminPostManagementTests(TestCase):
@@ -136,3 +137,26 @@ class AdminPostManagementTests(TestCase):
         created_post = BlogPost.objects.get(title="Skin care guide")
         self.assertEqual(created_post.featured_group, category)
         self.assertTrue(created_post.is_featured)
+
+    def test_editor_toolbar_contains_image_button(self):
+        image_tools = [
+            tool for tool in build_post_editor_toolbar()
+            if tool["id"] == "image"
+        ]
+
+        self.assertEqual(len(image_tools), 1)
+        self.assertEqual(image_tools[0]["command"], "insertImage")
+        self.assertTrue(image_tools[0]["prompt"])
+
+    def test_post_sanitizer_allows_safe_images_and_rejects_unsafe_sources(self):
+        sanitized = sanitize_post_html(
+            '<p><img src="https://cdn.example.com/health.jpg" '
+            'alt="Health" onerror="alert(1)"></p>'
+            '<img src="javascript:alert(1)" onerror="alert(1)">'
+        )
+
+        self.assertEqual(
+            sanitized,
+            '<p><img src="https://cdn.example.com/health.jpg" '
+            'alt="Health" loading="lazy"></p>',
+        )

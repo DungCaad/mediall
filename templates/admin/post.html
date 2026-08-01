@@ -51,6 +51,8 @@
                         data-editor-command="{{ tool.command }}"
                         {% if tool.value %}data-editor-value="{{ tool.value }}"{% endif %}
                         {% if tool.prompt %}data-editor-prompt="true"{% endif %}
+                        {% if tool.prompt_text %}data-editor-prompt-text="{{ tool.prompt_text }}"{% endif %}
+                        {% if tool.prompt_default %}data-editor-prompt-default="{{ tool.prompt_default }}"{% endif %}
                     >{{ tool.label }}</button>
                     {% endfor %}
                 </div>
@@ -113,5 +115,5 @@
     </aside>
 </div>
 
-<script src="{% static 'js/admin_post.js' %}?v=20260729-1" defer></script>
+<script src="{% static 'js/admin_post.js' %}?v=20260802-1" defer></script>
 {% endblock %}

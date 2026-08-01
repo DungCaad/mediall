@@ -40,10 +40,10 @@ MEMBER_PATIENT_PRICE_MULTIPLIER = Decimal("1.50")
 
 class SafePostHTMLParser(HTMLParser):
     allowed_tags = {
-        "a", "blockquote", "br", "div", "em", "h2", "h3", "hr", "li",
+        "a", "blockquote", "br", "div", "em", "h2", "h3", "hr", "img", "li",
         "ol", "p", "strong", "u", "ul",
     }
-    void_tags = {"br", "hr"}
+    void_tags = {"br", "hr", "img"}
     blocked_tags = {"script", "style"}
 
     def __init__(self):
@@ -68,6 +68,16 @@ class SafePostHTMLParser(HTMLParser):
                     ("target", "_blank"),
                     ("rel", "noopener noreferrer"),
                 ]
+        elif tag == "img":
+            image_attrs = dict(attrs)
+            src = image_attrs.get("src", "").strip()
+            if not src.startswith(("https://", "http://", "/media/", "/static/")):
+                return
+            safe_attrs = [
+                ("src", src),
+                ("alt", image_attrs.get("alt", "").strip()),
+                ("loading", "lazy"),
+            ]
         attributes = "".join(
             f' {name}="{escape(value, quote=True)}"'
             for name, value in safe_attrs
@@ -513,7 +523,25 @@ def build_post_editor_toolbar():
         # Nút trích dẫn
         {"id": "quote", "label": "❝", "title": "Quote", "command": "formatBlock", "value": "blockquote"},
         # Nút chèn liên kết
-        {"id": "link", "label": "🔗", "title": "Insert link", "command": "createLink", "prompt": True},
+        {
+            "id": "link",
+            "label": "🔗",
+            "title": "Insert link",
+            "command": "createLink",
+            "prompt": True,
+            "prompt_text": "Enter the link address (https://...):",
+            "prompt_default": "https://",
+        },
+        # Nút chèn ảnh bằng URL
+        {
+            "id": "image",
+            "label": "🖼 Image",
+            "title": "Insert image",
+            "command": "insertImage",
+            "prompt": True,
+            "prompt_text": "Enter the image address (https://...):",
+            "prompt_default": "https://",
+        },
         # Nút xóa định dạng
         {"id": "clear", "label": "Tx", "title": "Clear formatting", "command": "removeFormat"},
     ]

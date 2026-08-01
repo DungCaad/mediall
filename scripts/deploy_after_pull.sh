@@ -7,16 +7,14 @@ CONTAINER_NAME="mediall_en_web"
 
 cd "$PROJECT_DIR"
 
-echo "[deploy] Building and updating $CONTAINER_NAME..."
-if command -v docker-compose >/dev/null 2>&1; then
-    docker-compose up -d --build web
-else
-    docker compose up -d --build web
-fi
-
-echo "[deploy] Running Django checks and collecting static files..."
+echo "[deploy] Validating the updated application..."
 docker exec "$CONTAINER_NAME" python manage.py check
+
+echo "[deploy] Collecting static files..."
 docker exec "$CONTAINER_NAME" python manage.py collectstatic --noinput
+
+echo "[deploy] Restarting $CONTAINER_NAME..."
+docker restart "$CONTAINER_NAME" >/dev/null
 
 echo "[deploy] Waiting for the application health check..."
 attempt=1

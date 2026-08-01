@@ -93,3 +93,46 @@ class AdminPostManagementTests(TestCase):
         self.assertContains(response, categorized_post.title)
         self.assertNotContains(response, self.post.title)
         self.assertEqual(response.context["category_filter"], str(category.pk))
+
+    def test_category_filter_is_carried_to_create_post_page(self):
+        category = FeaturedPostGroup.objects.create(name="Cardiology")
+
+        list_response = self.client.get(
+            reverse("admin_posts"),
+            {"category": str(category.pk)},
+        )
+        create_url = f'{reverse("admin_create_post")}?category={category.pk}'
+
+        self.assertContains(list_response, create_url)
+
+        create_response = self.client.get(create_url)
+        self.assertEqual(create_response.status_code, 200)
+        self.assertEqual(
+            create_response.context["form_values"]["featured_group_id"],
+            str(category.pk),
+        )
+        self.assertContains(
+            create_response,
+            f'<option value="{category.pk}" selected>{category.name}</option>',
+            html=True,
+        )
+
+    def test_staff_user_can_create_post_in_selected_category(self):
+        category = FeaturedPostGroup.objects.create(name="Dermatology")
+
+        response = self.client.post(
+            reverse("admin_create_post"),
+            {
+                "title": "Skin care guide",
+                "content_html": "<p>Skin care content</p>",
+                "seo_description": "Skin care description",
+                "tags": "Skin",
+                "featured_group_id": str(category.pk),
+                "is_published": "on",
+            },
+        )
+
+        self.assertRedirects(response, reverse("admin_posts"))
+        created_post = BlogPost.objects.get(title="Skin care guide")
+        self.assertEqual(created_post.featured_group, category)
+        self.assertTrue(created_post.is_featured)

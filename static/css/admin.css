@@ -289,7 +289,7 @@ button,
 .admin-post-card h2, .admin-post-recent h2 { font-size: 16px; margin: 0 0 18px; }
 .admin-post-card > label:not(.admin-post-publish-toggle) { color: #294c51; display: block; font-size: 11px; font-weight: 800; margin: 0 0 15px; }
 .admin-post-card > label > span { color: #d03a3a; }
-.admin-post-card input[type="text"], .admin-post-card textarea { border: 1px solid #cad7d7; border-radius: 7px; box-sizing: border-box; display: block; font: inherit; margin-top: 6px; padding: 10px; width: 100%; }
+.admin-post-card input[type="text"], .admin-post-card textarea, .admin-post-card select { border: 1px solid #cad7d7; border-radius: 7px; box-sizing: border-box; display: block; font: inherit; margin-top: 6px; padding: 10px; width: 100%; }
 .admin-post-card label small { color: #748487; display: block; font-size: 9px; font-weight: 500; margin-top: 5px; }
 .post-editor-shell { border: 1px solid #cad7d7; border-radius: 8px; margin: -8px 0 16px; overflow: hidden; }
 .post-editor-toolbar { background: #f1f5f5; border-bottom: 1px solid #cad7d7; display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; }

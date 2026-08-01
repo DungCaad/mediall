@@ -591,11 +591,21 @@ def get_featured_footer_groups():
 def render_admin_post_editor(request, post=None):
     is_editing = post is not None
     errors = []
+    featured_groups = list(FeaturedPostGroup.objects.all())
+    requested_category = request.GET.get("category", "").strip()
+    initial_category_id = str(post.featured_group_id or "") if is_editing else ""
+    if (
+        not is_editing
+        and requested_category.isdigit()
+        and any(str(group.pk) == requested_category for group in featured_groups)
+    ):
+        initial_category_id = requested_category
     form_values = {
         "title": post.title if is_editing else "",
         "content_html": post.content_html if is_editing else "",
         "seo_description": post.seo_description if is_editing else "",
         "tags": post.tags if is_editing else "",
+        "featured_group_id": initial_category_id,
         "is_published": post.is_published if is_editing else True,
     }
 
@@ -605,6 +615,7 @@ def render_admin_post_editor(request, post=None):
             "content_html": request.POST.get("content_html", "").strip(),
             "seo_description": request.POST.get("seo_description", "").strip(),
             "tags": request.POST.get("tags", "").strip(),
+            "featured_group_id": request.POST.get("featured_group_id", "").strip(),
             "is_published": request.POST.get("is_published") == "on",
         }
         sanitized_content = sanitize_post_html(form_values["content_html"])
@@ -617,6 +628,18 @@ def render_admin_post_editor(request, post=None):
             errors.append("Enter the post content.")
         if len(form_values["seo_description"]) > 160:
             errors.append("The SEO description cannot exceed 160 characters.")
+
+        selected_group = None
+        if form_values["featured_group_id"]:
+            selected_group = next(
+                (
+                    group for group in featured_groups
+                    if str(group.pk) == form_values["featured_group_id"]
+                ),
+                None,
+            )
+            if selected_group is None:
+                errors.append("Select a valid category.")
 
         normalized_tags = []
         normalized_tag_keys = set()
@@ -633,9 +656,12 @@ def render_admin_post_editor(request, post=None):
                 post.seo_description = form_values["seo_description"]
                 post.tags = ", ".join(normalized_tags)
                 post.is_published = form_values["is_published"]
+                post.featured_group = selected_group
+                if selected_group:
+                    post.is_featured = True
                 post.save(update_fields=[
                     "title", "content_html", "seo_description", "tags",
-                    "is_published", "updated_at",
+                    "is_published", "featured_group", "is_featured", "updated_at",
                 ])
                 messages.success(request, f'Post “{post.title}” was updated.')
             else:
@@ -646,6 +672,8 @@ def render_admin_post_editor(request, post=None):
                     tags=", ".join(normalized_tags),
                     author=request.user,
                     is_published=form_values["is_published"],
+                    is_featured=bool(selected_group),
+                    featured_group=selected_group,
                 )
                 messages.success(request, f'Post “{post.title}” was created.')
             return redirect("admin_posts")
@@ -663,6 +691,7 @@ def render_admin_post_editor(request, post=None):
         "editor_toolbar": build_post_editor_toolbar(),
         "form_values": form_values,
         "form_errors": errors,
+        "featured_groups": featured_groups,
         "recent_posts": BlogPost.objects.select_related("author")[:10],
     })
 

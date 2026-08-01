@@ -27,7 +27,7 @@
                 <button type="submit" name="create_group" value="1">Save group</button>
             </form>
         </details>
-        <a class="admin-post-create-link" href="{% url 'admin_create_post' %}">Create new post</a>
+        <a class="admin-post-create-link" href="{% url 'admin_create_post' %}{% if category_filter and category_filter != 'ungrouped' %}?category={{ category_filter|urlencode }}{% endif %}">Create new post</a>
     </div>
 </div>
 

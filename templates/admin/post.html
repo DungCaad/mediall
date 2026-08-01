@@ -77,6 +77,17 @@
                 <small>Separate tags with commas.</small>
             </label>
 
+            <label>
+                Category
+                <select name="featured_group_id">
+                    <option value="">No category</option>
+                    {% for group in featured_groups %}
+                    <option value="{{ group.pk }}"{% if form_values.featured_group_id == group.pk|stringformat:"s" %} selected{% endif %}>{{ group.name }}</option>
+                    {% endfor %}
+                </select>
+                <small>Posts assigned to a category are also shown as featured posts.</small>
+            </label>
+
             <label class="admin-post-publish-toggle">
                 <input type="checkbox" name="is_published"{% if form_values.is_published %} checked{% endif %}>
                 Publish now

@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from accounts.models import BlogPost
+from accounts.models import BlogPost, FeaturedPostGroup
 
 
 class AdminPostManagementTests(TestCase):
@@ -60,3 +60,36 @@ class AdminPostManagementTests(TestCase):
 
         self.assertRedirects(response, reverse("admin_posts"))
         self.assertFalse(BlogPost.objects.filter(pk=self.post.pk).exists())
+
+    def test_staff_user_can_search_posts_by_title(self):
+        BlogPost.objects.create(
+            title="Nutrition guide",
+            content_html="<p>Nutrition content</p>",
+            author=self.staff_user,
+        )
+
+        response = self.client.get(reverse("admin_posts"), {"q": "nutrition"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Nutrition guide")
+        self.assertNotContains(response, self.post.title)
+        self.assertEqual(response.context["result_count"], 1)
+
+    def test_staff_user_can_filter_posts_by_category(self):
+        category = FeaturedPostGroup.objects.create(name="Nutrition")
+        categorized_post = BlogPost.objects.create(
+            title="Healthy meals",
+            content_html="<p>Healthy meal content</p>",
+            author=self.staff_user,
+            featured_group=category,
+        )
+
+        response = self.client.get(
+            reverse("admin_posts"),
+            {"category": str(category.pk)},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, categorized_post.title)
+        self.assertNotContains(response, self.post.title)
+        self.assertEqual(response.context["category_filter"], str(category.pk))

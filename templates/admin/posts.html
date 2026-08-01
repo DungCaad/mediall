@@ -35,9 +35,33 @@
 <ul class="messagelist">{% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}</ul>
 {% endif %}
 
+<form class="admin-post-filters" method="get">
+    <label>
+        <span>Search by title</span>
+        <input type="search" name="q" value="{{ search_query }}" placeholder="Enter a post title...">
+    </label>
+    <label>
+        <span>Category</span>
+        <select name="category">
+            {% for option in category_options %}
+            <option value="{{ option.value }}"{% if category_filter == option.value %} selected{% endif %}>{{ option.label }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <div class="admin-post-filter-actions">
+        {% for action in filter_actions %}
+            {% if action.type == "submit" %}
+            <button class="admin-post-filter-action {{ action.class_name }}" type="submit">{{ action.label }}</button>
+            {% else %}
+            <a class="admin-post-filter-action {{ action.class_name }}" href="{{ action.url }}">{{ action.label }}</a>
+            {% endif %}
+        {% endfor %}
+    </div>
+</form>
+
 <div class="admin-post-list-summary">
-    <strong>{{ featured_count }}</strong>
-    <span>featured posts</span>
+    <strong>{{ result_count }}</strong>
+    <span>matching posts · {{ featured_count }} featured</span>
 </div>
 
 <form method="post">
@@ -86,8 +110,8 @@
         </article>
         {% empty %}
         <div class="admin-post-list-empty">
-            <p>No posts yet.</p>
-            <a href="{% url 'admin_create_post' %}">Create the first post</a>
+            <p>No posts match the current filters.</p>
+            <a href="{% url 'admin_posts' %}">Clear filters</a>
         </div>
         {% endfor %}
     </div>

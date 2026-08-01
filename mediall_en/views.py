@@ -723,15 +723,58 @@ def admin_posts(request):
             messages.success(request, f'“{post.title}” is now {state}.')
         return redirect("admin_posts")
 
-    posts = list(BlogPost.objects.select_related("author"))
+    search_query = request.GET.get("q", "").strip()
+    category_filter = request.GET.get("category", "").strip()
+    featured_groups = list(FeaturedPostGroup.objects.all())
+
+    posts_query = BlogPost.objects.select_related("author", "featured_group")
+    if search_query:
+        posts_query = posts_query.filter(title__icontains=search_query)
+    if category_filter == "ungrouped":
+        posts_query = posts_query.filter(featured_group__isnull=True)
+    elif category_filter.isdigit():
+        posts_query = posts_query.filter(featured_group_id=category_filter)
+
+    posts = list(posts_query)
     for post in posts:
         post.admin_actions = build_admin_post_actions(post)
+
+    category_options = [
+        {"value": "", "label": "All categories"},
+        {"value": "ungrouped", "label": "No category"},
+        *(
+            {"value": str(group.pk), "label": group.name}
+            for group in featured_groups
+        ),
+    ]
+
+    # Nhóm nút tìm kiếm và xóa bộ lọc bài viết
+    filter_actions = [
+        # Nút áp dụng bộ lọc
+        {
+            "type": "submit",
+            "label": "Filter",
+            "class_name": "apply",
+        },
+        # Nút xóa toàn bộ bộ lọc
+        {
+            "type": "link",
+            "label": "Clear filters",
+            "class_name": "clear",
+            "url": reverse("admin_posts"),
+        },
+    ]
 
     return render(request, "admin/posts.html", {
         "title": "Manage posts",
         "posts": posts,
+        "result_count": len(posts),
         "featured_count": sum(post.is_featured for post in posts),
-        "featured_groups": FeaturedPostGroup.objects.all(),
+        "featured_groups": featured_groups,
+        "search_query": search_query,
+        "category_filter": category_filter,
+        "category_options": category_options,
+        "filter_actions": filter_actions,
     })
 
 

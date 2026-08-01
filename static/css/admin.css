@@ -329,6 +329,13 @@ button,
 .admin-post-group-create label { color: #294c51; display: block; font-size: 10px; font-weight: 600; }
 .admin-post-group-create input { border: 1px solid #cad7d7; border-radius: 6px; box-sizing: border-box; display: block; margin: 6px 0 10px; padding: 9px; width: 100%; }
 .admin-post-group-create button { background: #007f8c; border: 0; border-radius: 6px; color: #fff; cursor: pointer; font-weight: 800; padding: 9px 12px; }
+.admin-post-filters { align-items: end; background: #fff; border: 1px solid #d9e3e2; border-radius: 12px; display: grid; gap: 12px; grid-template-columns: minmax(240px, 1fr) minmax(190px, 280px) auto; margin-bottom: 15px; padding: 16px; }
+.admin-post-filters label { color: #294c51; display: grid; font-size: 10px; font-weight: 700; gap: 6px; }
+.admin-post-filters input, .admin-post-filters select { border: 1px solid #cad7d7; border-radius: 7px; box-sizing: border-box; font: inherit; min-height: 38px; padding: 8px 10px; width: 100%; }
+.admin-post-filter-actions { display: flex; gap: 8px; }
+.admin-post-filter-action { border: 0; border-radius: 7px; box-sizing: border-box; cursor: pointer; font: inherit; font-size: 10px; font-weight: 700; min-height: 38px; padding: 11px 14px; text-align: center; white-space: nowrap; }
+.admin-post-filter-action.apply { background: #007f8c; color: #fff; }
+.admin-post-filter-action.clear { background: #edf3f3; color: #164b52 !important; }
 .admin-post-list-summary { align-items: baseline; background: #fff7d8; border: 1px solid #f3d978; border-radius: 10px; color: #765600; display: inline-flex; gap: 7px; margin-bottom: 15px; padding: 10px 14px; }
 .admin-post-list-summary strong { font-size: 20px; }
 .admin-post-list { display: grid; gap: 12px; }
@@ -406,6 +413,9 @@ button,
 
 @media (max-width: 900px) {
     .admin-post-layout { grid-template-columns: 1fr; }
+    .admin-post-filters { align-items: stretch; grid-template-columns: 1fr; }
+    .admin-post-filter-actions { align-items: stretch; }
+    .admin-post-filter-action { flex: 1; }
     .admin-post-list-heading, .admin-post-list-item { align-items: stretch; flex-direction: column; }
     .admin-post-heading-actions, .admin-post-list-actions { align-items: stretch; flex-direction: column; }
     .admin-post-group-create form { left: 0; right: auto; }

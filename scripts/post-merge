@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+
+set -eu
+
+sh /mediall_en/scripts/deploy_after_pull.sh

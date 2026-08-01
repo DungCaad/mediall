@@ -25,6 +25,7 @@ urlpatterns = [
     path("chat/", include("chat.urls")),
     path("admin/creat", views.admin_create_post, name="admin_create_post"),
     path("admin/posts", views.admin_posts, name="admin_posts"),
+    path("admin/posts/image-upload", views.admin_post_image_upload, name="admin_post_image_upload"),
     path("admin/posts/<int:post_id>/edit", views.admin_edit_post, name="admin_edit_post"),
     path("admin/posts/<int:post_id>/delete", views.admin_delete_post, name="admin_delete_post"),
     path("admin/orders", views.admin_orders, name="admin_orders"),

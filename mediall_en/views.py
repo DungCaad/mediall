@@ -2,6 +2,7 @@ import calendar
 import json
 import mimetypes
 import struct
+from uuid import uuid4
 from decimal import Decimal, ROUND_HALF_UP
 from html import escape
 from html.parser import HTMLParser
@@ -18,6 +19,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.core.files.storage import default_storage
 from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
 from django.db.models import Avg, F, Min, Q
@@ -29,6 +31,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import strip_tags
 from django.views.decorators.http import require_POST
+from PIL import Image, UnidentifiedImageError
 
 from accounts.models import AccountProfile, AppointmentAttachment, BlogPost, DoctorAppointment, DoctorBusyDate, DoctorProfile, DoctorReview, FeaturedPostGroup, MedicalRecord, PatientProfile, PatientProfileAccessRequest, UiTranslation
 from chat.models import ConversationMember, Message
@@ -532,15 +535,13 @@ def build_post_editor_toolbar():
             "prompt_text": "Enter the link address (https://...):",
             "prompt_default": "https://",
         },
-        # Nút chèn ảnh bằng URL
+        # Nút tải ảnh từ máy và chèn vào nội dung
         {
             "id": "image",
             "label": "🖼 Image",
-            "title": "Insert image",
-            "command": "insertImage",
-            "prompt": True,
-            "prompt_text": "Enter the image address (https://...):",
-            "prompt_default": "https://",
+            "title": "Upload image",
+            "image_upload": True,
+            "upload_url": reverse("admin_post_image_upload"),
         },
         # Nút xóa định dạng
         {"id": "clear", "label": "Tx", "title": "Clear formatting", "command": "removeFormat"},
@@ -727,6 +728,40 @@ def render_admin_post_editor(request, post=None):
 @staff_member_required
 def admin_create_post(request):
     return render_admin_post_editor(request)
+
+
+@staff_member_required
+@require_POST
+def admin_post_image_upload(request):
+    image_file = request.FILES.get("image")
+    if image_file is None:
+        return JsonResponse({"error": "Select an image file."}, status=400)
+    if image_file.size > 8 * 1024 * 1024:
+        return JsonResponse({"error": "The image cannot exceed 8 MB."}, status=400)
+
+    try:
+        uploaded_image = Image.open(image_file)
+        image_format = (uploaded_image.format or "").upper()
+        width, height = uploaded_image.size
+        uploaded_image.verify()
+    except (Image.DecompressionBombError, UnidentifiedImageError, OSError):
+        return JsonResponse({"error": "The selected file is not a valid image."}, status=400)
+    finally:
+        image_file.seek(0)
+
+    allowed_formats = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp", "GIF": "gif"}
+    extension = allowed_formats.get(image_format)
+    if extension is None:
+        return JsonResponse({"error": "Use a JPG, PNG, WEBP, or GIF image."}, status=400)
+    if width * height > 25_000_000:
+        return JsonResponse({"error": "The image dimensions are too large."}, status=400)
+
+    upload_date = timezone.localdate()
+    image_path = default_storage.save(
+        f"posts/{upload_date:%Y/%m}/{uuid4().hex}.{extension}",
+        image_file,
+    )
+    return JsonResponse({"url": default_storage.url(image_path)})
 
 
 @staff_member_required

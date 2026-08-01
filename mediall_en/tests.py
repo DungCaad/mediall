@@ -1,6 +1,12 @@
+from io import BytesIO
+from tempfile import TemporaryDirectory
+
 from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
+from django.test.utils import override_settings
 from django.urls import reverse
+from PIL import Image
 
 from accounts.models import BlogPost, FeaturedPostGroup
 from mediall_en.views import build_post_editor_toolbar, sanitize_post_html
@@ -145,8 +151,46 @@ class AdminPostManagementTests(TestCase):
         ]
 
         self.assertEqual(len(image_tools), 1)
-        self.assertEqual(image_tools[0]["command"], "insertImage")
-        self.assertTrue(image_tools[0]["prompt"])
+        self.assertTrue(image_tools[0]["image_upload"])
+        self.assertEqual(
+            image_tools[0]["upload_url"],
+            reverse("admin_post_image_upload"),
+        )
+
+    def test_staff_user_can_upload_post_image(self):
+        image_bytes = BytesIO()
+        Image.new("RGB", (32, 24), color="teal").save(image_bytes, format="PNG")
+        image_bytes.seek(0)
+
+        with TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            response = self.client.post(
+                reverse("admin_post_image_upload"),
+                {
+                    "image": SimpleUploadedFile(
+                        "post-image.png",
+                        image_bytes.read(),
+                        content_type="image/png",
+                    ),
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertRegex(response.json()["url"], r"^/media/posts/\d{4}/\d{2}/[a-f0-9]+\.png$")
+
+    def test_post_image_upload_rejects_non_image_file(self):
+        response = self.client.post(
+            reverse("admin_post_image_upload"),
+            {
+                "image": SimpleUploadedFile(
+                    "not-an-image.png",
+                    b"<script>alert(1)</script>",
+                    content_type="image/png",
+                ),
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error"], "The selected file is not a valid image.")
 
     def test_post_sanitizer_allows_safe_images_and_rejects_unsafe_sources(self):
         sanitized = sanitize_post_html(

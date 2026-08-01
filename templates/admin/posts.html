@@ -71,14 +71,15 @@
                     <button
                         class="admin-post-list-action {{ action.class_name }}"
                         type="submit"
-                        name="{{ action.name }}"
-                        value="{{ action.value }}">{{ action.label }}</button>
+                        {% if action.name %}name="{{ action.name }}"{% endif %}
+                        {% if action.value %}value="{{ action.value }}"{% endif %}
+                        {% if action.url %}formaction="{{ action.url }}"{% endif %}
+                        {% if action.confirm_message %}onclick="return window.confirm('{{ action.confirm_message|escapejs }}')"{% endif %}>{{ action.label }}</button>
                     {% else %}
                     <a
                         class="admin-post-list-action {{ action.class_name }}"
                         href="{{ action.url }}"
-                        target="_blank"
-                        rel="noopener">{{ action.label }}</a>
+                        {% if action.new_window %}target="_blank" rel="noopener"{% endif %}>{{ action.label }}</a>
                     {% endif %}
                 {% endfor %}
             </div>

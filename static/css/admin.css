@@ -346,6 +346,9 @@ button,
 .admin-post-list-action.featured { background: #d8a600; }
 .admin-post-list-action.group { background: #426b70; }
 .admin-post-list-action.secondary { background: #edf3f3; color: #164b52 !important; }
+.admin-post-list-action.edit { background: #e3efff; color: #245a91 !important; }
+.admin-post-list-action.delete { background: #ffe4e4; color: #a32929 !important; }
+.admin-post-list-action.delete:hover { background: #f7caca; }
 .admin-post-list-empty { background: #fff; border: 1px dashed #cad7d7; border-radius: 12px; padding: 35px; text-align: center; }
 .admin-post-list-empty a { color: #007784; font-weight: 800; }
 .admin-no-profile { align-items: center; background: #fff; border: 1px solid #d9e3e2; border-radius: 14px; display: flex; flex-direction: column; margin: 35px auto; max-width: 620px; padding: 50px 25px; text-align: center; }

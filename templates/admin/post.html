@@ -1,10 +1,10 @@
 {% extends "admin/base_site.html" %}
 {% load static %}
 
-{% block title %}Create post | Mediall Admin{% endblock %}
+{% block title %}{{ title }} | Mediall Admin{% endblock %}
 
 {% block breadcrumbs %}
-<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Create post</div>
+<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; {{ page_heading }}</div>
 {% endblock %}
 
 {% block content_title %}{% endblock %}
@@ -12,8 +12,8 @@
 {% block content %}
 <div class="admin-post-heading">
     <div>
-        <h1>Create post</h1>
-        <p>Write and publish health content on Mediall.</p>
+        <h1>{{ page_heading }}</h1>
+        <p>{{ page_description }}</p>
     </div>
     <a class="admin-post-create-link" href="{% url 'admin_posts' %}">Manage posts</a>
 </div>
@@ -30,7 +30,7 @@
     <form class="admin-post-form" method="post" data-post-editor-form>
         {% csrf_token %}
         <section class="admin-post-card">
-            <h2>Create a new post</h2>
+            <h2>{{ card_heading }}</h2>
 
             <label>
                 Title <span aria-hidden="true">*</span>
@@ -82,7 +82,7 @@
                 Publish now
             </label>
 
-            <button class="admin-post-submit" type="submit">Save post</button>
+            <button class="admin-post-submit" type="submit">{{ submit_label }}</button>
         </section>
     </form>
 

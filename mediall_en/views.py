@@ -544,6 +544,22 @@ def build_admin_post_actions(post):
             "label": "View post",
             "url": reverse("post_detail", args=[post.pk]),
             "class_name": "secondary",
+            "new_window": True,
+        },
+        # Nút sửa bài viết
+        {
+            "type": "link",
+            "label": "Edit",
+            "url": reverse("admin_edit_post", args=[post.pk]),
+            "class_name": "edit",
+        },
+        # Nút xóa bài viết
+        {
+            "type": "submit",
+            "label": "Delete",
+            "url": reverse("admin_delete_post", args=[post.pk]),
+            "class_name": "delete",
+            "confirm_message": f'Delete “{post.title}”? This action cannot be undone.',
         },
     ]
 
@@ -572,15 +588,15 @@ def get_featured_footer_groups():
     return footer_groups
 
 
-@staff_member_required
-def admin_create_post(request):
+def render_admin_post_editor(request, post=None):
+    is_editing = post is not None
     errors = []
     form_values = {
-        "title": "",
-        "content_html": "",
-        "seo_description": "",
-        "tags": "",
-        "is_published": True,
+        "title": post.title if is_editing else "",
+        "content_html": post.content_html if is_editing else "",
+        "seo_description": post.seo_description if is_editing else "",
+        "tags": post.tags if is_editing else "",
+        "is_published": post.is_published if is_editing else True,
     }
 
     if request.method == "POST":
@@ -611,24 +627,64 @@ def admin_create_post(request):
                 normalized_tag_keys.add(tag.casefold())
 
         if not errors:
-            post = BlogPost.objects.create(
-                title=form_values["title"],
-                content_html=sanitized_content,
-                seo_description=form_values["seo_description"],
-                tags=", ".join(normalized_tags),
-                author=request.user,
-                is_published=form_values["is_published"],
-            )
-            messages.success(request, f'Post “{post.title}” was created.')
+            if is_editing:
+                post.title = form_values["title"]
+                post.content_html = sanitized_content
+                post.seo_description = form_values["seo_description"]
+                post.tags = ", ".join(normalized_tags)
+                post.is_published = form_values["is_published"]
+                post.save(update_fields=[
+                    "title", "content_html", "seo_description", "tags",
+                    "is_published", "updated_at",
+                ])
+                messages.success(request, f'Post “{post.title}” was updated.')
+            else:
+                post = BlogPost.objects.create(
+                    title=form_values["title"],
+                    content_html=sanitized_content,
+                    seo_description=form_values["seo_description"],
+                    tags=", ".join(normalized_tags),
+                    author=request.user,
+                    is_published=form_values["is_published"],
+                )
+                messages.success(request, f'Post “{post.title}” was created.')
             return redirect("admin_posts")
 
     return render(request, "admin/post.html", {
-        "title": "Create post",
+        "title": "Edit post" if is_editing else "Create post",
+        "page_heading": "Edit post" if is_editing else "Create post",
+        "page_description": (
+            "Update this health article on Mediall."
+            if is_editing else
+            "Write and publish health content on Mediall."
+        ),
+        "card_heading": "Edit post" if is_editing else "Create a new post",
+        "submit_label": "Save changes" if is_editing else "Save post",
         "editor_toolbar": build_post_editor_toolbar(),
         "form_values": form_values,
         "form_errors": errors,
         "recent_posts": BlogPost.objects.select_related("author")[:10],
     })
+
+
+@staff_member_required
+def admin_create_post(request):
+    return render_admin_post_editor(request)
+
+
+@staff_member_required
+def admin_edit_post(request, post_id):
+    return render_admin_post_editor(request, get_object_or_404(BlogPost, pk=post_id))
+
+
+@staff_member_required
+@require_POST
+def admin_delete_post(request, post_id):
+    post = get_object_or_404(BlogPost, pk=post_id)
+    post_title = post.title
+    post.delete()
+    messages.success(request, f'Post “{post_title}” was deleted.')
+    return redirect("admin_posts")
 
 
 @staff_member_required

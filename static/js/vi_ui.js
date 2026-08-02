@@ -13,6 +13,10 @@
         return right.length - left.length;
     });
 
+    function escapedPattern(value) {
+        return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+
     var patterns = [
         [/^Found (\d+) results?(?: for "(.+)")?\.$/, function (m) { return "Tìm thấy " + m[1] + " kết quả" + (m[2] ? " cho “" + (translations[m[2]] || m[2]) + "”" : "") + "."; }],
         [/^(\d+) views$/, "$1 lượt xem"], [/^(\d+) reviews$/, "$1 đánh giá"], [/^(\d+) notifications$/, "$1 thông báo"],
@@ -38,7 +42,13 @@
         if (!result) {
             var partial = clean;
             translationSources.forEach(function (source) {
-                if (partial.includes(source)) partial = partial.split(source).join(translations[source]);
+                var boundaryPattern = new RegExp(
+                    "(^|[\\s·|:,(])" + escapedPattern(source) + "(?=$|[\\s·|:,.!?;)])",
+                    "g"
+                );
+                partial = partial.replace(boundaryPattern, function (match, prefix) {
+                    return prefix + translations[source];
+                });
             });
             if (partial !== clean) result = partial;
         }

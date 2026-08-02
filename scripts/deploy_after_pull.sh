@@ -10,6 +10,9 @@ cd "$PROJECT_DIR"
 echo "[deploy] Validating the updated application..."
 docker exec "$CONTAINER_NAME" python manage.py check
 
+echo "[deploy] Applying database migrations..."
+docker exec "$CONTAINER_NAME" python manage.py migrate --noinput
+
 echo "[deploy] Collecting static files..."
 docker exec "$CONTAINER_NAME" python manage.py collectstatic --noinput
 

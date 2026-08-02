@@ -3,13 +3,18 @@ from tempfile import TemporaryDirectory
 
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import Client, TestCase
+from django.test import Client, RequestFactory, TestCase
 from django.test.utils import override_settings
 from django.urls import reverse
 from PIL import Image
 
 from accounts.models import BlogPost, FeaturedPostGroup
-from mediall_en.views import build_post_editor_toolbar, sanitize_post_html
+from mediall_en.views import (
+    build_post_editor_toolbar,
+    get_home_template,
+    is_vietnamese_host,
+    sanitize_post_html,
+)
 
 
 class AdminPostManagementTests(TestCase):
@@ -204,3 +209,14 @@ class AdminPostManagementTests(TestCase):
             '<p><img src="https://cdn.example.com/health.jpg" '
             'alt="Health" loading="lazy"></p>',
         )
+
+
+class VietnameseDomainRoutingTests(TestCase):
+    def test_azo_domains_use_vietnamese_homepage(self):
+        request_factory = RequestFactory()
+
+        for host in ("khambenh.azo.vn", "mediall.azo.vn"):
+            with self.subTest(host=host):
+                request = request_factory.get("/", HTTP_HOST=host)
+                self.assertTrue(is_vietnamese_host(request))
+                self.assertEqual(get_home_template(request), "home_vi.html")

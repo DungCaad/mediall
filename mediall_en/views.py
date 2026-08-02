@@ -34,6 +34,7 @@ from django.views.decorators.http import require_POST
 from PIL import Image, UnidentifiedImageError
 
 from accounts.models import AccountProfile, AppointmentAttachment, BlogPost, DoctorAppointment, DoctorBusyDate, DoctorProfile, DoctorReview, FeaturedPostGroup, MedicalRecord, PatientProfile, PatientProfileAccessRequest, UiTranslation
+from accounts.context_processors import VIETNAMESE_HOSTS
 from chat.models import ConversationMember, Message
 
 
@@ -1122,7 +1123,7 @@ def admin_profile_detail(request, account_id=None, profile_type=None, profile_id
 
 def is_vietnamese_host(request):
     host = request.get_host().split(":", 1)[0].lower()
-    return host.startswith("vi.")
+    return host in VIETNAMESE_HOSTS or host.startswith("vi.")
 
 
 def build_header_context(language="en", guest_modal=False, request=None):

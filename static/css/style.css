@@ -3098,6 +3098,62 @@ header {
     margin-bottom: 20px;
 }
 
+.prime-savings {
+    color: #006feb;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.4;
+    margin: 0 0 16px;
+}
+
+.prime-savings strong {
+    background: #0878e8;
+    color: white;
+    padding: 0 3px;
+}
+
+.prime-benefit-card {
+    background: white;
+    border-radius: 10px;
+    padding: 16px;
+}
+
+.prime-benefit-notice {
+    align-items: center;
+    color: var(--primary-text);
+    display: flex;
+    font-size: 13px;
+    gap: 10px;
+    margin: 0 0 14px;
+}
+
+.prime-info-icon {
+    align-items: center;
+    background: #073b47;
+    border-radius: 50%;
+    color: white;
+    display: inline-flex;
+    flex: 0 0 15px;
+    font-size: 10px;
+    font-style: normal;
+    height: 15px;
+    justify-content: center;
+}
+
+.prime-sign-in {
+    background: #ffb546;
+    border: 0;
+    border-radius: 4px;
+    color: #111;
+    cursor: pointer;
+    font: inherit;
+    min-height: 38px;
+    width: 100%;
+}
+
 /* === CONDITIONS GRID === */
 .conditions-section {
     padding: 40px 0;

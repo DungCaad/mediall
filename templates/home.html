@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mediall One Medical</title>
     <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260729-5">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260802-1">
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
@@ -186,11 +186,28 @@
                         <p class="price-disclaimer">{{ option.disclaimer }}</p>
                         {% endif %}
 
-                        {% if option.button_text %}
-                        <a class="btn" href="{{ option.button_url }}" style="margin-right: 15px;">{{ option.button_text }}</a>
-                        {% endif %}
-                        {% if option.link_text %}
-                        <a href="{{ option.link_url }}" style="font-size: 14px; font-weight: bold;">{{ option.link_text }}</a>
+                        {% if option.benefit_highlight %}
+                        <p class="prime-savings">
+                            <span>{{ option.benefit_prefix }}</span>
+                            <strong>{{ option.benefit_highlight }}</strong>
+                            <span>{{ option.benefit_suffix }}</span>
+                        </p>
+                        <div class="prime-benefit-card">
+                            <p class="prime-benefit-notice">
+                                <span class="prime-info-icon" aria-hidden="true">i</span>
+                                <strong>{{ option.benefit_notice }}</strong>
+                            </p>
+                            {% if option.sign_in_label %}
+                            <button class="prime-sign-in" type="button" data-open-modal="{{ option.sign_in_modal }}">{{ option.sign_in_label }}</button>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                            {% if option.button_text %}
+                            <a class="btn" href="{{ option.button_url }}" style="margin-right: 15px;">{{ option.button_text }}</a>
+                            {% endif %}
+                            {% if option.link_text %}
+                            <a href="{{ option.link_url }}" style="font-size: 14px; font-weight: bold;">{{ option.link_text }}</a>
+                            {% endif %}
                         {% endif %}
                     </div>
                     {% endfor %}
@@ -301,7 +318,7 @@
                         <li>Initiate educational consultations regarding health information, accessible anytime, anywhere.</li>
                         <li>Member rate: Single-session health education from</li>
                     </ul> {% endcomment %}
-                    <a href="#" style="font-size: 14px; font-weight: bold; display: block; margin-bottom: 30px;">See locations and appointment availability</a>
+                    {% comment %} <a href="#" style="font-size: 14px; font-weight: bold; display: block; margin-bottom: 30px;">See locations and appointment availability</a> {% endcomment %}
                 </div>
                 <div class="split-image" style="text-align: center;">
                     <img src="{% static 'images/image_3.jpeg' %}" alt="Nurse and patient">
@@ -336,7 +353,7 @@
                     <img src="{% static 'images/image_4.jpeg' %}" alt="Man on bench">
                 </div>
                 <div>
-                    <span class="badge" style="background:#EAEAEA;">ON-DEMAND CARE</span>
+                    <span class="badge" style="background:#EAEAEA;">One-time guidance</span>
                     <h2 class="section-title">Just want one-time virtual care?</h2>
                     <p style="font-size: 14px; margin-bottom: 20px;">Day or night, you can request one-time virtual care from Mediall One Medical to find treatment for 30+ common conditions.</p>
 
@@ -350,7 +367,7 @@
                         <li>Quick guidance on common conditions</li>
                         <li>Fast educational messaging or video support</li>
                     </ul>
-                    <button class="btn">Request information</button>
+                    <a class="btn" href="{% url 'doctor_search' %}">Request information</a>
                 </div>
             </div>
         </div>
@@ -358,7 +375,7 @@
 
     <section class="how-it-works">
         <div class="container">
-            <h2 class="section-title" style="text-align: left;">How On-Demand Care works</h2>
+            <h2 class="section-title" style="text-align: left;">How On-Demand Educational Support Works</h2>
             <div class="how-grid">
                 {% for step in how_it_works %}
                 <div class="step-card">
@@ -423,29 +440,7 @@
     </section>
 
     {% include "includes/footer_featured_posts.html" %}
-    <footer>
-        <div class="container">
-            <div style="margin-bottom: 20px; font-size: 18px; font-weight:bold;">Mediall one medical</div>
-            <div class="footer-links">
-                <a href="#">Home</a>
-                <a href="#">FAQ</a>
-                <a href="#">Privacy</a>
-            </div>
-            <div style="background-color: #37475A; padding: 15px; margin: 0 -40px;">
-                Back to top
-            </div>
-            <div style="padding: 30px 0;">
-                <span style="margin: 0 15px;">Your Account</span>
-                <span style="margin: 0 15px;">Your Orders</span>
-                <span style="margin: 0 15px;">Help</span>
-                <span style="margin: 0 15px;">Already a customer? Sign in</span>
-            </div>
-            <div style="color: #999;">
-                <p>Notice of Privacy Practices &nbsp;|&nbsp; Nondiscrimination Notice</p>
-                <p>© 1996-2026, Mediall.com, Inc. or its affiliates</p>
-            </div>
-        </div>
-    </footer>
+    <footer aria-label="Site footer"></footer>
 
     <script>
         document.querySelectorAll("[data-tab-target]").forEach(function (tabButton) {

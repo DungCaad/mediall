@@ -595,26 +595,36 @@ def build_admin_post_actions(post):
 
 
 def get_featured_footer_groups():
-    groups = list(FeaturedPostGroup.objects.all())
+    groups = sorted(
+        FeaturedPostGroup.objects.all(),
+        key=lambda group: group.name.casefold(),
+    )
     footer_groups = []
 
     for group in groups:
-        posts = list(BlogPost.objects.filter(
-            is_published=True,
-            is_featured=True,
-            featured_group=group,
-        ).only("id", "title").order_by("-created_at"))
+        posts = sorted(
+            BlogPost.objects.filter(
+                is_published=True,
+                is_featured=True,
+                featured_group=group,
+            ).only("id", "title"),
+            key=lambda post: post.title.casefold(),
+        )
         if posts:
             footer_groups.append({"name": group.name, "posts": posts})
 
-    ungrouped_posts = list(BlogPost.objects.filter(
-        is_published=True,
-        is_featured=True,
-        featured_group__isnull=True,
-    ).only("id", "title").order_by("-created_at"))
+    ungrouped_posts = sorted(
+        BlogPost.objects.filter(
+            is_published=True,
+            is_featured=True,
+            featured_group__isnull=True,
+        ).only("id", "title"),
+        key=lambda post: post.title.casefold(),
+    )
     if ungrouped_posts:
         footer_groups.append({"name": "Featured posts", "posts": ungrouped_posts})
 
+    footer_groups.sort(key=lambda group: group["name"].casefold())
     return footer_groups
 
 
@@ -1955,10 +1965,12 @@ def build_home_context(request):
                 {"price": home_video_price, "label": "/Video Care"},
             ],
             "disclaimer": "Prices vary by condition. Prices subject to change. Direct Message Care availability varies by state.",
-            "button_text": "Request a treatment",
-            "button_url": "#",
-            "link_text": "Learn more about Membership",
-            "link_url": "#",
+            "benefit_prefix": "Up to",
+            "benefit_highlight": "40% savings",
+            "benefit_suffix": "with Prime",
+            "benefit_notice": "This benefit is exclusively for Prime members",
+            "sign_in_label": "Sign In",
+            "sign_in_modal": "login",
         },
         # Nút One-time guidance
         {
@@ -1980,8 +1992,8 @@ def build_home_context(request):
                 {"price": home_video_one_time_price, "label": "/Video Care"},
             ],
             "disclaimer": "",
-            "button_text": "Request a treatment",
-            "button_url": "#",
+            "button_text": "Request information",
+            "button_url": reverse("doctor_search"),
             "link_text": "Learn more about on-demand educational support",
             "link_url": "#",
         },
@@ -2241,21 +2253,21 @@ def build_home_context(request):
     how_it_works = [
         {
             "step": 1,
-            "img": "https://m.media-amazon.com/images/G/01/katara/kyanite/storefront/Illustration_HIW_ciq._CB1715995169_.png",
-            "title": "Answer some questions",
-            "desc": "Choose a condition you need help with, answer some questions, and connect with a provider through direct message or video."
+            "img": static("images/4-removebg-preview.ico"),
+            "title": "Explore health topics",
+            "desc": "Choose a health topic you would like to learn more about, complete a short questionnaire, and connect with an educator through direct message or video for informational guidance"
         },
         {
             "step": 2,
-            "img": "https://m.media-amazon.com/images/G/01/katara/kyanite/storefront/Illustration_HIW_treatmentplan._CB1715995169_.png",
-            "title": "Get a care summary",
-            "desc": "Your provider will determine what's medically appropriate for you and send any prescriptions to a pharmacy of your choice."
+            "img": static("images/5-removebg-preview.ico"),
+            "title": "Receive an educational overview",
+            "desc": "Your educator will provide general health information tailored to your learning needs and offer informational resources for your personal reference."
         },
         {
             "step": 3,
-            "img": "https://m.media-amazon.com/images/G/01/katara/kyanite/storefront/Illustration_HIW_followup._CB1715995169_.png",
-            "title": "14 days to follow up",
-            "desc": "You'll have unlimited follow-up messaging with your provider for 14 days after you receive your care summary."
+            "img": static("images/6-removebg-preview.ico"),
+            "title": "14 days of educational follow-up",
+            "desc": "You'll have unlimited messaging support with your educator for 14 days after you receive your educational overview."
         }
     ]
 

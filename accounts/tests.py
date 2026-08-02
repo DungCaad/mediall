@@ -37,3 +37,17 @@ class VietnameseTranslationCatalogTests(TestCase):
             migration.TRANSLATIONS["Condition categories"],
             "Danh mục chủ đề sức khỏe",
         )
+
+    def test_shared_homepage_translations_are_seeded(self):
+        migration = import_module(
+            "accounts.migrations.0051_english_homepage_translations"
+        )
+
+        self.assertEqual(
+            migration.TRANSLATIONS["Two options for health education support"],
+            "Hai lựa chọn hỗ trợ giáo dục sức khỏe",
+        )
+        self.assertEqual(
+            migration.TRANSLATIONS["How On-Demand Care works"],
+            "Chăm sóc theo yêu cầu hoạt động như thế nào",
+        )

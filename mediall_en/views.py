@@ -2322,7 +2322,7 @@ def build_home_context(request):
 
 
 def get_home_template(request):
-    return "home_vi.html" if is_vietnamese_host(request) else "home.html"
+    return "home.html"
 
 
 def home_page(request):

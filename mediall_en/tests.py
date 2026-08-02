@@ -212,11 +212,11 @@ class AdminPostManagementTests(TestCase):
 
 
 class VietnameseDomainRoutingTests(TestCase):
-    def test_azo_domains_use_vietnamese_homepage(self):
+    def test_all_domains_share_the_same_homepage_structure(self):
         request_factory = RequestFactory()
 
         for host in ("khambenh.azo.vn", "mediall.azo.vn"):
             with self.subTest(host=host):
                 request = request_factory.get("/", HTTP_HOST=host)
                 self.assertTrue(is_vietnamese_host(request))
-                self.assertEqual(get_home_template(request), "home_vi.html")
+                self.assertEqual(get_home_template(request), "home.html")

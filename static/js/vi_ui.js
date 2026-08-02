@@ -57,9 +57,9 @@
 
     function translateElement(root) {
         if (!root || root.nodeType !== Node.ELEMENT_NODE) return;
-        var elements = [root].concat(Array.from(root.querySelectorAll("[placeholder], [aria-label], [title]")));
+        var elements = [root].concat(Array.from(root.querySelectorAll("[placeholder], [aria-label], [title], [alt]")));
         elements.forEach(function (element) {
-            ["placeholder", "aria-label", "title"].forEach(function (name) {
+            ["placeholder", "aria-label", "title", "alt"].forEach(function (name) {
                 if (element.hasAttribute(name)) element.setAttribute(name, translated(element.getAttribute(name)));
             });
             if (element.matches('input[type="search"][value]')) {

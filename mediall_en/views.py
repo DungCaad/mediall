@@ -1961,7 +1961,7 @@ def build_home_context(request):
                 {"price": home_message_price, "label": "/Text & Images"},
                 {"price": home_video_price, "label": "/Video Call"},
             ],
-            "disclaimer": "Prices vary by condition. Prices subject to change. Text & Images availability varies by state.",
+            "disclaimer": "Educational health guidance fees vary by topic, location, and country",
             "benefit_prefix": "Up to 40% savings",
             "benefit_highlight": "",
             "benefit_suffix": "with Prime",

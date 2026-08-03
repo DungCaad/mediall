@@ -1898,7 +1898,7 @@ def build_home_context(request):
                 "Unmatched Practical Experience Forged in High-Pressure Environments: Due to high patient volume and densely populated healthcare settings in Vietnam, local physicians handle an extraordinary number of cases daily. This high-pressure, fast-paced clinical environment exposes them to a vast spectrum of health presentations and complex scenarios at a scale rarely encountered by counterparts in Europe, the US, or Canada. This intense exposure builds superior diagnostic resilience, razor-sharp practical instincts, and a depth of hands-on expertise that stands out globally.",
                 ""
             ],
-            "note": "Text & Images availability and prices may vary.",
+            
         },
         # Nút câu hỏi về bảo hiểm
         {

@@ -1898,7 +1898,7 @@ def build_home_context(request):
                 "Unmatched Practical Experience Forged in High-Pressure Environments: Due to high patient volume and densely populated healthcare settings in Vietnam, local physicians handle an extraordinary number of cases daily. This high-pressure, fast-paced clinical environment exposes them to a vast spectrum of health presentations and complex scenarios at a scale rarely encountered by counterparts in Europe, the US, or Canada. This intense exposure builds superior diagnostic resilience, razor-sharp practical instincts, and a depth of hands-on expertise that stands out globally.",
                 ""
             ],
-            "note": "Direct Message Care availability and prices may vary.",
+            "note": "Text & Images availability and prices may vary.",
         },
         # Nút câu hỏi về bảo hiểm
         {
@@ -1958,10 +1958,10 @@ def build_home_context(request):
                 "Member rate: Single-session health education from",
             ],
             "care_prices": [
-                {"price": home_message_price, "label": "/Direct Message Care"},
-                {"price": home_video_price, "label": "/Video Care"},
+                {"price": home_message_price, "label": "/Text & Images"},
+                {"price": home_video_price, "label": "/Video Call"},
             ],
-            "disclaimer": "Prices vary by condition. Prices subject to change. Direct Message Care availability varies by state.",
+            "disclaimer": "Prices vary by condition. Prices subject to change. Text & Images availability varies by state.",
             "benefit_prefix": "Up to 40% savings",
             "benefit_highlight": "",
             "benefit_suffix": "with Prime",
@@ -1985,8 +1985,8 @@ def build_home_context(request):
                 "Fast educational messaging or video support",
             ],
             "care_prices": [
-                {"price": home_one_time_price, "label": "/Direct Message Care"},
-                {"price": home_video_one_time_price, "label": "/Video Care"},
+                {"price": home_one_time_price, "label": "/Text & Images"},
+                {"price": home_video_one_time_price, "label": "/Video Call"},
             ],
             "disclaimer": "",
             "button_text": "Request information",
@@ -2009,8 +2009,8 @@ def build_home_context(request):
                 "Member rate: Single-session health education from",
             ],
             "care_prices": [
-                {"price": home_message_price, "label": "/Direct Message Care"},
-                {"price": home_video_price, "label": "/Video Care"},
+                {"price": home_message_price, "label": "/Text & Images"},
+                {"price": home_video_price, "label": "/Video Call"},
             ],
         },
         # Pay-per-visit comparison column
@@ -2023,8 +2023,8 @@ def build_home_context(request):
                 "Fast educational messaging or video support",
             ],
             "care_prices": [
-                {"price": home_one_time_price, "label": "/Direct Message Care"},
-                {"price": home_video_one_time_price, "label": "/Video Care"},
+                {"price": home_one_time_price, "label": "/Text & Images"},
+                {"price": home_video_one_time_price, "label": "/Video Call"},
             ],
         },
     ]

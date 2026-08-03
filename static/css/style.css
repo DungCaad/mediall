@@ -123,6 +123,8 @@ a:hover {
 
 .compare-option-column {
     color: #263746;
+    display: flex;
+    flex-direction: column;
     padding: 24px 30px 28px;
 }
 
@@ -164,6 +166,29 @@ a:hover {
     content: "•";
     left: 0;
     position: absolute;
+}
+
+.compare-option-prices {
+    border-top: 1px solid rgba(38, 55, 70, .18);
+    margin-top: auto;
+    padding-top: 14px;
+}
+
+.compare-option-prices p {
+    font-size: 14px;
+    margin: 0 0 8px;
+}
+
+.compare-option-prices p:last-child {
+    margin-bottom: 0;
+}
+
+.compare-option-prices strong {
+    font-size: 17px;
+}
+
+.compare-option-prices span {
+    font-size: 12px;
 }
 
 .compare-options-footnote {

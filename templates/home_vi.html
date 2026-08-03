@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mediall | Chăm sóc sức khỏe trực tuyến</title>
     <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260729-1">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260802-2">
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
@@ -126,6 +126,11 @@
                 <article class="compare-option-column compare-option-{{ option.id }}">
                     <h3>{{ option.title }}</h3><strong>{{ option.subtitle }}</strong>
                     <ul>{% for feature in option.features %}<li>{{ feature }}</li>{% endfor %}</ul>
+                    <div class="compare-option-prices">
+                        {% for care_price in option.care_prices %}
+                        <p><strong>{{ care_price.price }}</strong> <span>{{ care_price.label }}</span></p>
+                        {% endfor %}
+                    </div>
                 </article>
                 {% endfor %}
             </div>

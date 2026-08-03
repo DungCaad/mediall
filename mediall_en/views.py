@@ -1878,52 +1878,49 @@ def build_home_context(request):
         # Nút câu hỏi Mediall One Medical là gì
         {
             "id": "what-is-mediall",
-            "question": "What is Mediall One Medical?",
+            "question": "What is Mediall?",
             "open": False,
             "open_icon": "images/open.ico",
             "close_icon": "images/close.ico",
             "paragraphs": [
-                "Mediall One Medical is a modern approach to medical care, allowing people to get care on their terms and on their schedule.",
-                "Members and patients can receive ongoing support for their healthcare needs, use the Mediall app to book in-office appointments at convenient times, and request 24/7 on-demand virtual care for common health concerns.",
+                "Medi all is built on the vision of leveraging licensed physicians in Vietnam to provide educational health guidance to users worldwide at 30% to 40% of standard local rates, while effectively supporting minor health concerns through informational resources."
             ],
         },
         # Nút câu hỏi so sánh Membership và On-Demand Care
         {
             "id": "membership-vs-on-demand",
-            "question": "How is One Medical Membership different from Mediall One Medical On-Demand Care? Which should I choose?",
+            "question": "Why Vietnamese Physicians Are Trusted",
             "open": False,
             "open_icon": "images/open.ico",
             "close_icon": "images/close.ico",
             "paragraphs": [
-                "Mediall One Medical gives people two ways to get medical care: Membership and On-Demand Care.",
-                "Membership provides a differentiated primary care experience with support for ongoing healthcare needs. Members can schedule appointments, connect with care teams, and receive help coordinating their care.",
-                "On-Demand Care provides pay-per-session support for common health conditions through secure messaging or video visits. It can be a good option for people who need help with a specific concern without an ongoing membership.",
+                "Rigorous Long-Term Medical Training (6 to 10+ Years): Vietnamese physicians undergo an exceptionally demanding and rigorous educational journey. To earn a full medical degree, they must complete a rigorous 6-year Doctor of Medicine (M.D.) program, followed by 2 to 4+ years of specialized residency training (and often ongoing fellowships). This totals 8 to 10 or more years of intensive, continuous academic and clinical preparation before independent practice, ensuring a profound mastery of medical science.",
+                "Unmatched Practical Experience Forged in High-Pressure Environments: Due to high patient volume and densely populated healthcare settings in Vietnam, local physicians handle an extraordinary number of cases daily. This high-pressure, fast-paced clinical environment exposes them to a vast spectrum of health presentations and complex scenarios at a scale rarely encountered by counterparts in Europe, the US, or Canada. This intense exposure builds superior diagnostic resilience, razor-sharp practical instincts, and a depth of hands-on expertise that stands out globally.",
+                ""
             ],
             "note": "Direct Message Care availability and prices may vary.",
         },
         # Nút câu hỏi về bảo hiểm
         {
             "id": "insurance",
-            "question": "Does Mediall One Medical take insurance?",
+            "question": "Why Choose a Membership Plan Instead of a One-Time Educational Guidance Session",
             "open": False,
             "open_icon": "images/open.ico",
             "close_icon": "images/close.ico",
             "paragraphs": [
-                "Mediall One Medical accepts eligible health insurance for scheduled visits where available. On-Demand Care services may be charged separately depending on the consultation type.",
-                "If you use insurance to pay for medications, you can continue to do so for medications prescribed through Mediall One Medical services.",
+                "Membership savings: All educational guidance services included in the plan are discounted by 40% compared to standard rates for regular users",
+                
             ],
         },
         # Nút câu hỏi về bảo vệ thông tin sức khỏe
         {
             "id": "health-information",
-            "question": "How does Mediall One Medical protect my health information?",
+            "question": "How does Amazon One Medical protect my health information? > Strict Client Privacy Protection",
             "open": False,
             "open_icon": "images/open.ico",
             "close_icon": "images/close.ico",
             "paragraphs": [
-                "Mediall One Medical protects customers' health information with appropriate privacy and security practices designed to keep personal data secure.",
-                "We work to safeguard health information through administrative, physical, and technical controls, including encryption and access restrictions where appropriate.",
-                "Mediall One Medical does not sell customers' personal information, including protected health information.",
+                " Medi All is committed to protecting your personal privacy. We do not sell or share your personal information with third parties.",
             ],
         },
     ]
@@ -2011,6 +2008,10 @@ def build_home_context(request):
                 "Initiate educational consultations regarding health information, accessible anytime, anywhere.",
                 "Member rate: Single-session health education from",
             ],
+            "care_prices": [
+                {"price": home_message_price, "label": "/Direct Message Care"},
+                {"price": home_video_price, "label": "/Video Care"},
+            ],
         },
         # Pay-per-visit comparison column
         {
@@ -2020,6 +2021,10 @@ def build_home_context(request):
             "features": [
                 "Quick guidance on common conditions",
                 "Fast educational messaging or video support",
+            ],
+            "care_prices": [
+                {"price": home_one_time_price, "label": "/Direct Message Care"},
+                {"price": home_video_one_time_price, "label": "/Video Care"},
             ],
         },
     ]
@@ -2083,6 +2088,10 @@ def build_home_context(request):
                     "Quản lý lịch hẹn và trao đổi với bác sĩ trên một tài khoản.",
                     "Có thể hủy gói bất cứ lúc nào.",
                 ],
+                "care_prices": [
+                    {"price": home_message_price, "label": "/Tư vấn tin nhắn"},
+                    {"price": home_video_price, "label": "/Tư vấn video"},
+                ],
             },
             {
                 "id": "pay-per-visit",
@@ -2092,6 +2101,10 @@ def build_home_context(request):
                     "Một câu hỏi hoặc nhu cầu hỗ trợ cụ thể.",
                     "Không cần đăng ký phí thành viên.",
                     "Biết giá trước khi xác nhận tư vấn.",
+                ],
+                "care_prices": [
+                    {"price": home_one_time_price, "label": "/Tư vấn tin nhắn"},
+                    {"price": home_video_one_time_price, "label": "/Tư vấn video"},
                 ],
             },
         ]

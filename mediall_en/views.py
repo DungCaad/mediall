@@ -1915,7 +1915,7 @@ def build_home_context(request):
         # Nút câu hỏi về bảo vệ thông tin sức khỏe
         {
             "id": "health-information",
-            "question": "How does Amazon One Medical protect my health information? > Strict Client Privacy Protection",
+            "question": "Strict Client Privacy Protection",
             "open": False,
             "open_icon": "images/open.ico",
             "close_icon": "images/close.ico",

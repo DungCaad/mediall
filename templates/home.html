@@ -186,10 +186,10 @@
                         <p class="price-disclaimer">{{ option.disclaimer }}</p>
                         {% endif %}
 
-                        {% if option.benefit_highlight %}
+                        {% if option.benefit_prefix %}
                         <p class="prime-savings">
                             <span>{{ option.benefit_prefix }}</span>
-                            <strong>{{ option.benefit_highlight }}</strong>
+                            {% if option.benefit_highlight %}<strong>{{ option.benefit_highlight }}</strong>{% endif %}
                             <span>{{ option.benefit_suffix }}</span>
                         </p>
                         <div class="prime-benefit-card">

@@ -237,6 +237,7 @@ class DoctorAppointment(models.Model):
     )
     payment_due_at = models.DateTimeField("Payment deadline", blank=True, null=True, editable=False)
     payment_submitted_at = models.DateTimeField("Payment submitted at", blank=True, null=True, editable=False)
+    paddle_transaction_id = models.CharField(max_length=40, blank=True, default="", editable=False, db_index=True)
     completion_status = models.CharField(
         "Completion status",
         max_length=20,
@@ -405,3 +406,30 @@ class UiTranslation(models.Model):
 
     def __str__(self):
         return self.source_text
+
+
+class SqlAuditLog(models.Model):
+    """Immutable record of database writes made while serving an HTTP request."""
+
+    ACTION_INSERT = "INSERT"
+    ACTION_UPDATE = "UPDATE"
+    ACTION_DELETE = "DELETE"
+    ACTION_CHOICES = [(ACTION_INSERT, "Insert"), (ACTION_UPDATE, "Update"), (ACTION_DELETE, "Delete")]
+
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name="sql_audit_logs", blank=True, null=True)
+    action = models.CharField(max_length=6, choices=ACTION_CHOICES)
+    table_name = models.CharField(max_length=255, blank=True)
+    sql = models.TextField()
+    affected_rows = models.IntegerField(blank=True, null=True)
+    request_method = models.CharField(max_length=10, blank=True)
+    request_path = models.CharField(max_length=500, blank=True)
+    client_ip = models.GenericIPAddressField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "SQL audit log"
+        verbose_name_plural = "SQL audit logs"
+
+    def __str__(self):
+        return f"{self.action} {self.table_name} at {self.created_at:%Y-%m-%d %H:%M:%S}"

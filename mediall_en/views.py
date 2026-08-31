@@ -1,4 +1,6 @@
 import calendar
+import hashlib
+import hmac
 import json
 import mimetypes
 import struct
@@ -8,6 +10,7 @@ from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
 from datetime import date, datetime, timedelta
+from time import time
 from urllib import error, parse, request as urllib_request
 
 from django import forms
@@ -31,6 +34,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import strip_tags
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from PIL import Image, UnidentifiedImageError
 
 from accounts.models import AccountProfile, AppointmentAttachment, BlogPost, DoctorAppointment, DoctorBusyDate, DoctorProfile, DoctorReview, FeaturedPostGroup, MedicalRecord, PatientProfile, PatientProfileAccessRequest, UiTranslation
@@ -483,9 +487,46 @@ def admin_order_detail(request, appointment_id):
     })
 
 
+def _paddle_api_url(path):
+    host = "sandbox-api.paddle.com" if settings.PADDLE_ENVIRONMENT == "sandbox" else "api.paddle.com"
+    return f"https://{host}{path}"
+
+
+def _create_paddle_transaction(appointment):
+    amount = int(appointment.consultation_fee * 100)
+    product_ids = {
+        DoctorAppointment.SERVICE_VIDEO: settings.PADDLE_VIDEO_PRODUCT_ID,
+        DoctorAppointment.SERVICE_MESSAGE: settings.PADDLE_MESSAGE_PRODUCT_ID,
+    }
+    payload = {
+        "items": [{
+            "quantity": 1,
+            "price": {
+                "description": f"Mediall consultation request #{appointment.pk}",
+                "name": appointment.get_service_type_display(),
+                "billing_cycle": None,
+                "trial_period": None,
+                "tax_mode": "account_setting",
+                "unit_price": {"amount": str(amount), "currency_code": "USD"},
+                "product_id": product_ids[appointment.service_type],
+            },
+        }],
+        "collection_mode": "automatic",
+        "custom_data": {"appointment_id": appointment.pk},
+    }
+    api_request = urllib_request.Request(
+        _paddle_api_url("/transactions"),
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Authorization": f"Bearer {settings.PADDLE_API_KEY}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib_request.urlopen(api_request, timeout=15) as response:
+        return json.loads(response.read().decode("utf-8"))["data"]
+
+
 @login_required
 @require_POST
-def submit_appointment_payment(request, appointment_id):
+def create_appointment_checkout(request, appointment_id):
     expire_overdue_appointment_payments()
     appointment = get_object_or_404(
         DoctorAppointment,
@@ -497,14 +538,66 @@ def submit_appointment_payment(request, appointment_id):
         or appointment.payment_status != DoctorAppointment.PAYMENT_AWAITING
         or not appointment.payment_due_at
     ):
-        messages.error(request, "This consultation request is not available for payment.")
-    elif appointment.payment_submitted_at:
-        messages.info(request, "Your payment is already awaiting admin confirmation.")
-    else:
-        appointment.payment_submitted_at = timezone.now()
-        appointment.save(update_fields=["payment_submitted_at", "updated_at"])
-        messages.success(request, "Payment submitted. Please wait for admin confirmation.")
-    return redirect("/profile?tab=consultation-requests#consultation-request-{}".format(appointment.pk))
+        return JsonResponse({"error": "This consultation request is not available for payment."}, status=400)
+    product_id = {
+        DoctorAppointment.SERVICE_VIDEO: settings.PADDLE_VIDEO_PRODUCT_ID,
+        DoctorAppointment.SERVICE_MESSAGE: settings.PADDLE_MESSAGE_PRODUCT_ID,
+    }.get(appointment.service_type, "")
+    if not all((settings.PADDLE_API_KEY, settings.PADDLE_CLIENT_TOKEN, product_id)):
+        return JsonResponse({"error": "Paddle payment is not configured."}, status=503)
+    if appointment.consultation_fee is None or appointment.consultation_fee <= 0:
+        return JsonResponse({"error": "This consultation request has no payable amount."}, status=400)
+    try:
+        if not appointment.paddle_transaction_id:
+            paddle_transaction = _create_paddle_transaction(appointment)
+            appointment.paddle_transaction_id = paddle_transaction["id"]
+            appointment.save(update_fields=["paddle_transaction_id", "updated_at"])
+    except (error.URLError, TimeoutError, KeyError, ValueError, json.JSONDecodeError):
+        return JsonResponse({"error": "Paddle checkout is temporarily unavailable."}, status=502)
+    return JsonResponse({"transaction_id": appointment.paddle_transaction_id})
+
+
+def _valid_paddle_signature(raw_body, signature_header):
+    if not settings.PADDLE_WEBHOOK_SECRET or not signature_header:
+        return False
+    signature_parts = {}
+    for part in signature_header.split(";"):
+        key, separator, value = part.partition("=")
+        if separator:
+            signature_parts.setdefault(key, []).append(value)
+    try:
+        timestamp = int(signature_parts["ts"][0])
+    except (KeyError, ValueError):
+        return False
+    if abs(time() - timestamp) > 300:
+        return False
+    signed_payload = str(timestamp).encode("ascii") + b":" + raw_body
+    expected = hmac.new(settings.PADDLE_WEBHOOK_SECRET.encode("utf-8"), signed_payload, hashlib.sha256).hexdigest()
+    return any(hmac.compare_digest(expected, candidate) for candidate in signature_parts.get("h1", []))
+
+
+@csrf_exempt
+@require_POST
+def paddle_webhook(request):
+    raw_body = request.body
+    if not _valid_paddle_signature(raw_body, request.headers.get("Paddle-Signature", "")):
+        return JsonResponse({"error": "Invalid Paddle signature."}, status=401)
+    try:
+        event = json.loads(raw_body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return JsonResponse({"error": "Invalid webhook body."}, status=400)
+    if event.get("event_type") == "transaction.completed":
+        transaction_data = event.get("data") or {}
+        appointment_id = (transaction_data.get("custom_data") or {}).get("appointment_id")
+        with transaction.atomic():
+            appointment = DoctorAppointment.objects.select_for_update().filter(
+                pk=appointment_id, paddle_transaction_id=transaction_data.get("id", ""),
+            ).first()
+            if appointment and appointment.payment_status == DoctorAppointment.PAYMENT_AWAITING:
+                appointment.payment_status = DoctorAppointment.PAYMENT_PAID
+                appointment.payment_submitted_at = timezone.now()
+                appointment.save(update_fields=["payment_status", "payment_submitted_at", "updated_at"])
+    return JsonResponse({"ok": True})
 
 
 def build_post_editor_toolbar():
@@ -1726,10 +1819,10 @@ def build_profile_context(request, profile_form, profile_type, active_tab="perso
             "type": "button",
             "class_name": "payment-modal-action cancel",
         },
-        # Nút xác nhận đã thực hiện thanh toán
+        # Nút mở cổng thanh toán Paddle
         {
             "id": "submit",
-            "label": "Confirm payment",
+            "label": "Pay securely with Paddle",
             "type": "submit",
             "class_name": "payment-modal-action submit",
         },
@@ -1805,6 +1898,8 @@ def build_profile_context(request, profile_form, profile_type, active_tab="perso
         "profile_access_requests": profile_access_requests,
         "profile_access_actions": profile_access_actions,
         "payment_modal_actions": payment_modal_actions,
+        "paddle_client_token": settings.PADDLE_CLIENT_TOKEN,
+        "paddle_environment": settings.PADDLE_ENVIRONMENT,
     }
     context.update(build_header_context(request=request))
     return context

@@ -48,6 +48,18 @@ ALLOWED_HOSTS = [
 RECAPTCHA_SITE_KEY = os.getenv("RECAPTCHA_SITE_KEY", "")
 RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY", "")
 USD_TO_VND_RATE = Decimal(os.getenv("USD_TO_VND_RATE", "25000"))
+PADDLE_ENVIRONMENT = os.getenv("PADDLE_ENVIRONMENT", "sandbox").strip().lower()
+PADDLE_API_KEY = os.getenv("PADDLE_API_KEY", "").strip()
+PADDLE_CLIENT_TOKEN = os.getenv("PADDLE_CLIENT_TOKEN", "").strip()
+PADDLE_WEBHOOK_SECRET = os.getenv("PADDLE_WEBHOOK_SECRET", "").strip()
+PADDLE_VIDEO_PRODUCT_ID = os.getenv(
+    "PADDLE_VIDEO_PRODUCT_ID",
+    os.getenv("PADDLE_PRODUCT_ID", "pro_01m1bp5sqsbp642d25w48ds5dt"),
+).strip()
+PADDLE_MESSAGE_PRODUCT_ID = os.getenv(
+    "PADDLE_MESSAGE_PRODUCT_ID",
+    os.getenv("PADDLE_PRODUCT_ID", "pro_01m1bp5b2tsem5m5ss2y2k2yre"),
+).strip()
 
 
 # Application definition
@@ -70,6 +82,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "accounts.middleware.SqlAuditMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]

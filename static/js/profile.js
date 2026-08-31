@@ -220,6 +220,7 @@ paymentModals.forEach(function (modal) {
     var cardNumberInput = modal.querySelector("[data-payment-card-number]");
     var cardPreview = modal.querySelector("[data-payment-card-preview]");
     var expiryInput = modal.querySelector("[data-payment-expiry]");
+    var paymentForm = modal.querySelector("[data-payment-form]");
 
     if (closeButton) {
         closeButton.addEventListener("click", function () {
@@ -241,6 +242,42 @@ paymentModals.forEach(function (modal) {
             expiryInput.value = digits.length > 2
                 ? digits.slice(0, 2) + "/" + digits.slice(2)
                 : digits;
+        });
+    }
+
+    if (paymentForm) {
+        paymentForm.addEventListener("submit", function (event) {
+            event.preventDefault();
+            var submitButton = paymentForm.querySelector("button[type='submit']");
+            var errorText = paymentForm.querySelector("[data-payment-error]");
+            var token = paymentForm.dataset.paddleToken;
+            if (!window.Paddle || !token) {
+                errorText.textContent = "Paddle payment is not configured.";
+                return;
+            }
+            submitButton.disabled = true;
+            fetch(paymentForm.action, {
+                method: "POST",
+                headers: {"X-CSRFToken": paymentForm.querySelector("input[name='csrfmiddlewaretoken']").value},
+                credentials: "same-origin"
+            }).then(function (response) {
+                return response.json().then(function (data) {
+                    if (!response.ok) throw new Error(data.error || "Unable to start Paddle checkout.");
+                    return data;
+                });
+            }).then(function (data) {
+                if (!window.mediallPaddleInitialized) {
+                    if (paymentForm.dataset.paddleEnvironment === "sandbox") window.Paddle.Environment.set("sandbox");
+                    window.Paddle.Initialize({token: token});
+                    window.mediallPaddleInitialized = true;
+                }
+                closePaymentModal(modal);
+                window.Paddle.Checkout.open({transactionId: data.transaction_id});
+            }).catch(function (paymentError) {
+                errorText.textContent = paymentError.message;
+            }).finally(function () {
+                submitButton.disabled = false;
+            });
         });
     }
 });

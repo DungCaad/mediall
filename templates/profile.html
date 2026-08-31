@@ -7,7 +7,8 @@
     <title>Edit profile | Mediall</title>
     <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
     <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260729-1">
-    <script src="{% static 'js/profile.js' %}?v=20260729-1" defer></script>
+    {% if paddle_client_token %}<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>{% endif %}
+    <script src="{% static 'js/profile.js' %}?v=20260831-1" defer></script>
 </head>
 <body class="profile-page">
     {% include 'includes/header.html' %}
@@ -289,34 +290,9 @@
                                         <div><span>Order ID</span><strong>#{{ consultation.pk }}</strong></div>
                                     </div>
 
-                                    <form method="post" action="{% url 'submit_appointment_payment' consultation.pk %}" data-payment-form>
+                                    <form method="post" action="{% url 'create_appointment_checkout' consultation.pk %}" data-payment-form data-paddle-environment="{{ paddle_environment }}" data-paddle-token="{{ paddle_client_token }}">
                                         {% csrf_token %}
-                                        <div class="payment-card-preview" aria-hidden="true">
-                                            <span>MEDI ALL</span>
-                                            <strong data-payment-card-preview>•••• •••• •••• ••••</strong>
-                                            <small>SECURE PAYMENT</small>
-                                        </div>
-
-                                        <div class="payment-form-fields">
-                                            <label class="payment-field-wide">
-                                                Cardholder name
-                                                <input type="text" autocomplete="cc-name" placeholder="NGUYEN VAN A" required>
-                                            </label>
-                                            <label class="payment-field-wide">
-                                                Card number
-                                                <input type="text" inputmode="numeric" autocomplete="cc-number" maxlength="19" placeholder="0000 0000 0000 0000" data-payment-card-number required>
-                                            </label>
-                                            <label>
-                                                Expiry date
-                                                <input type="text" inputmode="numeric" autocomplete="cc-exp" maxlength="5" placeholder="MM/YY" data-payment-expiry required>
-                                            </label>
-                                            <label>
-                                                CVV
-                                                <input type="password" inputmode="numeric" autocomplete="cc-csc" maxlength="4" placeholder="•••" required>
-                                            </label>
-                                        </div>
-
-                                        <p class="payment-security-note">Card details are used only for this interface simulation and are not stored.</p>
+                                        <p class="payment-security-note" data-payment-error>Payment is securely processed by Paddle. Mediall never receives or stores your card details.</p>
 
                                         <div class="payment-modal-actions">
                                             {% for action in payment_modal_actions %}

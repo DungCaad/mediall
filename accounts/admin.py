@@ -4,7 +4,7 @@ from django.contrib import admin
 from django.utils import timezone
 from django.utils.html import format_html
 
-from .models import AccountProfile, AppointmentAttachment, DoctorAppointment, DoctorBusyDate, DoctorProfile, DoctorReview, MedicalRecord, PatientProfile, PatientProfileAccessRequest, UiTranslation
+from .models import AccountProfile, AppointmentAttachment, DoctorAppointment, DoctorBusyDate, DoctorProfile, DoctorReview, MedicalRecord, PatientProfile, PatientProfileAccessRequest, SqlAuditLog, UiTranslation
 
 
 @admin.register(AccountProfile)
@@ -161,3 +161,20 @@ class UiTranslationAdmin(admin.ModelAdmin):
 admin.site.site_header = "Mediall Administration"
 admin.site.site_title = "Mediall Admin"
 admin.site.index_title = "Healthcare management dashboard"
+
+
+
+@admin.register(SqlAuditLog)
+class SqlAuditLogAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "actor", "action", "table_name", "affected_rows", "request_method", "request_path")
+    list_filter = ("action", "request_method", "created_at")
+    search_fields = ("table_name", "sql", "request_path", "actor__username")
+    readonly_fields = ("actor", "action", "table_name", "sql", "affected_rows", "request_method", "request_path", "client_ip", "created_at")
+    date_hierarchy = "created_at"
+    list_select_related = ("actor",)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False

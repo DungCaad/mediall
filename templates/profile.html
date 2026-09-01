@@ -259,11 +259,11 @@
                             <div class="consultation-payment-deadline paid">
                                 <strong>Paid</strong>
                             </div>
-                            {% elif consultation.moderation_status == 'approved' and consultation.payment_due_at %}
+                            {% elif consultation.moderation_status != 'rejected' and consultation.status != 'rejected' %}
                             <div class="consultation-payment-deadline awaiting">
                                 <div>
-                                    <strong>Pay before {{ consultation.payment_due_at|date:"d/m/Y H:i" }}</strong>
-                                    <span>The appointment is held for 24 hours after admin verification.</span>
+                                    <strong>{% if consultation.payment_due_at %}Pay before {{ consultation.payment_due_at|date:"d/m/Y H:i" }}{% else %}Payment available now{% endif %}</strong>
+                                    <span>The appointment is held for 24 hours while your request is reviewed.</span>
                                 </div>
                                 <button
                                     class="consultation-pay-button"

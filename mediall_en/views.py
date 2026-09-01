@@ -204,7 +204,6 @@ def get_uploaded_video_duration(uploaded_file):
 def expire_overdue_appointment_payments():
     now = timezone.now()
     deleted_count, _ = DoctorAppointment.objects.filter(
-        moderation_status=DoctorAppointment.MODERATION_APPROVED,
         payment_status=DoctorAppointment.PAYMENT_AWAITING,
         payment_due_at__isnull=False,
         payment_due_at__lte=now,
@@ -377,8 +376,11 @@ def admin_orders(request):
         if order_action == "verify":
             if appointment.moderation_status == DoctorAppointment.MODERATION_PENDING:
                 appointment.moderation_status = DoctorAppointment.MODERATION_APPROVED
-                appointment.payment_due_at = timezone.now() + timedelta(hours=24)
-                appointment.save(update_fields=["moderation_status", "payment_due_at", "updated_at"])
+                update_fields = ["moderation_status", "updated_at"]
+                if appointment.payment_status == DoctorAppointment.PAYMENT_AWAITING and not appointment.payment_due_at:
+                    appointment.payment_due_at = timezone.now() + timedelta(hours=24)
+                    update_fields.append("payment_due_at")
+                appointment.save(update_fields=update_fields)
                 messages.success(request, "The consultation request was verified and sent to the doctor.")
             else:
                 messages.info(request, "This consultation request has already been reviewed.")
@@ -534,11 +536,14 @@ def create_appointment_checkout(request, appointment_id):
         patient__account__user=request.user,
     )
     if (
-        appointment.moderation_status != DoctorAppointment.MODERATION_APPROVED
+        appointment.moderation_status == DoctorAppointment.MODERATION_REJECTED
+        or appointment.status == DoctorAppointment.STATUS_REJECTED
         or appointment.payment_status != DoctorAppointment.PAYMENT_AWAITING
-        or not appointment.payment_due_at
     ):
         return JsonResponse({"error": "This consultation request is not available for payment."}, status=400)
+    if not appointment.payment_due_at:
+        appointment.payment_due_at = timezone.now() + timedelta(hours=24)
+        appointment.save(update_fields=["payment_due_at", "updated_at"])
     product_id = {
         DoctorAppointment.SERVICE_VIDEO: settings.PADDLE_VIDEO_PRODUCT_ID,
         DoctorAppointment.SERVICE_MESSAGE: settings.PADDLE_MESSAGE_PRODUCT_ID,
@@ -1778,9 +1783,7 @@ def build_profile_context(request, profile_form, profile_type, active_tab="perso
         profile_tabs.append({"id": "consultation-requests", "label": "Consultation requests"})
         # Tab yêu cầu xem hồ sơ dành cho tài khoản bệnh nhân
         profile_tabs.append({"id": "access-requests", "label": "Profile access requests"})
-        consultation_requests = profile_form.instance.appointments.exclude(
-            payment_status=DoctorAppointment.PAYMENT_PAID,
-        ).select_related(
+        consultation_requests = profile_form.instance.appointments.select_related(
             "doctor__account__user",
         ).prefetch_related("attachments").order_by("-created_at")
         medical_history = profile_form.instance.appointments.filter(
@@ -3175,6 +3178,7 @@ def doctor_profile_detail(request, doctor_id):
                                 service_type=selected_service_type,
                                 consultation_fee=selected_consultation_fee,
                                 reason=reason,
+                                payment_due_at=timezone.now() + timedelta(hours=24),
                             )
                             for attachment in attachments:
                                 AppointmentAttachment.objects.create(

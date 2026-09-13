@@ -9,3 +9,5 @@ staticfiles/
 media/
 django-*.log
 *_deploy.tar.gz
+.env.paddle.example
+.env

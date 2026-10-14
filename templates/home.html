@@ -108,7 +108,7 @@
     <section class="hero" style="background-image: url('{% static 'images/hero_care.jpeg' %}');">
         <div class="container">
             <div class="hero-copy">
-                <h1>Health Education & Information Sessions from {{ home_lowest_member_price }}</h1>
+                <h1>Health Education & Information Sessions from {{ home_lowest_one_time_price }}</h1>
                 <form class="hero-search" action="{% url 'doctor_search' %}" method="get" role="search">
                     <span class="hero-search-icon" aria-hidden="true">⌕</span>
                     <input type="search" name="specialty" placeholder="Search doctors, specialties, or locations" aria-label="Search doctors, specialties, or locations" required>

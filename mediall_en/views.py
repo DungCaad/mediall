@@ -1972,7 +1972,7 @@ def build_home_context(request):
 
     home_message_price = display_home_fee(minimum_member_message_fee)
     home_video_price = display_home_fee(minimum_member_video_fee)
-    home_lowest_member_price = display_home_fee(minimum_member_fee)
+    home_lowest_one_time_price = display_home_fee(minimum_standard_fee)
     home_one_time_price = (
         f"{'từ' if is_vi else 'from'} {display_home_fee(minimum_standard_fee)}"
         if minimum_standard_fee is not None
@@ -2443,7 +2443,7 @@ def build_home_context(request):
         'how_it_works': how_it_works,
         'home_message_price': home_message_price,
         'home_video_price': home_video_price,
-        'home_lowest_member_price': home_lowest_member_price,
+        'home_lowest_one_time_price': home_lowest_one_time_price,
         'usd_to_vnd_rate': display_static_usd(1),
         'recaptcha_site_key': settings.RECAPTCHA_SITE_KEY,
         'featured_footer_groups': get_featured_footer_groups(),

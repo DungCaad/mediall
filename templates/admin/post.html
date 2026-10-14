@@ -108,7 +108,7 @@
                 <strong>{{ item.title }}</strong>
                 <span>{{ item.created_at|date:"d/m/Y H:i" }} · {{ item.view_count }} views</span>
             </div>
-            <a href="{% url 'post_detail' item.pk %}" target="_blank" rel="noopener">View post</a>
+            <a href="{{ item.get_absolute_url }}" target="_blank" rel="noopener">View post</a>
         </article>
         {% empty %}
         <p>No posts yet.</p>

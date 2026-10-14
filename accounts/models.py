@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.urls import reverse
+from django.utils.text import slugify
 import re
 from pathlib import Path
 from uuid import uuid4
@@ -389,6 +391,12 @@ class BlogPost(models.Model):
 
     def __str__(self):
         return self.title
+
+    def get_url_slug(self):
+        return f"{slugify(self.title) or 'post'}-{self.pk}"
+
+    def get_absolute_url(self):
+        return reverse("post_detail_slug", kwargs={"post_slug": self.get_url_slug()})
 
     @property
     def tag_list(self):

@@ -8,7 +8,7 @@
                 <h3>{{ group.name }}</h3>
                 <div class="footer-featured-list">
                     {% for featured_post in group.posts %}
-                    <a href="{% url 'post_detail' featured_post.pk %}">{{ featured_post.title }}</a>
+                    <a href="{{ featured_post.get_absolute_url }}">{{ featured_post.title }}</a>
                     {% endfor %}
                 </div>
             </section>

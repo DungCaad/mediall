@@ -27,7 +27,7 @@ from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
 from django.db.models import Avg, F, Min, Q
 from django.forms import modelform_factory
-from django.http import FileResponse, HttpResponseForbidden, JsonResponse
+from django.http import FileResponse, Http404, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
 from django.urls import reverse
@@ -670,7 +670,7 @@ def build_admin_post_actions(post):
         {
             "type": "link",
             "label": "View post",
-            "url": reverse("post_detail", args=[post.pk]),
+            "url": post.get_absolute_url(),
             "class_name": "secondary",
             "new_window": True,
         },
@@ -985,6 +985,12 @@ def post_detail(request, post_id):
         posts = posts.filter(is_published=True)
     post = get_object_or_404(posts, pk=post_id)
 
+    if request.path.rstrip("/") != post.get_absolute_url():
+        target_url = post.get_absolute_url()
+        if request.META.get("QUERY_STRING"):
+            target_url = f"{target_url}?{request.META['QUERY_STRING']}"
+        return redirect(target_url, permanent=True)
+
     BlogPost.objects.filter(pk=post.pk).update(view_count=F("view_count") + 1)
     post.view_count += 1
 
@@ -1005,6 +1011,13 @@ def post_detail(request, post_id):
     }
     context.update(build_header_context(request=request))
     return render(request, "post_detail.html", context)
+
+
+def post_detail_slug(request, post_slug):
+    post_id = post_slug.rsplit("-", 1)[-1]
+    if not post_id.isdecimal():
+        raise Http404
+    return post_detail(request, int(post_id))
 
 
 @staff_member_required

@@ -50,7 +50,7 @@
         <aside class="post-sidebar">
             <section class="post-search-card">
                 <h2>Search</h2>
-                <form method="get" action="{% url 'post_detail' post.pk %}">
+                <form method="get" action="{{ post.get_absolute_url }}">
                     <input type="search" name="q" value="{{ search_query }}" placeholder="Enter keywords..." aria-label="Search posts">
                     <button type="submit" aria-label="Search">⌕</button>
                 </form>
@@ -59,7 +59,7 @@
             <section class="post-latest-card">
                 <h2>{% if search_query %}Search results{% else %}Recent posts{% endif %}</h2>
                 {% for item in sidebar_posts %}
-                <a href="{% url 'post_detail' item.pk %}">
+                <a href="{{ item.get_absolute_url }}">
                     <strong>{{ item.title }}</strong>
                     <span>{{ item.created_at|date:"d/m/Y" }} · {{ item.view_count }} views</span>
                 </a>

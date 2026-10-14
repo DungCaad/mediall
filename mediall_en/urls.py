@@ -31,6 +31,7 @@ urlpatterns = [
     path("admin/orders", views.admin_orders, name="admin_orders"),
     path("admin/orders/<int:appointment_id>", views.admin_order_detail, name="admin_order_detail"),
     path("appointments/<int:appointment_id>/payment", views.create_appointment_checkout, name="create_appointment_checkout"),
+    path("api/paddle-webhook", views.paddle_webhook, name="paddle_webhook_legacy"),
     path("payments/paddle/webhook", views.paddle_webhook, name="paddle_webhook"),
     path("admin/profiles/doctor/", views.admin_profiles, {"profile_type": "doctor"}, name="admin_doctor_profiles"),
     path("admin/profiles/doctor/<int:profile_id>", views.admin_profile_detail, {"profile_type": "doctor"}, name="admin_doctor_profile_detail"),

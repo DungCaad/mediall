@@ -4,6 +4,7 @@ import hmac
 import json
 import mimetypes
 import struct
+import zipfile
 from uuid import uuid4
 from decimal import Decimal, ROUND_HALF_UP
 from html import escape
@@ -37,13 +38,43 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from PIL import Image, UnidentifiedImageError
 
-from accounts.models import AccountProfile, AppointmentAttachment, BlogPost, DoctorAppointment, DoctorBusyDate, DoctorProfile, DoctorReview, FeaturedPostGroup, MedicalRecord, PatientProfile, PatientProfileAccessRequest, UiTranslation
+from accounts.models import AccountProfile, AppointmentAttachment, BlogPost, DoctorAppointment, DoctorBusyDate, DoctorProfile, DoctorReview, FeaturedPostGroup, MedicalRecord, PatientProfile, PatientProfileAccessRequest, PatientProfileDocument, UiTranslation
 from accounts.context_processors import VIETNAMESE_HOSTS
 from chat.models import ConversationMember, Message
 
 
 STANDARD_PATIENT_PRICE_MULTIPLIER = Decimal("2.05")
 MEMBER_PATIENT_PRICE_MULTIPLIER = Decimal("1.50")
+PATIENT_PROFILE_DOCUMENT_MAX_BYTES = 50 * 1024 * 1024
+PATIENT_PROFILE_DOCUMENT_MAX_FILES = 10
+PATIENT_PROFILE_DOCUMENT_MAX_TOTAL_BYTES = 150 * 1024 * 1024
+
+
+def validate_patient_profile_document(uploaded_file):
+    extension = Path(uploaded_file.name).suffix.lower()
+    if extension not in {".pdf", ".docx", ".jpg", ".jpeg", ".png", ".gif", ".webp"}:
+        return "Use PDF, DOCX, JPG, PNG, GIF, or WEBP files."
+    if uploaded_file.size > PATIENT_PROFILE_DOCUMENT_MAX_BYTES:
+        return "Each file must be 50 MB or smaller."
+
+    try:
+        if extension == ".pdf":
+            is_valid = uploaded_file.read(5).startswith(b"%PDF-")
+        elif extension == ".docx":
+            with zipfile.ZipFile(uploaded_file) as document:
+                is_valid = "word/document.xml" in document.namelist()
+        else:
+            image = Image.open(uploaded_file)
+            image.verify()
+            is_valid = True
+    except (OSError, ValueError, zipfile.BadZipFile, UnidentifiedImageError, Image.DecompressionBombError):
+        is_valid = False
+    finally:
+        uploaded_file.seek(0)
+
+    if not is_valid:
+        return "This file does not appear to be a valid PDF, DOCX, or image."
+    return ""
 
 
 class SafePostHTMLParser(HTMLParser):
@@ -295,6 +326,24 @@ def appointment_attachment_file(request, attachment_id):
         attachment.file.open("rb"),
         as_attachment=False,
         filename=attachment.original_name,
+        content_type=content_type,
+    )
+
+
+@login_required
+def patient_profile_document_file(request, document_id):
+    document = get_object_or_404(
+        PatientProfileDocument.objects.select_related("patient__account__user"),
+        pk=document_id,
+    )
+    if document.patient.account.user_id != request.user.pk:
+        return HttpResponseForbidden("You do not have permission to view this file.")
+
+    content_type = mimetypes.guess_type(document.original_name)[0] or "application/octet-stream"
+    return FileResponse(
+        document.file.open("rb"),
+        as_attachment=True,
+        filename=document.original_name,
         content_type=content_type,
     )
 
@@ -1781,6 +1830,7 @@ def build_profile_context(request, profile_form, profile_type, active_tab="perso
     doctor_schedule = None
     recommended_doctors = []
     medical_history = []
+    profile_documents = []
     consultation_requests = []
     profile_access_requests = []
     if isinstance(profile_form.instance, DoctorProfile):
@@ -1792,6 +1842,9 @@ def build_profile_context(request, profile_form, profile_type, active_tab="perso
     else:
         # Tab lịch sử khám dành cho tài khoản bệnh nhân
         profile_tabs.append({"id": "medical-history", "label": "Medical history"})
+        # Tab hợp đồng và tệp đính kèm dành cho tài khoản bệnh nhân
+        profile_tabs.append({"id": "contracts-attachments", "label": "Contracts and Attachments"})
+        profile_documents = profile_form.instance.documents.all()
         # Tab danh sách yêu cầu tư vấn dành cho tài khoản bệnh nhân
         profile_tabs.append({"id": "consultation-requests", "label": "Consultation requests"})
         # Tab yêu cầu xem hồ sơ dành cho tài khoản bệnh nhân
@@ -1910,6 +1963,8 @@ def build_profile_context(request, profile_form, profile_type, active_tab="perso
         "doctor_schedule": doctor_schedule,
         "recommended_doctors": recommended_doctors,
         "medical_history": medical_history,
+        "profile_documents": profile_documents,
+        "can_manage_profile_documents": request.user.is_staff,
         "consultation_requests": consultation_requests,
         "profile_access_requests": profile_access_requests,
         "profile_access_actions": profile_access_actions,
@@ -2618,7 +2673,7 @@ def profile_page(request):
     if profile_type == "Doctor":
         allowed_tabs.add("schedule")
     else:
-        allowed_tabs.update({"medical-history", "consultation-requests", "access-requests"})
+        allowed_tabs.update({"medical-history", "contracts-attachments", "consultation-requests", "access-requests"})
     if active_tab not in allowed_tabs:
         active_tab = "personal"
 
@@ -2780,6 +2835,38 @@ def profile_page(request):
             messages.error(request, "Invalid request response.")
         return redirect("/profile?tab=access-requests")
 
+    if request.method == "POST" and request.POST.get("profile_action") == "upload_profile_documents":
+        if profile_type != "Patient" or not request.user.is_staff:
+            return HttpResponseForbidden("Only admins can manage profile files.")
+
+        uploaded_files = request.FILES.getlist("documents")
+        upload_errors = []
+        if not uploaded_files:
+            upload_errors.append("Choose at least one file to upload.")
+        if len(uploaded_files) > PATIENT_PROFILE_DOCUMENT_MAX_FILES:
+            upload_errors.append("You can upload up to 10 files at a time.")
+        if sum(uploaded_file.size for uploaded_file in uploaded_files) > PATIENT_PROFILE_DOCUMENT_MAX_TOTAL_BYTES:
+            upload_errors.append("The total size of the selected files cannot exceed 150 MB.")
+
+        for uploaded_file in uploaded_files:
+            validation_error = validate_patient_profile_document(uploaded_file)
+            if validation_error:
+                upload_errors.append(f"{uploaded_file.name}: {validation_error}")
+
+        if upload_errors:
+            for upload_error in upload_errors:
+                messages.error(request, upload_error)
+        else:
+            with transaction.atomic():
+                for uploaded_file in uploaded_files:
+                    PatientProfileDocument.objects.create(
+                        patient=role_profile,
+                        file=uploaded_file,
+                        original_name=uploaded_file.name[:255],
+                    )
+            messages.success(request, "Your files were uploaded successfully.")
+        return redirect("/profile?tab=contracts-attachments")
+
     if request.method == "POST":
         profile_form = RoleProfileForm(request.POST, request.FILES, instance=role_profile)
         if profile_form.is_valid():
@@ -2859,6 +2946,8 @@ def doctor_search(request):
         {"id": "recommend", "label": "Add to recommendations", "type": "form", "class_name": "doctor-cta recommend", "doctor_only": True},
         # Nút xem hồ sơ dành cho tài khoản bác sĩ
         {"id": "view", "label": "View profile", "type": "link", "class_name": "doctor-cta secondary", "doctor_only": True},
+        # Nút xem hồ sơ quản trị dành cho admin
+        {"id": "admin-view", "label": "View profile", "type": "link", "class_name": "doctor-cta secondary", "admin_only": True, "url_name": "admin_doctor_profile_detail"},
         # Nút đặt khám dành cho bệnh nhân và khách
         {"id": "book", "label": "Book appointment", "type": "link", "class_name": "doctor-cta primary", "hide_for_doctor": True},
     ]
@@ -2867,6 +2956,7 @@ def doctor_search(request):
         "doctors": visible_doctors,
         "result_count": len(visible_doctors),
         "viewer_doctor": viewer_doctor,
+        "is_staff_admin": request.user.is_staff,
         "doctor_result_actions": doctor_result_actions,
     }
     context.update(build_header_context(request=request))

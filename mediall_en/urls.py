@@ -50,6 +50,7 @@ urlpatterns = [
     path("medical-records", views.medical_records_page, name="medical_records"),
     path("translate/english", views.translate_to_english, name="translate_to_english"),
     path("appointment-attachments/<int:attachment_id>", views.appointment_attachment_file, name="appointment_attachment"),
+    path("profile-documents/<int:document_id>", views.patient_profile_document_file, name="patient_profile_document"),
     path("post/<int:post_id>", views.post_detail, name="post_detail"),
     path("<slug:post_slug>", views.post_detail_slug, name="post_detail_slug"),
 ]

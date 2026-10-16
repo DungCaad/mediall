@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit profile | Mediall</title>
     <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20260729-1">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20261016-1">
     {% if paddle_client_token %}<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>{% endif %}
     <script src="{% static 'js/profile.js' %}?v=20260831-1" defer></script>
 </head>
@@ -201,6 +201,40 @@
                         <p>Completed appointments and medical records will appear here.</p>
                         <a class="btn" href="{% url 'doctor_search' %}">Find a doctor</a>
                     </section>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
+            {% if profile_type == "Patient" %}
+            <section class="profile-panel{% if active_profile_tab == 'contracts-attachments' %} active{% endif %}" id="profile-panel-contracts-attachments" role="tabpanel" data-profile-panel="contracts-attachments">
+                <h2>Contracts and Attachments</h2>
+                <p class="profile-panel-description">Upload and keep your contracts and other important files in one place.</p>
+
+                {% if can_manage_profile_documents %}
+                <form class="profile-document-upload" method="post" action="{% url 'profile' %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="profile_action" value="upload_profile_documents">
+                    <label class="profile-document-upload-field" for="profile-documents">
+                        <span>Select files</span>
+                        <input id="profile-documents" type="file" name="documents" accept=".pdf,.docx,.jpg,.jpeg,.png,.gif,.webp" multiple required>
+                        <small>PDF, DOCX, JPG, PNG, GIF, or WEBP. Up to 10 files, 50 MB each.</small>
+                    </label>
+                    <button class="btn" type="submit">Upload files</button>
+                </form>
+                {% endif %}
+
+                <div class="profile-document-list">
+                    {% for document in profile_documents %}
+                    <article class="profile-document-row">
+                        <div class="profile-document-details">
+                            <strong>{{ document.original_name }}</strong>
+                            <small>Uploaded {{ document.uploaded_at|date:"M j, Y" }} · {{ document.file.size|filesizeformat }}</small>
+                        </div>
+                        <a class="profile-document-download" href="{% url 'patient_profile_document' document.pk %}">Download</a>
+                    </article>
+                    {% empty %}
+                    <p class="appointment-request-empty">No files uploaded yet.</p>
                     {% endfor %}
                 </div>
             </section>

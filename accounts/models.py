@@ -13,6 +13,11 @@ def appointment_attachment_upload_to(instance, filename):
     return f"appointments/attachments/{uuid4().hex}{suffix}"
 
 
+def patient_profile_document_upload_to(instance, filename):
+    suffix = Path(filename).suffix.lower()[:10]
+    return f"patients/documents/{uuid4().hex}{suffix}"
+
+
 class AccountProfile(models.Model):
     ROLE_PATIENT = "patient"
     ROLE_DOCTOR = "doctor"
@@ -64,6 +69,23 @@ class PatientProfile(BaseRoleProfile):
 
     def __str__(self):
         return f"Patient profile: {self.account.user.username}"
+
+
+class PatientProfileDocument(models.Model):
+    patient = models.ForeignKey(
+        PatientProfile,
+        on_delete=models.CASCADE,
+        related_name="documents",
+    )
+    file = models.FileField("File", upload_to=patient_profile_document_upload_to)
+    original_name = models.CharField(max_length=255)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-uploaded_at"]
+
+    def __str__(self):
+        return self.original_name
 
 
 class PatientProfileAccessRequest(models.Model):

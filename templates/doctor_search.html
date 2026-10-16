@@ -68,7 +68,9 @@
                         </div>
                         <div class="doctor-result-actions">
                             {% for action in doctor_result_actions %}
-                                {% if action.doctor_only and viewer_doctor %}
+                                {% if action.admin_only and is_staff_admin %}
+                                    <a href="{% url action.url_name doctor.pk %}" class="{{ action.class_name }}">{{ action.label }}</a>
+                                {% elif action.doctor_only and viewer_doctor and not is_staff_admin %}
                                     {% if action.type == 'form' %}
                                     <form action="{% url 'doctor_search' %}" method="post">
                                         {% csrf_token %}

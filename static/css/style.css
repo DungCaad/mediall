@@ -1850,6 +1850,75 @@ header {
     margin: -10px 0 22px;
 }
 
+.profile-document-upload {
+    align-items: flex-end;
+    background: #f8fbfb;
+    border: 1px dashed var(--border-color);
+    border-radius: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    padding: 20px;
+}
+
+.profile-document-upload-field {
+    flex: 1 1 280px;
+    min-width: 0;
+}
+
+.profile-document-upload-field > span {
+    color: var(--primary-text);
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.profile-document-upload-field input {
+    display: block;
+    max-width: 100%;
+}
+
+.profile-document-upload-field small,
+.profile-document-details small {
+    color: var(--secondary-text);
+    display: block;
+    font-size: 12px;
+    margin-top: 8px;
+}
+
+.profile-document-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.profile-document-row {
+    align-items: center;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    display: flex;
+    gap: 16px;
+    justify-content: space-between;
+    padding: 16px 18px;
+}
+
+.profile-document-details {
+    min-width: 0;
+}
+
+.profile-document-details strong {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.profile-document-download {
+    color: var(--accent-teal);
+    flex: 0 0 auto;
+    font-size: 14px;
+    font-weight: 700;
+}
+
 .account-information {
     border: 1px solid var(--border-color);
     border-radius: 10px;
@@ -2673,6 +2742,11 @@ header {
 
     .profile-fields {
         grid-template-columns: 1fr;
+    }
+
+    .profile-document-row {
+        align-items: flex-start;
+        flex-direction: column;
     }
 }
 

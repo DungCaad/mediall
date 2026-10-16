@@ -8,6 +8,11 @@
 {% block content_title %}{% endblock %}
 
 {% block content %}
+{% if messages %}
+<div class="admin-profile-messages">
+    {% for message in messages %}<p class="{{ message.tags }}">{{ message }}</p>{% endfor %}
+</div>
+{% endif %}
 <div class="admin-readonly-profile-heading">
     <div class="admin-readonly-profile-avatar">
         {% if role_profile.avatar_url %}<img src="{{ role_profile.avatar_url }}" alt="">{% else %}<img src="{% static 'images/no-profile.png' %}" alt="">{% endif %}
@@ -58,6 +63,36 @@
         {% endfor %}
     </dl>
 </section>
+
+{% if can_manage_profile_documents %}
+<section class="admin-profile-document-card">
+    <h2>Contracts and Attachments</h2>
+    <p>Upload files for this doctor. They can view and download these files from their profile.</p>
+
+    <form class="admin-profile-document-upload" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="profile_action" value="upload_profile_documents">
+        <label for="admin-profile-documents">Select files</label>
+        <input id="admin-profile-documents" type="file" name="documents" accept=".pdf,.docx,.jpg,.jpeg,.png,.gif,.webp" multiple required>
+        <small>PDF, DOCX, JPG, PNG, GIF, or WEBP. Up to 10 files, 50 MB each.</small>
+        <button class="admin-profile-upload-button" type="submit">Upload files</button>
+    </form>
+
+    <div class="admin-profile-document-list">
+        {% for document in profile_documents %}
+        <article class="admin-profile-document-row">
+            <div>
+                <strong>{{ document.original_name }}</strong>
+                <small>Uploaded {{ document.uploaded_at|date:"M j, Y" }} · {{ document.file.size|filesizeformat }}</small>
+            </div>
+            <a href="{% url 'doctor_profile_document' document.pk %}">Download</a>
+        </article>
+        {% empty %}
+        <p>No files uploaded yet.</p>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
 
 <a class="admin-order-back" href="{% url profile_list_url_name %}">Back to profile list</a>
 {% endblock %}

@@ -38,23 +38,23 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from PIL import Image, UnidentifiedImageError
 
-from accounts.models import AccountProfile, AppointmentAttachment, BlogPost, DoctorAppointment, DoctorBusyDate, DoctorProfile, DoctorReview, FeaturedPostGroup, MedicalRecord, PatientProfile, PatientProfileAccessRequest, PatientProfileDocument, UiTranslation
+from accounts.models import AccountProfile, AppointmentAttachment, BlogPost, DoctorAppointment, DoctorBusyDate, DoctorProfile, DoctorProfileDocument, DoctorReview, FeaturedPostGroup, MedicalRecord, PatientProfile, PatientProfileAccessRequest, PatientProfileDocument, UiTranslation
 from accounts.context_processors import VIETNAMESE_HOSTS
 from chat.models import ConversationMember, Message
 
 
 STANDARD_PATIENT_PRICE_MULTIPLIER = Decimal("2.05")
 MEMBER_PATIENT_PRICE_MULTIPLIER = Decimal("1.50")
-PATIENT_PROFILE_DOCUMENT_MAX_BYTES = 50 * 1024 * 1024
-PATIENT_PROFILE_DOCUMENT_MAX_FILES = 10
-PATIENT_PROFILE_DOCUMENT_MAX_TOTAL_BYTES = 150 * 1024 * 1024
+PROFILE_DOCUMENT_MAX_BYTES = 50 * 1024 * 1024
+PROFILE_DOCUMENT_MAX_FILES = 10
+PROFILE_DOCUMENT_MAX_TOTAL_BYTES = 150 * 1024 * 1024
 
 
-def validate_patient_profile_document(uploaded_file):
+def validate_profile_document(uploaded_file):
     extension = Path(uploaded_file.name).suffix.lower()
     if extension not in {".pdf", ".docx", ".jpg", ".jpeg", ".png", ".gif", ".webp"}:
         return "Use PDF, DOCX, JPG, PNG, GIF, or WEBP files."
-    if uploaded_file.size > PATIENT_PROFILE_DOCUMENT_MAX_BYTES:
+    if uploaded_file.size > PROFILE_DOCUMENT_MAX_BYTES:
         return "Each file must be 50 MB or smaller."
 
     try:
@@ -337,6 +337,24 @@ def patient_profile_document_file(request, document_id):
         pk=document_id,
     )
     if document.patient.account.user_id != request.user.pk:
+        return HttpResponseForbidden("You do not have permission to view this file.")
+
+    content_type = mimetypes.guess_type(document.original_name)[0] or "application/octet-stream"
+    return FileResponse(
+        document.file.open("rb"),
+        as_attachment=True,
+        filename=document.original_name,
+        content_type=content_type,
+    )
+
+
+@login_required
+def doctor_profile_document_file(request, document_id):
+    document = get_object_or_404(
+        DoctorProfileDocument.objects.select_related("doctor__account__user"),
+        pk=document_id,
+    )
+    if document.doctor.account.user_id != request.user.pk and not request.user.is_staff:
         return HttpResponseForbidden("You do not have permission to view this file.")
 
     content_type = mimetypes.guess_type(document.original_name)[0] or "application/octet-stream"
@@ -1200,11 +1218,45 @@ def admin_profile_detail(request, account_id=None, profile_type=None, profile_id
                 "profile_list_url_name": "admin_user_profiles",
             }, status=403)
 
+    profile_documents = []
     if account.role == AccountProfile.ROLE_DOCTOR:
         if role_profile is None:
             role_profile = DoctorProfile.objects.filter(account=account).first()
             if role_profile is None:
                 return render_admin_no_profile(request, "doctor")
+        profile_documents = role_profile.documents.all()
+        if request.method == "POST" and request.POST.get("profile_action") == "upload_profile_documents":
+            uploaded_files = request.FILES.getlist("documents")
+            upload_errors = []
+            if not uploaded_files:
+                upload_errors.append("Choose at least one file to upload.")
+            if len(uploaded_files) > PROFILE_DOCUMENT_MAX_FILES:
+                upload_errors.append("You can upload up to 10 files at a time.")
+            if sum(uploaded_file.size for uploaded_file in uploaded_files) > PROFILE_DOCUMENT_MAX_TOTAL_BYTES:
+                upload_errors.append("The total size of the selected files cannot exceed 150 MB.")
+
+            for uploaded_file in uploaded_files:
+                validation_error = validate_profile_document(uploaded_file)
+                if validation_error:
+                    upload_errors.append(f"{uploaded_file.name}: {validation_error}")
+
+            if upload_errors:
+                for upload_error in upload_errors:
+                    messages.error(request, upload_error)
+            else:
+                with transaction.atomic():
+                    for uploaded_file in uploaded_files:
+                        DoctorProfileDocument.objects.create(
+                            doctor=role_profile,
+                            file=uploaded_file,
+                            original_name=uploaded_file.name[:255],
+                        )
+                messages.success(request, "Your files were uploaded successfully.")
+
+            redirect_id = role_profile.pk if profile_type else account.pk
+            redirect_kwarg = "profile_id" if profile_type else "account_id"
+            return redirect(request.resolver_match.url_name, **{redirect_kwarg: redirect_id})
+
         if request.method == "POST":
             verification_action = request.POST.get("verification_action")
             if verification_action not in {"grant", "revoke"}:
@@ -1281,6 +1333,8 @@ def admin_profile_detail(request, account_id=None, profile_type=None, profile_id
         "profile_title": profile_title,
         "profile_details": profile_details,
         "profile_display_name": role_profile.full_name or get_account_display_name(account.user),
+        "profile_documents": profile_documents,
+        "can_manage_profile_documents": account.role == AccountProfile.ROLE_DOCTOR,
         "can_manage_verification": account.role == AccountProfile.ROLE_DOCTOR,
         "can_manage_membership": account.role == AccountProfile.ROLE_PATIENT,
         "profile_list_url_name": (
@@ -1836,9 +1890,12 @@ def build_profile_context(request, profile_form, profile_type, active_tab="perso
     if isinstance(profile_form.instance, DoctorProfile):
         # Tab Lịch đặt khám chỉ dành cho bác sĩ
         profile_tabs.append({"id": "schedule", "label": "Appointment schedule"})
+        # Tab hợp đồng và tệp đính kèm dành cho tài khoản bác sĩ
+        profile_tabs.append({"id": "contracts-attachments", "label": "Contracts and Attachments"})
         selected_month = request.POST.get("schedule_month") or request.GET.get("month", "")
         doctor_schedule = build_doctor_schedule(profile_form.instance, selected_month)
         recommended_doctors = profile_form.instance.recommended_doctors.select_related("account__user").order_by("full_name")
+        profile_documents = profile_form.instance.documents.all()
     else:
         # Tab lịch sử khám dành cho tài khoản bệnh nhân
         profile_tabs.append({"id": "medical-history", "label": "Medical history"})
@@ -1964,7 +2021,6 @@ def build_profile_context(request, profile_form, profile_type, active_tab="perso
         "recommended_doctors": recommended_doctors,
         "medical_history": medical_history,
         "profile_documents": profile_documents,
-        "can_manage_profile_documents": request.user.is_staff,
         "consultation_requests": consultation_requests,
         "profile_access_requests": profile_access_requests,
         "profile_access_actions": profile_access_actions,
@@ -2671,7 +2727,7 @@ def profile_page(request):
     active_tab = request.GET.get("tab", "personal")
     allowed_tabs = {"personal", "security", "information"}
     if profile_type == "Doctor":
-        allowed_tabs.add("schedule")
+        allowed_tabs.update({"schedule", "contracts-attachments"})
     else:
         allowed_tabs.update({"medical-history", "contracts-attachments", "consultation-requests", "access-requests"})
     if active_tab not in allowed_tabs:
@@ -2834,38 +2890,6 @@ def profile_page(request):
         else:
             messages.error(request, "Invalid request response.")
         return redirect("/profile?tab=access-requests")
-
-    if request.method == "POST" and request.POST.get("profile_action") == "upload_profile_documents":
-        if profile_type != "Patient" or not request.user.is_staff:
-            return HttpResponseForbidden("Only admins can manage profile files.")
-
-        uploaded_files = request.FILES.getlist("documents")
-        upload_errors = []
-        if not uploaded_files:
-            upload_errors.append("Choose at least one file to upload.")
-        if len(uploaded_files) > PATIENT_PROFILE_DOCUMENT_MAX_FILES:
-            upload_errors.append("You can upload up to 10 files at a time.")
-        if sum(uploaded_file.size for uploaded_file in uploaded_files) > PATIENT_PROFILE_DOCUMENT_MAX_TOTAL_BYTES:
-            upload_errors.append("The total size of the selected files cannot exceed 150 MB.")
-
-        for uploaded_file in uploaded_files:
-            validation_error = validate_patient_profile_document(uploaded_file)
-            if validation_error:
-                upload_errors.append(f"{uploaded_file.name}: {validation_error}")
-
-        if upload_errors:
-            for upload_error in upload_errors:
-                messages.error(request, upload_error)
-        else:
-            with transaction.atomic():
-                for uploaded_file in uploaded_files:
-                    PatientProfileDocument.objects.create(
-                        patient=role_profile,
-                        file=uploaded_file,
-                        original_name=uploaded_file.name[:255],
-                    )
-            messages.success(request, "Your files were uploaded successfully.")
-        return redirect("/profile?tab=contracts-attachments")
 
     if request.method == "POST":
         profile_form = RoleProfileForm(request.POST, request.FILES, instance=role_profile)

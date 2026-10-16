@@ -18,6 +18,11 @@ def patient_profile_document_upload_to(instance, filename):
     return f"patients/documents/{uuid4().hex}{suffix}"
 
 
+def doctor_profile_document_upload_to(instance, filename):
+    suffix = Path(filename).suffix.lower()[:10]
+    return f"doctors/documents/{uuid4().hex}{suffix}"
+
+
 class AccountProfile(models.Model):
     ROLE_PATIENT = "patient"
     ROLE_DOCTOR = "doctor"
@@ -78,6 +83,23 @@ class PatientProfileDocument(models.Model):
         related_name="documents",
     )
     file = models.FileField("File", upload_to=patient_profile_document_upload_to)
+    original_name = models.CharField(max_length=255)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-uploaded_at"]
+
+    def __str__(self):
+        return self.original_name
+
+
+class DoctorProfileDocument(models.Model):
+    doctor = models.ForeignKey(
+        "DoctorProfile",
+        on_delete=models.CASCADE,
+        related_name="documents",
+    )
+    file = models.FileField("File", upload_to=doctor_profile_document_upload_to)
     original_name = models.CharField(max_length=255)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 

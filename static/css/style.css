@@ -1850,36 +1850,6 @@ header {
     margin: -10px 0 22px;
 }
 
-.profile-document-upload {
-    align-items: flex-end;
-    background: #f8fbfb;
-    border: 1px dashed var(--border-color);
-    border-radius: 12px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 18px;
-    padding: 20px;
-}
-
-.profile-document-upload-field {
-    flex: 1 1 280px;
-    min-width: 0;
-}
-
-.profile-document-upload-field > span {
-    color: var(--primary-text);
-    display: block;
-    font-size: 14px;
-    font-weight: 700;
-    margin-bottom: 8px;
-}
-
-.profile-document-upload-field input {
-    display: block;
-    max-width: 100%;
-}
-
-.profile-document-upload-field small,
 .profile-document-details small {
     color: var(--secondary-text);
     display: block;

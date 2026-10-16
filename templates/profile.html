@@ -206,23 +206,10 @@
             </section>
             {% endif %}
 
-            {% if profile_type == "Patient" %}
+            {% if profile_type == "Doctor" or profile_type == "Patient" %}
             <section class="profile-panel{% if active_profile_tab == 'contracts-attachments' %} active{% endif %}" id="profile-panel-contracts-attachments" role="tabpanel" data-profile-panel="contracts-attachments">
                 <h2>Contracts and Attachments</h2>
-                <p class="profile-panel-description">Upload and keep your contracts and other important files in one place.</p>
-
-                {% if can_manage_profile_documents %}
-                <form class="profile-document-upload" method="post" action="{% url 'profile' %}" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    <input type="hidden" name="profile_action" value="upload_profile_documents">
-                    <label class="profile-document-upload-field" for="profile-documents">
-                        <span>Select files</span>
-                        <input id="profile-documents" type="file" name="documents" accept=".pdf,.docx,.jpg,.jpeg,.png,.gif,.webp" multiple required>
-                        <small>PDF, DOCX, JPG, PNG, GIF, or WEBP. Up to 10 files, 50 MB each.</small>
-                    </label>
-                    <button class="btn" type="submit">Upload files</button>
-                </form>
-                {% endif %}
+                <p class="profile-panel-description">View and download contracts and other files attached to your profile.</p>
 
                 <div class="profile-document-list">
                     {% for document in profile_documents %}
@@ -231,7 +218,11 @@
                             <strong>{{ document.original_name }}</strong>
                             <small>Uploaded {{ document.uploaded_at|date:"M j, Y" }} · {{ document.file.size|filesizeformat }}</small>
                         </div>
+                        {% if profile_type == "Doctor" %}
+                        <a class="profile-document-download" href="{% url 'doctor_profile_document' document.pk %}">Download</a>
+                        {% else %}
                         <a class="profile-document-download" href="{% url 'patient_profile_document' document.pk %}">Download</a>
+                        {% endif %}
                     </article>
                     {% empty %}
                     <p class="appointment-request-empty">No files uploaded yet.</p>

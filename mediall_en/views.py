@@ -1165,6 +1165,52 @@ def render_admin_no_profile(request, profile_type):
     }, status=404)
 
 
+class DoctorAdminProfileForm(forms.ModelForm):
+    email = forms.EmailField(label="Email", required=False)
+    phone = forms.CharField(label="Phone number", max_length=20)
+
+    class Meta:
+        model = DoctorProfile
+        fields = [
+            "full_name",
+            "birth_year",
+            "country",
+            "avatar",
+            "specialties",
+            "position",
+            "workplace",
+            "years_experience",
+            "video_consultation_fee",
+            "message_consultation_fee",
+            "introduction",
+            "training_history",
+        ]
+
+    def __init__(self, *args, account, **kwargs):
+        self.account = account
+        initial = kwargs.setdefault("initial", {})
+        initial.setdefault("email", account.user.email)
+        initial.setdefault("phone", account.phone)
+        super().__init__(*args, **kwargs)
+
+        for field in self.fields.values():
+            if not isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs.setdefault("class", "admin-profile-edit-control")
+        self.fields["phone"].widget.attrs.setdefault("type", "tel")
+        self.fields["birth_year"].widget.attrs.update({"min": 0, "max": 9999})
+        self.fields["years_experience"].widget.attrs.setdefault("min", 0)
+        for field_name in ("video_consultation_fee", "message_consultation_fee"):
+            self.fields[field_name].widget.attrs.update({"min": 0, "step": "0.01"})
+
+    def clean_phone(self):
+        phone = self.cleaned_data["phone"].strip()
+        if not phone:
+            raise ValidationError("Phone number is required.")
+        if AccountProfile.objects.exclude(pk=self.account.pk).filter(phone=phone).exists():
+            raise ValidationError("An account with this phone number already exists.")
+        return phone
+
+
 @staff_member_required
 def admin_profile_detail(request, account_id=None, profile_type=None, profile_id=None):
     if profile_type == "doctor":
@@ -1219,6 +1265,8 @@ def admin_profile_detail(request, account_id=None, profile_type=None, profile_id
             }, status=403)
 
     profile_documents = []
+    doctor_edit_form = None
+    edit_form_open = False
     if account.role == AccountProfile.ROLE_DOCTOR:
         if role_profile is None:
             role_profile = DoctorProfile.objects.filter(account=account).first()
@@ -1257,7 +1305,30 @@ def admin_profile_detail(request, account_id=None, profile_type=None, profile_id
             redirect_kwarg = "profile_id" if profile_type else "account_id"
             return redirect(request.resolver_match.url_name, **{redirect_kwarg: redirect_id})
 
-        if request.method == "POST":
+        if request.method == "POST" and request.POST.get("profile_action") == "edit_doctor_profile":
+            doctor_edit_form = DoctorAdminProfileForm(
+                request.POST,
+                request.FILES,
+                instance=role_profile,
+                account=account,
+            )
+            if doctor_edit_form.is_valid():
+                try:
+                    with transaction.atomic():
+                        doctor_edit_form.save()
+                        account.phone = doctor_edit_form.cleaned_data["phone"]
+                        account.save(update_fields=["phone", "updated_at"])
+                        account.user.email = doctor_edit_form.cleaned_data["email"]
+                        account.user.save(update_fields=["email"])
+                except IntegrityError:
+                    doctor_edit_form.add_error("phone", "An account with this phone number already exists.")
+                else:
+                    messages.success(request, "Doctor profile information was updated successfully.")
+                    redirect_id = role_profile.pk if profile_type else account.pk
+                    redirect_kwarg = "profile_id" if profile_type else "account_id"
+                    return redirect(request.resolver_match.url_name, **{redirect_kwarg: redirect_id})
+            edit_form_open = True
+        elif request.method == "POST":
             verification_action = request.POST.get("verification_action")
             if verification_action not in {"grant", "revoke"}:
                 messages.error(request, "Invalid doctor verification action.")
@@ -1274,6 +1345,9 @@ def admin_profile_detail(request, account_id=None, profile_type=None, profile_id
             redirect_id = role_profile.pk if profile_type else account.pk
             redirect_kwarg = "profile_id" if profile_type else "account_id"
             return redirect(request.resolver_match.url_name, **{redirect_kwarg: redirect_id})
+
+        if doctor_edit_form is None:
+            doctor_edit_form = DoctorAdminProfileForm(instance=role_profile, account=account)
 
         profile_title = "Doctor profile"
         profile_details = [
@@ -1328,6 +1402,10 @@ def admin_profile_detail(request, account_id=None, profile_type=None, profile_id
 
     return render(request, "admin/profile_detail.html", {
         "title": f"{profile_title} #{account.pk}",
+        "profile_detail_url": reverse(
+            request.resolver_match.url_name,
+            kwargs={"profile_id": role_profile.pk} if profile_type else {"account_id": account.pk},
+        ),
         "account": account,
         "role_profile": role_profile,
         "profile_title": profile_title,
@@ -1336,6 +1414,9 @@ def admin_profile_detail(request, account_id=None, profile_type=None, profile_id
         "profile_documents": profile_documents,
         "can_manage_profile_documents": account.role == AccountProfile.ROLE_DOCTOR,
         "can_manage_verification": account.role == AccountProfile.ROLE_DOCTOR,
+        "can_edit_doctor_profile": account.role == AccountProfile.ROLE_DOCTOR,
+        "doctor_edit_form": doctor_edit_form,
+        "edit_form_open": edit_form_open,
         "can_manage_membership": account.role == AccountProfile.ROLE_PATIENT,
         "profile_list_url_name": (
             "admin_doctor_profiles"

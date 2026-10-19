@@ -64,6 +64,36 @@
     </dl>
 </section>
 
+{% if can_edit_doctor_profile %}
+<details class="admin-profile-edit-card"{% if edit_form_open %} open{% endif %}>
+    <summary>
+        <span>Edit profile information</span>
+        <small>Update this doctor's details from the admin page.</small>
+    </summary>
+    <div class="admin-profile-edit-content">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="profile_action" value="edit_doctor_profile">
+            {{ doctor_edit_form.non_field_errors }}
+            <div class="admin-profile-edit-grid">
+                {% for field in doctor_edit_form %}
+                <div class="admin-profile-edit-field{% if field.name == 'introduction' or field.name == 'training_history' %} full-width{% endif %}">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+                    {% for error in field.errors %}<small class="admin-profile-edit-error">{{ error }}</small>{% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+            <div class="admin-profile-edit-actions">
+                <button class="admin-profile-upload-button" type="submit">Save changes</button>
+                <a href="{{ profile_detail_url }}">Cancel</a>
+            </div>
+        </form>
+    </div>
+</details>
+{% endif %}
+
 {% if can_manage_profile_documents %}
 <section class="admin-profile-document-card">
     <h2>Contracts and Attachments</h2>
